@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -36,6 +37,15 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
   const handleBackdropPress = () => {
     onClose();
     router.replace("/");
+  };
+
+  const handleOpenURL = async (url: string) => {
+    onClose();
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      console.warn("Failed to open URL:", url, error);
+    }
   };
 
   return (
@@ -88,10 +98,26 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
             </View>
 
             <View style={styles.section}>
-              <MenuRow icon="business" title="Govt. of Kerala" />
-              <MenuRow icon="globe-outline" title="C-DIT" />
-              <MenuRow icon="information-circle-outline" title="Info" />
-              <MenuRow icon="share-social-outline" title="Share" />
+              <MenuRow
+                icon="business"
+                title="Govt. of Kerala"
+                onPress={() => handleOpenURL("https://kerala.gov.in")}
+              />
+              <MenuRow
+                icon="globe-outline"
+                title="C-DIT"
+                onPress={() => handleOpenURL("https://www.cdit.org")}
+              />
+              <MenuRow
+                icon="information-circle-outline"
+                title="Info"
+                onPress={() => handleOpenURL("https://your-info-page.com")}
+              />
+              <MenuRow
+                icon="share-social-outline"
+                title="Share"
+                onPress={() => handleOpenURL("https://your-app-link.com")}
+              />
               <MenuRow
                 icon="paper-plane-outline"
                 title="Suggest a Word"
@@ -100,7 +126,15 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
                   router.push("/suggest-word" as any);
                 }}
               />
-              <MenuRow icon="star-outline" title="Rate" />
+              <MenuRow
+                icon="star-outline"
+                title="Rate"
+                onPress={() =>
+                  handleOpenURL(
+                    "https://play.google.com/store/apps/details?id=com.yourapp"
+                  )
+                }
+              />
             </View>
           </ScrollView>
         </Animated.View>

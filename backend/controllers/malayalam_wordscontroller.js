@@ -3,6 +3,13 @@ const Dictionary = require('../models/englishmalayalam');
 const RecentSearch = require('../models/RecentSearches');
 const RecentOpening = require('../models/RecentOpening');
 
+const MALAYALAM_ALPHABET = [
+  "അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "എ", "ഏ", "ഐ", "ഒ", "ഓ", "ഔ",
+  "ക", "ഖ", "ഗ", "ഘ", "ച", "ഛ", "ജ", "ഝ", "ട", "ഠ", "ഡ", "ഢ",
+  "ത", "ഥ", "ദ", "ധ", "ന", "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര",
+  "ല", "വ", "ശ", "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
+];
+
 /**
  * GET /api/words/details/:id
  * ഒരു പ്രത്യേക വാക്കിന്റെ എല്ലാ വിവരങ്ങളും (Meanings, Images, Proverbs) ഒന്നിച്ച് ഫെച്ച് ചെയ്യുന്നു.
@@ -72,13 +79,6 @@ const getMalayalamMasterList = async (req, res) => {
 
   console.log(`\n📥 [Incoming Request] GET /api/words/browse-malayalam | Query: "${query || 'undefined'}"`);
 
-  const MALAYALAM_ALPHABET = [
-    "അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "എ", "ഏ", "ഐ", "ഒ", "ഓ", "ഔ",
-    "ക", "ഖ", "ഗ", "ഘ", "ച", "ഛ", "ജ", "ഝ", "ട", "ഠ", "ഡ", "ഢ",
-    "ത", "ഥ", "ദ", "ധ", "ന", "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര",
-    "ല", "വ", "ശ", "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
-  ];
-
   try {
     const searchCriteria = { 'status.approved': true };
     if (query && query.trim() !== '') {
@@ -131,13 +131,6 @@ const getMalayalamSynonymsList = async (req, res) => {
 
   console.log(`\n📥 [Incoming Request] GET /api/words/browse-synonyms | Query: "${query || 'undefined'}"`);
 
-  const MALAYALAM_ALPHABET = [
-    "അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "എ", "ഏ", "ഐ", "ഒ", "ഓ", "ഔ",
-    "ക", "ഖ", "ഗ", "ഘ", "ച", "ഛ", "ജ", "ഝ", "ട", "ഠ", "ഡ", "ഢ",
-    "ത", "ഥ", "ദ", "ധ", "ന", "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര",
-    "ല", "വ", "ശ", "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
-  ];
-
   try {
     const searchCriteria = { 
       'status.approved': true, 
@@ -189,13 +182,6 @@ const getMalayalamSynonymsList = async (req, res) => {
 const getRecentActivity = async (req, res) => {
   const startTime = Date.now();
   console.log(`\n📥 [Incoming Request] GET /api/words/recent-activity`);
-
-  const MALAYALAM_ALPHABET = [
-    "അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "എ", "ഏ", "ഐ", "ഒ", "ഓ", "ഔ",
-    "ക", "ഖ", "ഗ", "ഘ", "ച", "ഛ", "ജ", "ഝ", "ട", "ഠ", "ഡ", "ഢ",
-    "ത", "ഥ", "ദ", "ധ", "ന", "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര",
-    "ല", "വ", "ശ", "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
-  ];
 
   try {
     const rawSearches = await RecentSearch.find()

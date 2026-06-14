@@ -14,38 +14,32 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-// ബാക്കെൻഡ് റെസ്പോൺസ് ഘടനയ്ക്ക് അനുയോജ്യമായ ടൈപ്പ് ഡെഫനിഷൻ
+// Updated type mapping to align directly with your MongoDB query projections
 type DictionaryEntry = {
   id: number;
-  word: string; // മലയാളം വാക്ക്
   english_equivalent: string;
+  word: string; // Malayalam Word
   primary_malayalam_meaning: string;
 };
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.5:5000" : "http://localhost:5000",
-  "http://192.168.1.5:5000",
+  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
+  "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
-// മലയാളം സ്വരാക്ഷരങ്ങളും പ്രധാന വ്യഞ്ജനാക്ഷരങ്ങളും അടങ്ങിയ ലിസ്റ്റ് (Browsing എളുപ്പമാക്കാൻ)
-const MALAYALAM_ALPHABET = [
-  "അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "എ", "ഏ", "ഐ", "ഒ", "ഓ", "ഔ",
-  "ക", "ഖ", "ഗ", "ഘ", "ച", "ഛ", "ജ", "ഝ", "ട", "ഠ", "ഡ", "ഢ",
-  "ത", "ഥ", "ദ", "ധ", "ന", "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര",
-  "ല", "വ", "ശ", "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
-];
+// Alphabet list for the browser menu layout
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-export default function MalayalamEnglishScreen() {
-  const [selectedLetter, setSelectedLetter] = useState("അ");
+export default function EnglishMalayalamScreen() {
+  const [selectedLetter, setSelectedLetter] = useState("A");
   const [searchText, setSearchText] = useState("");
   const [entries, setEntries] = useState<DictionaryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // ബാക്കെൻഡിൽ നിന്നും മലയാളം വാക്കുകൾ ഫെച്ച് ചെയ്യാനുള്ള ഫങ്ഷൻ
-  const loadEntries = async (searchQuery: string) => {
+  const loadEntries = async (letter: string) => {
     try {
       if (!isRefreshing) setIsLoading(true);
       setErrorMessage("");
@@ -53,10 +47,10 @@ export default function MalayalamEnglishScreen() {
 
       for (const apiBaseUrl of API_BASE_URLS) {
         try {
-          console.log(`[Malayalam Browse] Fetching entries for query "${searchQuery}" from ${apiBaseUrl}`);
-          const response = await fetch(
-            `${apiBaseUrl}/api/words/browse-malayalam?query=${encodeURIComponent(searchQuery)}`
-          );
+          console.log(`[Dictionary Browse] Fetching entries for letter ${letter} from ${apiBaseUrl}`);
+
+          const response = await fetch(`${apiBaseUrl}/api/words/browse?letter=${letter}`);
+          console.log(`[Dictionary Browse] Response status for ${letter}: ${response.status}`);
 
           if (!response.ok) {
             const responseText = await response.text();
@@ -65,7 +59,7 @@ export default function MalayalamEnglishScreen() {
 
           const data = await response.json();
           setEntries(Array.isArray(data) ? data : []);
-          return; // Success, exit function
+          return;
         } catch (error) {
           lastError = error;
         }
@@ -74,7 +68,7 @@ export default function MalayalamEnglishScreen() {
       throw lastError instanceof Error ? lastError : new Error("Could not reach the dictionary backend.");
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "വാക്കുകൾ ലോഡ് ചെയ്യാൻ സാധിച്ചില്ല."
+        error instanceof Error ? error.message : "Could not load dictionary entries right now."
       );
       setEntries([]);
     } finally {
@@ -83,34 +77,32 @@ export default function MalayalamEnglishScreen() {
     }
   };
 
-  // ഉപയോക്താവ് ഒരു അക്ഷരം തിരഞ്ഞെടുക്കുമ്പോൾ ആ അക്ഷരത്തിലുള്ള വാക്കുകൾ ലോഡ് ചെയ്യുന്നു
+  // Reload data dynamically whenever the user switches alphabet tabs
   useEffect(() => {
-    // സെർച്ച് ബാറിൽ ഒന്നും ടൈപ്പ് ചെയ്തിട്ടില്ലെങ്കിൽ മാത്രം അക്ഷരത്തെ അടിസ്ഥാനമാക്കി തിരയുക
-    if (!searchText.trim()) {
-      void loadEntries(selectedLetter);
-    }
+    void loadEntries(selectedLetter);
   }, [selectedLetter]);
-
-  // സെർച്ച് ബാറിൽ ടൈപ്പ് ചെയ്യുമ്പോൾ ഡൈനാമിക് ആയി ബാക്കെൻഡ് ഫെച്ച് ചെയ്യുക
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (searchText.trim()) {
-        void loadEntries(searchText);
-      } else {
-        void loadEntries(selectedLetter);
-      }
-    }, 400); // 400ms ഡെബോൺസ് ടൈം (ടൈപ്പിംഗ് നിർത്തുമ്പോൾ മാത്രം റിക്വസ്റ്റ് അയക്കാൻ)
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchText]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    loadEntries(searchText.trim() ? searchText : selectedLetter);
+    void loadEntries(selectedLetter);
   };
 
+  // Fast client-side filter for local array items
+  const filteredEntries = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    if (!query) return entries;
+
+    return entries.filter((entry) => {
+      const engWord = entry.english_equivalent?.toLowerCase() ?? "";
+      const malWord = entry.word ?? "";
+      const primaryMeaning = entry.primary_malayalam_meaning?.toLowerCase() ?? "";
+
+      return engWord.includes(query) || malWord.includes(query) || primaryMeaning.includes(query);
+    });
+  }, [entries, searchText]);
+
   const handleCardPress = (id: number) => {
-    // സ്റ്റേജ് 2: വാക്കിന്റെ പൂർണ്ണ വിവരങ്ങളിലേക്ക് പോകുന്നു
+    // Stage 2: Rout to the detailed overlay template passing down the target Dictionary ID reference hook
     router.push({
       pathname: "/details",
       params: { dictionaryId: id },
@@ -119,34 +111,31 @@ export default function MalayalamEnglishScreen() {
 
   const renderAlphabetItem = ({ item }: { item: string }) => (
     <TouchableOpacity
-      style={[styles.letterTab, selectedLetter === item && !searchText.trim() && styles.activeLetterTab]}
-      onPress={() => {
-        setSearchText(""); // അക്ഷരം ക്ലിക്ക് ചെയ്യുമ്പോൾ സെർച്ച് ക്ലിയർ ചെയ്യുക
-        setSelectedLetter(item);
-      }}
+      style={[styles.letterTab, selectedLetter === item && styles.activeLetterTab]}
+      onPress={() => setSelectedLetter(item)}
     >
-      <Text style={[styles.letterText, selectedLetter === item && !searchText.trim() && styles.activeLetterText]}>
+      <Text style={[styles.letterText, selectedLetter === item && styles.activeLetterText]}>
         {item}
       </Text>
     </TouchableOpacity>
   );
 
   const renderEntry = ({ item }: { item: DictionaryEntry }) => (
-    <TouchableOpacity
-      style={styles.card}
+    <TouchableOpacity 
+      style={styles.card} 
       onPress={() => handleCardPress(item.id)}
       activeOpacity={0.7}
     >
       <View style={styles.cardHeader}>
         <View style={styles.wordBadge}>
           <Text style={styles.wordBadgeText}>
-            {item.word?.[0] ?? "അ"}
+            {item.english_equivalent?.[0]?.toUpperCase() ?? "?"}
           </Text>
         </View>
 
         <View style={styles.cardHeaderText}>
-          <Text style={styles.malayalamWord}>{item.word}</Text>
-          <Text style={styles.cardSubtext}>English: {item.english_equivalent}</Text>
+          <Text style={styles.englishWord}>{item.english_equivalent}</Text>
+          <Text style={styles.cardSubtext}>{item.word}</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color="#BCAFA1" />
       </View>
@@ -163,20 +152,20 @@ export default function MalayalamEnglishScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
+      {/* Header Layout */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={27} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>മലയാളം - മലയാളം നിഘണ്ടു</Text>
+        <Text style={styles.headerTitle}>ഇംഗ്ലീഷ് - മലയാളം നിഘണ്ടു</Text>
         <View style={{ width: 12 }} />
       </View>
 
-      {/* മലയാളം അക്ഷരങ്ങളുടെ തിരശ്ചീന ലിസ്റ്റ് (Horizontal Alphabet Strip) */}
+      {/* Dynamic Alphabet Filter Strip Menu */}
       <View style={styles.alphabetContainer}>
         <FlatList
           horizontal
-          data={MALAYALAM_ALPHABET}
+          data={ALPHABET}
           keyExtractor={(item) => item}
           renderItem={renderAlphabetItem}
           showsHorizontalScrollIndicator={false}
@@ -184,35 +173,35 @@ export default function MalayalamEnglishScreen() {
         />
       </View>
 
-      {/* Search Input */}
+      {/* Input Search Container */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={22} color="#777" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="ടൈപ്പ് ചെയ്ത് തിരയുക (ഉദാ: അമ്മ)..."
+          placeholder={`Search words starting with '${selectedLetter}'...`}
           value={searchText}
           onChangeText={setSearchText}
           placeholderTextColor="#898683"
         />
       </View>
 
-      {/* UI State Logic */}
+      {/* Core Component State Engine Rendering */}
       {isLoading ? (
         <View style={styles.stateContainer}>
           <ActivityIndicator size="large" color="#2B2C51" />
-          <Text style={styles.stateText}>വാക്കുകൾ കണ്ടെത്തുന്നു...</Text>
+          <Text style={styles.stateText}>Loading dictionary entries...</Text>
         </View>
       ) : errorMessage ? (
         <View style={styles.stateContainer}>
-          <Text style={styles.stateTitle}>കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല</Text>
+          <Text style={styles.stateTitle}>Unable to load entries</Text>
           <Text style={styles.stateText}>{errorMessage}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={() => void loadEntries(selectedLetter)}>
-            <Text style={styles.retryButtonText}>വീണ്ടും ശ്രമിക്കുക</Text>
+            <Text style={styles.retryButtonText}>Try again</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
-          data={entries}
+          data={filteredEntries}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderEntry}
           contentContainerStyle={styles.listContent}
@@ -227,11 +216,11 @@ export default function MalayalamEnglishScreen() {
           }
           ListEmptyComponent={
             <View style={styles.stateContainer}>
-              <Text style={styles.stateTitle}>വാക്കുകൾ കണ്ടെത്തിയില്ല</Text>
+              <Text style={styles.stateTitle}>No matches found</Text>
               <Text style={styles.stateText}>
                 {searchText.trim()
-                  ? `"${searchText}" എന്ന വാക്ക് നിഘണ്ടുവിൽ കണ്ടെത്താൻ സാധിച്ചില്ല.`
-                  : `"${selectedLetter}" എന്ന അക്ഷരത്തിൽ തുടങ്ങുന്ന അംഗീകരിക്കപ്പെട്ട വാക്കുകൾ നിലവിലില്ല.`}
+                  ? "Try a different English word or local keyword variation."
+                  : `No records initialized under alphabet group category '${selectedLetter}' yet.`}
               </Text>
             </View>
           }
@@ -254,8 +243,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 15,
     paddingBottom: 15,
-    fontFamily: "NotoSansMalayalam",
-  
   },
   headerTitle: {
     color: "white",
@@ -265,32 +252,30 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   alphabetContainer: {
+    backgroundColor: "#F9F6F1",
     borderBottomWidth: 1,
-    borderColor: "#000000ff",
+    borderColor: "#E7E0D7",
     paddingVertical: 10,
-    backgroundColor: "#DEDEDE",
   },
   alphabetList: {
     paddingHorizontal: 12,
   },
   letterTab: {
-    width: 38,
-    height: 38,
+    width: 36,
+    height: 36,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
     marginHorizontal: 4,
-    fontFamily: "NotoSansMalayalam",
+    backgroundColor: "#F4EEE7",
   },
   activeLetterTab: {
     backgroundColor: "#2B2C51",
-    fontFamily: "NotoSansMalayalam",
   },
   letterText: {
     fontSize: 14,
     fontWeight: "700",
     color: "#4E473E",
-    fontFamily: "NotoSansMalayalam",
   },
   activeLetterText: {
     color: "#FFFFFF",
@@ -307,11 +292,6 @@ const styles = StyleSheet.create({
     borderColor: "#ddd7cf",
     paddingHorizontal: 12,
     height: 48,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 2,
   },
   searchIcon: {
     marginRight: 8,
@@ -334,11 +314,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#E7E0D7",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
   },
   cardHeader: {
     flexDirection: "row",
@@ -358,21 +333,21 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
-    fontFamily: "NotoSansMalayalam",
   },
   cardHeaderText: {
     flex: 1,
   },
-  malayalamWord: {
+  englishWord: {
     color: "#1F2330",
     fontSize: 18,
     fontWeight: "800",
-    fontFamily: "NotoSansMalayalam",
   },
   cardSubtext: {
     color: "#7C736B",
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: "600",
     marginTop: 1,
+    fontFamily: "NotoSansMalayalam",
   },
   meaningsWrap: {
     flexDirection: "row",
@@ -424,6 +399,5 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
   },
 });

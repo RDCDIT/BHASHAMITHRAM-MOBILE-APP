@@ -54,8 +54,8 @@ type DictionaryEntryDetails = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.5:5000" : "http://localhost:5000",
-  "http://192.168.1.5:5000",
+  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
+  "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
 export default function WordDetailsScreen() {
@@ -165,11 +165,11 @@ export default function WordDetailsScreen() {
           </View>
           <Text style={styles.mainWord}>{details.word}</Text>
           
-          {details.phonetic_transcription && (
+          {!!details.phonetic_transcription && (
             <Text style={styles.phonetic}>phonetic-transcription: [{details.phonetic_transcription}]</Text>
           )}
 
-          {details.equivalents?.english && (
+          {!!details.equivalents?.english && (
             <View style={styles.englishContainer}>
               <Text style={styles.englishLabel}>English Equivalent:</Text>
               <Text style={styles.englishValue}>{details.equivalents.english}</Text>
@@ -201,7 +201,7 @@ export default function WordDetailsScreen() {
         )}
 
         {/* Lexical Information Cards */}
-        {details.root && (
+        {!!details.root && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>ധാതു (Root)</Text>
             <Text style={styles.infoValue}>{details.root}</Text>
@@ -219,55 +219,55 @@ export default function WordDetailsScreen() {
             </View>
           </View>
         )}
-        {details.etymology && (
+        {!!details.etymology && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>വ്യുല്പത്തി (Etymology)</Text>
             <Text style={styles.infoValue}>{details.etymology}</Text>
           </View>
         )}
-        {details.pronunciation && (
+        {!!details.pronunciation && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>ഉച്ചാരണം (Pronunciation)</Text>
             <Text style={styles.infoValue}>{details.pronunciation}</Text>
           </View>
         )}
-        {details.inflections && (
+        {!!details.inflections && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>രൂപങ്ങൾ (Inflections)</Text>
             <Text style={styles.infoValue}>{details.inflections}</Text>
           </View>
         )}
-        {details.synonyms && (
+        {!!details.synonyms && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>പര്യായപദങ്ങൾ (Synonyms)</Text>
             <Text style={styles.infoValue}>{details.synonyms}</Text>
           </View>
         )}
-        {details.antonyms && (
+        {!!details.antonyms && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>വിപരീതപദങ്ങൾ (Antonyms)</Text>
             <Text style={styles.infoValue}>{details.antonyms}</Text>
           </View>
         )}
-        {details.dialects && (
+        {!!details.dialects && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>പ്രാദേശിക രൂപങ്ങൾ (Dialects)</Text>
             <Text style={styles.infoValue}>{details.dialects}</Text>
           </View>
         )}
-        {details.similar_word && (
+        {!!details.similar_word && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>സമാന പദങ്ങൾ (Similar Words)</Text>
             <Text style={styles.infoValue}>{details.similar_word}</Text>
           </View>
         )}
-        {details.novel_words && (
+        {!!details.novel_words && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>നവീന പ്രയോഗങ്ങൾ (Novel Words)</Text>
             <Text style={styles.infoValue}>{details.novel_words}</Text>
           </View>
         )}
-        {details.cross_reference && (
+        {!!details.cross_reference && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>മറ്റു സൂചനകൾ (Cross Ref)</Text>
             <Text style={styles.infoValue}>{details.cross_reference}</Text>
@@ -275,11 +275,11 @@ export default function WordDetailsScreen() {
         )}
 
         {/* Proverbs Section */}
-        {((details.proverbs && details.proverbs.length > 0) || details.proverb) && (
+        {((details.proverbs && details.proverbs.length > 0) || !!details.proverb) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>പഴഞ്ചൊല്ലുകൾ / ശൈലികൾ</Text>
             
-            {details.proverb && (
+            {!!details.proverb && (
               <View style={styles.proverbItem}>
                 <Ionicons name="bookmark-outline" size={20} color="#2B2C51" style={{ marginRight: 8, marginTop: 2 }} />
                 <Text style={styles.proverbText}>{details.proverb}</Text>
@@ -305,7 +305,7 @@ export default function WordDetailsScreen() {
         )}
 
         {/* Cultural Note */}
-        {details.cultural_note && (
+        {!!details.cultural_note && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>സാംസ്കാരിക പശ്ചാത്തലം</Text>
             <View style={styles.culturalCard}>

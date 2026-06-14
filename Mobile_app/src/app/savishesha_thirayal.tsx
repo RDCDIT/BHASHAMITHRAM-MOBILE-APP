@@ -40,8 +40,8 @@ type RecentOpening = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.5:5000" : "http://localhost:5000",
-  "http://192.168.1.5:5000",
+  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
+  "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
 export default function SavisheshaThirayalScreen() {
@@ -500,46 +500,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 24,
   },
-  sectionContainer: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#2B2C51",
-    fontFamily: "NotoSansMalayalam",
-    marginBottom: 12,
-  },
-  tagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginHorizontal: -4,
-  },
-  searchTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F4EEE7",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginHorizontal: 4,
-    marginVertical: 4,
-    borderWidth: 1,
-    borderColor: "#E2D7CB",
-  },
-  tagText: {
-    color: "#4E473E",
-    fontSize: 14,
-    fontFamily: "NotoSansMalayalam",
-    fontWeight: "600",
-  },
-  emptyText: {
-    color: "#7C736B",
-    fontSize: 14,
-    fontFamily: "NotoSansMalayalam",
-    fontStyle: "italic",
-    paddingVertical: 8,
-  },
+
   openingCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
