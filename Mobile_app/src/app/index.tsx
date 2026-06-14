@@ -1,5 +1,4 @@
 import SideMenu from "@/components/side-menu";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -22,8 +21,6 @@ interface MenuItem {
 
 export default function HomeScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
   const router = useRouter();
 
   const menuItems: MenuItem[] = [
@@ -53,61 +50,13 @@ export default function HomeScreen() {
     },
   ];
 
-const colors = {
+  const colors = {
     headerBg: "#2B2C51",
     containerBg:  "#F9F6F1",
     cardBg: "#2B5BA8",
     cardText: "#FFFFFF",
     fabBg: "#16A697",
-    textPrimary: isDark ? "#ffffff" : "#252425",
   };
-
-  const handleMenuPress = () => {
-    setDrawerVisible(!drawerVisible);
-  };
-
-  const handleSharePress = () => {
-    console.log("Share pressed");
-  };
-
-  const menuOptions = [
-    {
-      id: "1",
-      label: "Info",
-      icon: "ℹ️",
-      onPress: () => {
-        console.log("Info pressed");
-        setDrawerVisible(false);
-      },
-    },
-    {
-      id: "2",
-      label: "Share",
-      icon: "↗",
-      onPress: () => {
-        console.log("Share pressed");
-        setDrawerVisible(false);
-      },
-    },
-    {
-      id: "3",
-      label: "Suggest a word",
-      icon: "▶",
-      onPress: () => {
-        console.log("Suggest pressed");
-        setDrawerVisible(false);
-      },
-    },
-    {
-      id: "4",
-      label: "Rate",
-      icon: "⭐",
-      onPress: () => {
-        console.log("Rate pressed");
-        setDrawerVisible(false);
-      },
-    },
-  ];
 
   return (
     <SafeAreaView

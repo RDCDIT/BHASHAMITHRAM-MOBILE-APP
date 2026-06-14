@@ -7,10 +7,7 @@ const {
   getRecentActivity,
   clearRecentActivity
 } = require('../controllers/malayalam_wordscontroller');
-const { getEnglishMasterList } = require('../controllers/dictionary_word');
-
 // ലിസ്റ്റ് കാണിക്കുന്നതിനുള്ള റൂട്ടുകൾ
-router.get('/words/browse', getEnglishMasterList);
 router.get('/words/browse-malayalam', getMalayalamMasterList);
 router.get('/words/browse-synonyms', getMalayalamSynonymsList);
 
