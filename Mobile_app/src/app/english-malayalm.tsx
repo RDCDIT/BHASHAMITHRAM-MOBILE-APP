@@ -13,6 +13,8 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useVoiceSearch } from "../hooks/useVoiceSearch";
+import VoiceSearchOverlay from "../components/VoiceSearchOverlay";
 
 // Updated type mapping to align directly with your MongoDB query projections
 type DictionaryEntry = {
@@ -32,14 +34,21 @@ const API_BASE_URLS = [
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export default function EnglishMalayalamScreen() {
-  const [selectedLetter, setSelectedLetter] = useState("A");
+  const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
   const [entries, setEntries] = useState<DictionaryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const loadEntries = async (letter: string) => {
+  const {
+    isListening,
+    partialTranscript,
+    startListening,
+    stopListening,
+  } = useVoiceSearch((text) => setSearchText(text), "en-US");
+
+  const loadEntries = async (searchQuery: string) => {
     try {
       if (!isRefreshing) setIsLoading(true);
       setErrorMessage("");
@@ -47,10 +56,10 @@ export default function EnglishMalayalamScreen() {
 
       for (const apiBaseUrl of API_BASE_URLS) {
         try {
-          console.log(`[Dictionary Browse] Fetching entries for letter ${letter} from ${apiBaseUrl}`);
+          console.log(`[Dictionary Browse] Fetching entries for query "${searchQuery}" from ${apiBaseUrl}`);
 
-          const response = await fetch(`${apiBaseUrl}/api/words/browse?letter=${letter}`);
-          console.log(`[Dictionary Browse] Response status for ${letter}: ${response.status}`);
+          const response = await fetch(`${apiBaseUrl}/api/words/browse-english?query=${encodeURIComponent(searchQuery)}`);
+          console.log(`[Dictionary Browse] Response status for query "${searchQuery}": ${response.status}`);
 
           if (!response.ok) {
             const responseText = await response.text();
@@ -79,76 +88,92 @@ export default function EnglishMalayalamScreen() {
 
   // Reload data dynamically whenever the user switches alphabet tabs
   useEffect(() => {
-    void loadEntries(selectedLetter);
+    if (!searchText.trim()) {
+      void loadEntries(selectedLetter);
+    }
   }, [selectedLetter]);
+
+  // Debounced search effect
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchText.trim()) {
+        void loadEntries(searchText);
+      } else {
+        void loadEntries(selectedLetter);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchText]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    void loadEntries(selectedLetter);
+    void loadEntries(searchText.trim() ? searchText : selectedLetter);
   };
 
-  // Fast client-side filter for local array items
-  const filteredEntries = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    if (!query) return entries;
-
-    return entries.filter((entry) => {
-      const engWord = entry.english_equivalent?.toLowerCase() ?? "";
-      const malWord = entry.word ?? "";
-      const primaryMeaning = entry.primary_malayalam_meaning?.toLowerCase() ?? "";
-
-      return engWord.includes(query) || malWord.includes(query) || primaryMeaning.includes(query);
-    });
-  }, [entries, searchText]);
-
   const handleCardPress = (id: number) => {
-    // Stage 2: Rout to the detailed overlay template passing down the target Dictionary ID reference hook
+    // Stage 2: Route to the detailed overlay template passing down the target Dictionary ID reference hook
     router.push({
       pathname: "/details",
-      params: { dictionaryId: id },
+      params: { dictionaryId: id, type: "english" },
     });
   };
 
   const renderAlphabetItem = ({ item }: { item: string }) => (
     <TouchableOpacity
-      style={[styles.letterTab, selectedLetter === item && styles.activeLetterTab]}
-      onPress={() => setSelectedLetter(item)}
+      style={[styles.letterTab, selectedLetter === item && !searchText.trim() && styles.activeLetterTab]}
+      onPress={() => {
+        setSearchText(""); // Clear search when alphabet is clicked
+        setSelectedLetter(item);
+      }}
     >
-      <Text style={[styles.letterText, selectedLetter === item && styles.activeLetterText]}>
+      <Text style={[styles.letterText, selectedLetter === item && !searchText.trim() && styles.activeLetterText]}>
         {item}
       </Text>
     </TouchableOpacity>
   );
 
-  const renderEntry = ({ item }: { item: DictionaryEntry }) => (
-    <TouchableOpacity 
-      style={styles.card} 
-      onPress={() => handleCardPress(item.id)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.wordBadge}>
-          <Text style={styles.wordBadgeText}>
-            {item.english_equivalent?.[0]?.toUpperCase() ?? "?"}
-          </Text>
+  const renderEntry = ({ item }: { item: DictionaryEntry }) => {
+    const meanings = item.primary_malayalam_meaning
+      ? item.primary_malayalam_meaning.split(",").map((m) => m.trim()).filter(Boolean)
+      : [];
+
+    return (
+      <TouchableOpacity 
+        style={styles.card} 
+        onPress={() => handleCardPress(item.id)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.wordBadge}>
+            <Text style={styles.wordBadgeText}>
+              {item.english_equivalent?.[0]?.toUpperCase() ?? "?"}
+            </Text>
+          </View>
+
+          <View style={styles.cardHeaderText}>
+            <Text style={styles.englishWord}>{item.english_equivalent}</Text>
+            <Text style={styles.cardSubtext}>{item.word}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#BCAFA1" />
         </View>
 
-        <View style={styles.cardHeaderText}>
-          <Text style={styles.englishWord}>{item.english_equivalent}</Text>
-          <Text style={styles.cardSubtext}>{item.word}</Text>
+        <View style={styles.meaningsWrap}>
+          <View style={styles.meaningPill}>
+            {meanings.length > 0 ? (
+              meanings.map((meaning, index) => (
+                <Text key={index} style={styles.meaningText}>
+                  • {meaning}
+                </Text>
+              ))
+            ) : (
+              <Text style={styles.meaningText}>No meaning available</Text>
+            )}
+          </View>
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#BCAFA1" />
-      </View>
-
-      <View style={styles.meaningsWrap}>
-        <View style={styles.meaningPill}>
-          <Text style={styles.meaningText} numberOfLines={2}>
-            {item.primary_malayalam_meaning}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.screen}>
@@ -183,6 +208,9 @@ export default function EnglishMalayalamScreen() {
           onChangeText={setSearchText}
           placeholderTextColor="#898683"
         />
+        <TouchableOpacity onPress={startListening} style={{ marginLeft: 8 }}>
+          <Ionicons name="mic-outline" size={22} color="#2B2C51" />
+        </TouchableOpacity>
       </View>
 
       {/* Core Component State Engine Rendering */}
@@ -201,7 +229,7 @@ export default function EnglishMalayalamScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredEntries}
+          data={entries}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderEntry}
           contentContainerStyle={styles.listContent}
@@ -226,6 +254,12 @@ export default function EnglishMalayalamScreen() {
           }
         />
       )}
+      <VoiceSearchOverlay
+        visible={isListening}
+        partialTranscript={partialTranscript}
+        lang="en-US"
+        onClose={stopListening}
+      />
     </View>
   );
 }
@@ -252,30 +286,38 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   alphabetContainer: {
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "#F0EAE1",
     borderBottomWidth: 1,
-    borderColor: "#E7E0D7",
-    paddingVertical: 10,
+    borderColor: "#E3DACF",
+    paddingVertical: 12,
   },
   alphabetList: {
     paddingHorizontal: 12,
   },
   letterTab: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginHorizontal: 4,
-    backgroundColor: "#F4EEE7",
+    marginHorizontal: 5,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   activeLetterTab: {
     backgroundColor: "#2B2C51",
+    shadowOpacity: 0.15,
+    elevation: 3,
   },
   letterText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
-    color: "#4E473E",
+    color: "#2B2C51",
+    fontFamily: "NotoSansMalayalam",
   },
   activeLetterText: {
     color: "#FFFFFF",
@@ -314,6 +356,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#E7E0D7",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: "row",

@@ -35,6 +35,7 @@ type DictionaryEntryDetails = {
     telugu?: string;
     tulu?: string;
     english?: string;
+    malayalam?: string;
   };
   
   images?: string[];
@@ -59,7 +60,7 @@ const API_BASE_URLS = [
 ].filter((value): value is string => Boolean(value));
 
 export default function WordDetailsScreen() {
-  const { dictionaryId } = useLocalSearchParams();
+  const { dictionaryId, type } = useLocalSearchParams();
   const [details, setDetails] = useState<DictionaryEntryDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -78,8 +79,8 @@ export default function WordDetailsScreen() {
 
       for (const apiBaseUrl of API_BASE_URLS) {
         try {
-          console.log(`[Details] Fetching details for ID: ${dictionaryId} from ${apiBaseUrl}`);
-          const response = await fetch(`${apiBaseUrl}/api/words/details/${dictionaryId}`);
+          console.log(`[Details] Fetching details for ID: ${dictionaryId} (type: ${type}) from ${apiBaseUrl}`);
+          const response = await fetch(`${apiBaseUrl}/api/words/details/${dictionaryId}?type=${type || ""}`);
 
           if (!response.ok) {
             const responseText = await response.text();
@@ -173,6 +174,13 @@ export default function WordDetailsScreen() {
             <View style={styles.englishContainer}>
               <Text style={styles.englishLabel}>English Equivalent:</Text>
               <Text style={styles.englishValue}>{details.equivalents.english}</Text>
+            </View>
+          )}
+
+          {!!details.equivalents?.malayalam && (
+            <View style={styles.englishContainer}>
+              <Text style={styles.englishLabel}>Malayalam Equivalent:</Text>
+              <Text style={styles.englishValue}>{details.equivalents.malayalam}</Text>
             </View>
           )}
         </View>

@@ -14,6 +14,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
+import { useVoiceSearch } from "../hooks/useVoiceSearch";
+import VoiceSearchOverlay from "../components/VoiceSearchOverlay";
 
 // ബാക്കെൻഡ് റെസ്പോൺസ് ഘടനയ്ക്ക് അനുയോജ്യമായ ടൈപ്പ് ഡെഫനിഷനുകൾ
 type DictionaryEntry = {
@@ -46,11 +48,19 @@ const API_BASE_URLS = [
 
 export default function SavisheshaThirayalScreen() {
   const [searchText, setSearchText] = useState("");
+  const [activeTab, setActiveTab] = useState<"searches" | "openings">("searches");
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
   const [recentOpenings, setRecentOpenings] = useState<RecentOpening[]>([]);
   const [isLoadingActivity, setIsLoadingActivity] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activityErrorMessage, setActivityErrorMessage] = useState("");
+
+  const {
+    isListening,
+    partialTranscript,
+    startListening,
+    stopListening,
+  } = useVoiceSearch((text) => setSearchText(text), "ml-IN");
 
   const [searchResults, setSearchResults] = useState<DictionaryEntry[]>([]);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
@@ -163,20 +173,20 @@ export default function SavisheshaThirayalScreen() {
   };
 
   // സമീപകാല ചരിത്രം ഇല്ലാതാക്കാനുള്ള ഫങ്ഷൻ
-  const handleClearHistory = async () => {
+  const handleClearHistory = async (type: "searches" | "openings") => {
     try {
       setIsLoadingActivity(true);
       let lastError: unknown = null;
 
       for (const apiBaseUrl of API_BASE_URLS) {
         try {
-          console.log(`[Recent Activity] Clearing activity at ${apiBaseUrl}`);
+          console.log(`[Recent Activity] Clearing ${type} activity at ${apiBaseUrl}`);
           const response = await fetch(`${apiBaseUrl}/api/words/clear-recent-activity`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ type: "all" }),
+            body: JSON.stringify({ type }),
           });
 
           if (!response.ok) {
@@ -184,8 +194,11 @@ export default function SavisheshaThirayalScreen() {
             throw new Error(responseText || `Request failed with status ${response.status}`);
           }
 
-          setRecentSearches([]);
-          setRecentOpenings([]);
+          if (type === "searches") {
+            setRecentSearches([]);
+          } else {
+            setRecentOpenings([]);
+          }
           return; // Success
         } catch (error) {
           lastError = error;
@@ -202,12 +215,13 @@ export default function SavisheshaThirayalScreen() {
   };
 
   const confirmClearHistory = () => {
+    const typeLabel = activeTab === "searches" ? "തിരച്ചിലുകൾ" : "തുറന്ന വാക്കുകൾ";
     Alert.alert(
       "ചരിത്രം ഇല്ലാതാക്കുക",
-      "സമീപകാല തിരച്ചിലുകളും അവസാനം തുറന്നതുമായ വിവരങ്ങളും പൂർണ്ണമായും ഒഴിവാക്കണോ?",
+      `സമീപകാലത്തെ ${typeLabel} ചരിത്രം പൂർണ്ണമായും ഒഴിവാക്കണോ?`,
       [
         { text: "അല്ല", style: "cancel" },
-        { text: "അതെ", style: "destructive", onPress: () => void handleClearHistory() },
+        { text: "അതെ", style: "destructive", onPress: () => void handleClearHistory(activeTab) },
       ]
     );
   };
@@ -286,7 +300,9 @@ export default function SavisheshaThirayalScreen() {
         <Text style={styles.headerTitle}>സവിശേഷ തിരയൽ</Text>
 
         {/* Clear history button inside header */}
-        {!searchText.trim() && (recentSearches.length > 0 || recentOpenings.length > 0) ? (
+        {!searchText.trim() && 
+        ((activeTab === "searches" && recentSearches.length > 0) || 
+         (activeTab === "openings" && recentOpenings.length > 0)) ? (
           <TouchableOpacity onPress={confirmClearHistory}>
             <Ionicons name="trash-outline" size={24} color="white" />
           </TouchableOpacity>
@@ -305,12 +321,37 @@ export default function SavisheshaThirayalScreen() {
           onChangeText={setSearchText}
           placeholderTextColor="#898683"
         />
+        <TouchableOpacity onPress={startListening} style={{ marginRight: 8 }}>
+          <Ionicons name="mic-outline" size={22} color="#2B2C51" />
+        </TouchableOpacity>
         {searchText.trim().length > 0 && (
           <TouchableOpacity onPress={() => setSearchText("")} style={styles.clearSearchIcon}>
             <Ionicons name="close-circle" size={20} color="#777" />
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Tab Selector */}
+      {!searchText.trim() && (
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === "searches" && styles.activeTabButton]}
+            onPress={() => setActiveTab("searches")}
+          >
+            <Text style={[styles.tabButtonText, activeTab === "searches" && styles.activeTabButtonText]}>
+              Recent Searches
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === "openings" && styles.activeTabButton]}
+            onPress={() => setActiveTab("openings")}
+          >
+            <Text style={[styles.tabButtonText, activeTab === "openings" && styles.activeTabButtonText]}>
+              Recent Openings
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Content Rendering */}
       {searchText.trim() ? (
@@ -378,64 +419,79 @@ export default function SavisheshaThirayalScreen() {
                 <Text style={styles.retryButtonText}>വീണ്ടും ശ്രമിക്കുക</Text>
               </TouchableOpacity>
             </View>
-          ) : recentSearches.length === 0 && recentOpenings.length === 0 ? (
-            <View style={styles.stateContainer}>
-              <Text style={styles.stateTitle}>ചരിത്രം ലഭ്യമല്ല</Text>
-              <Text style={styles.stateText}>സമീപകാല തിരച്ചിലുകളോ തുറന്ന വാക്കുകളോ നിലവിലില്ല.</Text>
-            </View>
           ) : (
             <>
-              {/* Recent Searches (as cards) */}
-              {recentSearches.map((item) => (
-                <TouchableOpacity
-                  key={item._id}
-                  style={styles.openingCard}
-                  onPress={() => handleRecentSearchPress(item.title)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.cardHeader}>
-                    <View style={[styles.wordBadge, { backgroundColor: "#5F585F" }]}>
-                      <Ionicons name="search" size={20} color="white" />
-                    </View>
-                    <View style={styles.cardHeaderText}>
-                      <Text style={styles.malayalamWord}>{item.title}</Text>
-                      <Text style={styles.timestampText}>
-                        തിരഞ്ഞത്: {formatDateTime(item.searchedAt)}
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color="#BCAFA1" />
+              {activeTab === "searches" ? (
+                recentSearches.length === 0 ? (
+                  <View style={styles.stateContainer}>
+                    <Text style={styles.stateTitle}>തിരച്ചിലുകൾ ലഭ്യമല്ല</Text>
+                    <Text style={styles.stateText}>സമീപകാല തിരച്ചിലുകൾ നിലവിലില്ല.</Text>
                   </View>
-                </TouchableOpacity>
-              ))}
-
-              {/* Recent Openings (as cards) */}
-              {recentOpenings.map((item) => (
-                <TouchableOpacity
-                  key={item._id}
-                  style={styles.openingCard}
-                  onPress={() => handleRecentOpeningPress(item.wordId)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.cardHeader}>
-                    <View style={styles.wordBadge}>
-                      <Text style={styles.wordBadgeText}>
-                        {item.word?.[0] ?? "അ"}
-                      </Text>
-                    </View>
-                    <View style={styles.cardHeaderText}>
-                      <Text style={styles.malayalamWord}>{item.word}</Text>
-                      <Text style={styles.timestampText}>
-                        തുറന്നത്: {formatDateTime(item.openedAt)}
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color="#BCAFA1" />
+                ) : (
+                  recentSearches.map((item) => (
+                    <TouchableOpacity
+                      key={item._id}
+                      style={styles.openingCard}
+                      onPress={() => handleRecentSearchPress(item.title)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.cardHeader}>
+                        <View style={[styles.wordBadge, { backgroundColor: "#5F585F" }]}>
+                          <Ionicons name="search" size={20} color="white" />
+                        </View>
+                        <View style={styles.cardHeaderText}>
+                          <Text style={styles.malayalamWord}>{item.title}</Text>
+                          <Text style={styles.timestampText}>
+                            തിരഞ്ഞത്: {formatDateTime(item.searchedAt)}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color="#BCAFA1" />
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )
+              ) : (
+                recentOpenings.length === 0 ? (
+                  <View style={styles.stateContainer}>
+                    <Text style={styles.stateTitle}>തുറന്ന വാക്കുകൾ ലഭ്യമല്ല</Text>
+                    <Text style={styles.stateText}>സമീപകാലത്ത് തുറന്ന വാക്കുകൾ നിലവിലില്ല.</Text>
                   </View>
-                </TouchableOpacity>
-              ))}
+                ) : (
+                  recentOpenings.map((item) => (
+                    <TouchableOpacity
+                      key={item._id}
+                      style={styles.openingCard}
+                      onPress={() => handleRecentOpeningPress(item.wordId)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.cardHeader}>
+                        <View style={styles.wordBadge}>
+                          <Text style={styles.wordBadgeText}>
+                            {item.word?.[0] ?? "അ"}
+                          </Text>
+                        </View>
+                        <View style={styles.cardHeaderText}>
+                          <Text style={styles.malayalamWord}>{item.word}</Text>
+                          <Text style={styles.timestampText}>
+                            തുറന്നത്: {formatDateTime(item.openedAt)}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color="#BCAFA1" />
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )
+              )}
             </>
           )}
         </ScrollView>
       )}
+      <VoiceSearchOverlay
+        visible={isListening}
+        partialTranscript={partialTranscript}
+        lang="ml-IN"
+        onClose={stopListening}
+      />
     </View>
   );
 }
@@ -509,10 +565,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E7E0D7",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   card: {
     backgroundColor: "#FFFFFF",
@@ -523,9 +579,9 @@ const styles = StyleSheet.create({
     borderColor: "#E7E0D7",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: "row",
@@ -618,5 +674,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "#EBE6DF",
+    borderRadius: 12,
+    padding: 4,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  activeTabButton: {
+    backgroundColor: "#2B2C51",
+  },
+  tabButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#5F564E",
+    fontFamily: "NotoSansMalayalam",
+  },
+  activeTabButtonText: {
+    color: "#FFFFFF",
   },
 });

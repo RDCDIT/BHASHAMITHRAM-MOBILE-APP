@@ -32,7 +32,7 @@ export default function HomeScreen() {
     },
     {
       id: "2",
-      label: "മലയാളം - ഇംഗ്ലീഷ് നിഘണ്ടു",
+      label: "മലയാളം - മലയാളം നിഘണ്ടു",
       icon: "അ->A",
       onPress: () => router.push("./malayalam-english"),
     },
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     ...Platform.select({
       web: {
-        boxShadow: "0 2px 3px rgba(0, 0, 0, 0.18)",
+        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.08)",
       },
       default: {
         shadowColor: "#000",
@@ -167,9 +167,9 @@ const styles = StyleSheet.create({
           width: 0,
           height: 2,
         },
-        shadowOpacity: 0.18,
-        shadowRadius: 3,
-        elevation: 4,
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 2,
       },
     }),
   },

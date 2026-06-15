@@ -13,6 +13,8 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useVoiceSearch } from "../hooks/useVoiceSearch";
+import VoiceSearchOverlay from "../components/VoiceSearchOverlay";
 
 // ബാക്കെൻഡ് റെസ്പോൺസ് ഘടനയ്ക്ക് അനുയോജ്യമായ ടൈപ്പ് ഡെഫനിഷൻ
 type SynonymEntry = {
@@ -36,12 +38,19 @@ const MALAYALAM_ALPHABET = [
 ];
 
 export default function Naanarthscreen() {
-  const [selectedLetter, setSelectedLetter] = useState("അ");
+  const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
   const [entries, setEntries] = useState<SynonymEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const {
+    isListening,
+    partialTranscript,
+    startListening,
+    stopListening,
+  } = useVoiceSearch((text) => setSearchText(text), "ml-IN");
 
   // ബാക്കെൻഡിൽ നിന്നും മലയാളം പര്യായപദങ്ങൾ ഫെച്ച് ചെയ്യാനുള്ള ഫങ്ഷൻ
   const loadEntries = async (searchQuery: string) => {
@@ -129,35 +138,49 @@ export default function Naanarthscreen() {
     </TouchableOpacity>
   );
 
-  const renderEntry = ({ item }: { item: SynonymEntry }) => (
-    <TouchableOpacity 
-      style={styles.card} 
-      onPress={() => handleCardPress(item.id)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.wordBadge}>
-          <Text style={styles.wordBadgeText}>
-            {item.word?.[0] ?? "അ"}
-          </Text>
+  const renderEntry = ({ item }: { item: SynonymEntry }) => {
+    const synonymsList = item.synonyms
+      ? item.synonyms.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    return (
+      <TouchableOpacity 
+        style={styles.card} 
+        onPress={() => handleCardPress(item.id)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.wordBadge}>
+            <Text style={styles.wordBadgeText}>
+              {item.word?.[0] ?? "അ"}
+            </Text>
+          </View>
+
+          <View style={styles.cardHeaderText}>
+            <Text style={styles.malayalamWord}>{item.word}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#BCAFA1" />
         </View>
 
-        <View style={styles.cardHeaderText}>
-          <Text style={styles.malayalamWord}>{item.word}</Text>
+        <View style={styles.meaningsWrap}>
+          <View style={styles.meaningPill}>
+            <Text style={{ fontWeight: "700", color: "#4E473E", marginBottom: 4 }}>
+              പര്യായപദങ്ങൾ:
+            </Text>
+            {synonymsList.length > 0 ? (
+              synonymsList.map((synonym, index) => (
+                <Text key={index} style={styles.meaningText}>
+                  • {synonym}
+                </Text>
+              ))
+            ) : (
+              <Text style={styles.meaningText}>No synonyms available</Text>
+            )}
+          </View>
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#BCAFA1" />
-      </View>
-
-      <View style={styles.meaningsWrap}>
-        <View style={styles.meaningPill}>
-          <Text style={styles.meaningText} numberOfLines={3}>
-            <Text style={{ fontWeight: "700" }}>പര്യായപദങ്ങൾ: </Text>
-            {item.synonyms}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.screen}>
@@ -192,6 +215,9 @@ export default function Naanarthscreen() {
           onChangeText={setSearchText}
           placeholderTextColor="#898683"
         />
+        <TouchableOpacity onPress={startListening} style={{ marginLeft: 8 }}>
+          <Ionicons name="mic-outline" size={22} color="#2B2C51" />
+        </TouchableOpacity>
       </View>
 
       {/* UI State Logic */}
@@ -235,6 +261,12 @@ export default function Naanarthscreen() {
           }
         />
       )}
+      <VoiceSearchOverlay
+        visible={isListening}
+        partialTranscript={partialTranscript}
+        lang="ml-IN"
+        onClose={stopListening}
+      />
     </View>
   );
 }
@@ -262,31 +294,37 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   alphabetContainer: {
+    backgroundColor: "#F0EAE1",
     borderBottomWidth: 1,
-    borderColor: "#000000ff",
-    paddingVertical: 10,
-    backgroundColor: "#DEDEDE",
+    borderColor: "#E3DACF",
+    paddingVertical: 12,
   },
   alphabetList: {
     paddingHorizontal: 12,
   },
   letterTab: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginHorizontal: 4,
-    fontFamily: "NotoSansMalayalam",
+    marginHorizontal: 5,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   activeLetterTab: {
     backgroundColor: "#2B2C51",
-    fontFamily: "NotoSansMalayalam",
+    shadowOpacity: 0.15,
+    elevation: 3,
   },
   letterText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
-    color: "#4E473E",
+    color: "#2B2C51",
     fontFamily: "NotoSansMalayalam",
   },
   activeLetterText: {
@@ -333,9 +371,9 @@ const styles = StyleSheet.create({
     borderColor: "#E7E0D7",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: "row",

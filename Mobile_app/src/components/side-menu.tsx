@@ -173,14 +173,14 @@ const styles = StyleSheet.create({
   },
   drawer: {
     height: "100%",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F9F6F1",
     zIndex: 100,
     elevation: 10,
   },
   header: {
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F9F6F1",
     paddingTop: 20,
     paddingBottom: 12,
   },
