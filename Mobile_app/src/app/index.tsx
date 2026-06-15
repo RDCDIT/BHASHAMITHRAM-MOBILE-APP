@@ -28,29 +28,29 @@ export default function HomeScreen() {
   const menuItems: MenuItem[] = [
     {
       id: "1",
-      label: "ഇംഗ്ലീഷ് - മലയാളം നിഘണ്ടു",
-      subLabel: "English to Malayalam Dictionary",
+      label: "ഇംഗ്ലീഷ് - മലയാളം",
+      subLabel: "English ➔ Malayalam",
       icon: "language-outline",
       onPress: () => router.push("./english-malayalm"),
     },
     {
       id: "2",
-      label: "മലയാളം - ഇംഗ്ലീഷ് നിഘണ്ടു",
-      subLabel: "Malayalam to English Dictionary",
+      label: "മലയാളം - ഇംഗ്ലീഷ്",
+      subLabel: "Malayalam ➔ English",
       icon: "swap-horizontal",
       onPress: () => router.push("./malayalam-english"),
     },
     {
       id: "3",
-      label: "മലയാളം നാനാത്ഥ നിഘണ്ടു",
-      subLabel: "Malayalam Synonyms Database",
+      label: "നാനാത്ഥ നിഘണ്ടു",
+      subLabel: "Malayalam Synonyms",
       icon: "book-outline",
       onPress: () => router.push("./nanaarth"),
     },
     {
       id: "4",
-      label: "സമീപകാല തിരച്ചിലുകൾ",
-      subLabel: "Recent and Advanced Searches",
+      label: "സമീപകാല തിരച്ചിൽ",
+      subLabel: "Recent Searches",
       icon: "time-outline",
       onPress: () => router.push("./savishesha_thirayal"),
     },
@@ -88,7 +88,7 @@ export default function HomeScreen() {
           <Text style={styles.headerTitle}>ഭാഷാമിത്രം</Text>
           <View style={styles.systemStatusContainer}>
             <View style={styles.statusDot} />
-            <Text style={styles.statusText}>SYS ACTIVE v2.0</Text>
+            <Text style={styles.statusText}>SYSTEM SECURE • ONLINE</Text>
           </View>
         </View>
 
@@ -108,8 +108,21 @@ export default function HomeScreen() {
         {/* Welcome Hero Area */}
         <View style={styles.heroSection}>
           <Text style={styles.heroGreeting}>നമസ്കാരം,</Text>
-          <Text style={styles.heroSub}>Explore and translate Malayalam words with accuracy</Text>
+          <Text style={styles.heroSub}>Find meanings, definitions, and synonyms instantly</Text>
         </View>
+
+        {/* Quick Search Shortcut Bar */}
+        <TouchableOpacity 
+          style={styles.searchBarShortcut}
+          activeOpacity={0.85}
+          onPress={() => router.push("./english-malayalm")}
+        >
+          <Ionicons name="search-outline" size={20} color="#8E9BB4" style={styles.searchIcon} />
+          <Text style={styles.searchPlaceholder}>ഇവിടെ തിരയുക... Search words here...</Text>
+          <View style={styles.searchBadge}>
+            <Text style={styles.searchBadgeText}>EN/MAL</Text>
+          </View>
+        </TouchableOpacity>
 
         {/* Word of the Day Glassmorphic Card */}
         <View style={styles.wordOfTheDayCard}>
@@ -124,30 +137,28 @@ export default function HomeScreen() {
           <View style={styles.glowLine} />
         </View>
 
-        {/* Menu Cards */}
+        {/* Grid Title */}
         <Text style={styles.sectionTitle}>DICTIONARY SERVICES</Text>
-        
-        {menuItems.map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            activeOpacity={0.75}
-            onPress={item.onPress}
-            style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: colors.accentBg }]}>
-              <Ionicons name={item.icon} size={24} color={colors.accentText} />
-            </View>
-            <View style={styles.cardTextContainer}>
+
+        {/* 2x2 Grid Menu */}
+        <View style={styles.gridContainer}>
+          {menuItems.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              activeOpacity={0.8}
+              onPress={item.onPress}
+              style={[styles.gridCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: colors.accentBg }]}>
+                <Ionicons name={item.icon} size={22} color={colors.accentText} />
+              </View>
               <Text style={[styles.cardText, { color: colors.cardText }]}>
                 {item.label}
               </Text>
               <Text style={styles.cardSubText}>{item.subLabel}</Text>
-            </View>
-            <View style={styles.arrowContainer}>
-              <Ionicons name="chevron-forward" size={18} color="#00D2FF" />
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {/* DB Statistics Badge */}
         <View style={styles.statsContainer}>
@@ -226,7 +237,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   heroSection: {
-    marginBottom: 24,
+    marginBottom: 16,
   },
   heroGreeting: {
     fontSize: 28,
@@ -239,6 +250,43 @@ const styles = StyleSheet.create({
     color: "#8E9BB4",
     marginTop: 6,
     lineHeight: 20,
+  },
+  searchBarShortcut: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#131926",
+    borderWidth: 1,
+    borderColor: "#222B3F",
+    borderRadius: 12,
+    height: 52,
+    paddingHorizontal: 14,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchPlaceholder: {
+    flex: 1,
+    color: "#8E9BB4",
+    fontSize: 13,
+  },
+  searchBadge: {
+    backgroundColor: "#1B2335",
+    borderWidth: 1,
+    borderColor: "rgba(0, 210, 255, 0.2)",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  searchBadgeText: {
+    color: "#00D2FF",
+    fontSize: 10,
+    fontWeight: "800",
   },
   wordOfTheDayCard: {
     backgroundColor: "#0F1322",
@@ -290,14 +338,19 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginLeft: 4,
   },
-  card: {
-    height: 96,
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  gridCard: {
+    width: "48%",
+    height: 130,
     borderRadius: 16,
     borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
+    padding: 14,
     marginBottom: 16,
+    justifyContent: "space-between",
     ...Platform.select({
       web: {
         boxShadow: "0 4px 24px rgba(0, 0, 0, 0.4)",
@@ -312,39 +365,25 @@ const styles = StyleSheet.create({
     }),
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
     borderWidth: 1,
     borderColor: "rgba(0, 210, 255, 0.15)",
-  },
-  cardTextContainer: {
-    flex: 1,
-    justifyContent: "center",
+    alignSelf: "flex-start",
   },
   cardText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
-    textAlign: "left",
     fontFamily: "NotoSansMalayalam",
-    marginBottom: 2,
+    marginTop: 8,
   },
   cardSubText: {
-    fontSize: 12,
+    fontSize: 10,
     color: "#8E9BB4",
-  },
-  arrowContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#1B2335",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(0, 210, 255, 0.1)",
+    marginTop: 2,
   },
   statsContainer: {
     alignItems: "center",
