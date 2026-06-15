@@ -148,7 +148,7 @@ export default function MalayalamEnglishScreen() {
           <Text style={styles.malayalamWord}>{item.word}</Text>
           <Text style={styles.cardSubtext}>English: {item.english_equivalent}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#BCAFA1" />
+        <Ionicons name="chevron-forward" size={18} color="#00D2FF" />
       </View>
 
       <View style={styles.meaningsWrap}>
@@ -165,11 +165,11 @@ export default function MalayalamEnglishScreen() {
     <View style={styles.screen}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={27} color="white" />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="chevron-back" size={26} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>മലയാളം - മലയാളം നിഘണ്ടു</Text>
-        <View style={{ width: 12 }} />
+        <Text style={styles.headerTitle}>മലയാളം - ഇംഗ്ലീഷ് നിഘണ്ടു</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       {/* മലയാളം അക്ഷരങ്ങളുടെ തിരശ്ചീന ലിസ്റ്റ് (Horizontal Alphabet Strip) */}
@@ -186,20 +186,20 @@ export default function MalayalamEnglishScreen() {
 
       {/* Search Input */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={22} color="#777" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color="#8E9BB4" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="ടൈപ്പ് ചെയ്ത് തിരയുക (ഉദാ: അമ്മ)..."
           value={searchText}
           onChangeText={setSearchText}
-          placeholderTextColor="#898683"
+          placeholderTextColor="#64748B"
         />
       </View>
 
       {/* UI State Logic */}
       {isLoading ? (
         <View style={styles.stateContainer}>
-          <ActivityIndicator size="large" color="#2B2C51" />
+          <ActivityIndicator size="large" color="#00D2FF" />
           <Text style={styles.stateText}>വാക്കുകൾ കണ്ടെത്തുന്നു...</Text>
         </View>
       ) : errorMessage ? (
@@ -221,8 +221,8 @@ export default function MalayalamEnglishScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              tintColor="#2B2C51"
-              colors={["#2B2C51"]}
+              tintColor="#00D2FF"
+              colors={["#00D2FF"]}
             />
           }
           ListEmptyComponent={
@@ -244,31 +244,41 @@ export default function MalayalamEnglishScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "#090D16",
   },
   header: {
     height: Platform.OS === "android" ? 70 : 90,
-    backgroundColor: "#2B2C51",
+    backgroundColor: "#0F1322",
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
     paddingHorizontal: 15,
     paddingBottom: 15,
-    fontFamily: "NotoSansMalayalam",
-  
+    borderBottomWidth: 1,
+    borderBottomColor: "#1E293B",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
+    backgroundColor: "#1E293B33",
   },
   headerTitle: {
     color: "white",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
     marginBottom: 5,
+    textAlign: "center",
+    flex: 1,
   },
   alphabetContainer: {
+    backgroundColor: "#090D16",
     borderBottomWidth: 1,
-    borderColor: "#000000ff",
-    paddingVertical: 10,
-    backgroundColor: "#DEDEDE",
+    borderColor: "#1E293B",
+    paddingVertical: 12,
   },
   alphabetList: {
     paddingHorizontal: 12,
@@ -280,38 +290,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginHorizontal: 4,
-    fontFamily: "NotoSansMalayalam",
+    backgroundColor: "#131926",
+    borderWidth: 1,
+    borderColor: "#222B3F",
   },
   activeLetterTab: {
-    backgroundColor: "#2B2C51",
-    fontFamily: "NotoSansMalayalam",
+    backgroundColor: "#1B2335",
+    borderColor: "#00D2FF",
+    borderWidth: 1,
   },
   letterText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#4E473E",
+    color: "#8E9BB4",
     fontFamily: "NotoSansMalayalam",
   },
   activeLetterText: {
-    color: "#FFFFFF",
+    color: "#00D2FF",
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#131926",
     marginHorizontal: 16,
     marginTop: 14,
     marginBottom: 4,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#ddd7cf",
+    borderColor: "#222B3F",
     paddingHorizontal: 12,
     height: 48,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 2,
   },
   searchIcon: {
     marginRight: 8,
@@ -319,7 +327,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: "#333",
+    color: "#FFFFFF",
     padding: 0,
     fontFamily: "NotoSansMalayalam",
   },
@@ -328,17 +336,12 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#131926",
     borderRadius: 18,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#E7E0D7",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    borderColor: "#222B3F",
   },
   cardHeader: {
     flexDirection: "row",
@@ -349,14 +352,14 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: "#2B2C51",
+    backgroundColor: "#1B2335",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   wordBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 16,
+    color: "#00D2FF",
+    fontSize: 18,
     fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
   },
@@ -364,13 +367,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   malayalamWord: {
-    color: "#1F2330",
+    color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
   },
   cardSubtext: {
-    color: "#7C736B",
+    color: "#8E9BB4",
     fontSize: 13,
     marginTop: 1,
   },
@@ -378,16 +381,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   meaningPill: {
-    backgroundColor: "#F4EEE7",
+    backgroundColor: "#1B2335",
     borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "#E2D7CB",
+    borderColor: "#222B3F",
     flex: 1,
   },
   meaningText: {
-    color: "#4E473E",
+    color: "#8E9BB4",
     fontSize: 14,
     lineHeight: 20,
     fontFamily: "NotoSansMalayalam",
@@ -400,14 +403,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   stateTitle: {
-    color: "#1F2330",
+    color: "#FFFFFF",
     fontSize: 17,
     fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
     marginBottom: 6,
   },
   stateText: {
-    color: "#6D625A",
+    color: "#8E9BB4",
     fontSize: 14,
     fontFamily: "NotoSansMalayalam",
     textAlign: "center",
@@ -415,13 +418,15 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 14,
-    backgroundColor: "#2B2C51",
+    backgroundColor: "#1B2335",
+    borderColor: "#00D2FF",
+    borderWidth: 1,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 12,
   },
   retryButtonText: {
-    color: "#FFFFFF",
+    color: "#00D2FF",
     fontSize: 14,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",

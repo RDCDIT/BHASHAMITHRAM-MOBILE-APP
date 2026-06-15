@@ -220,13 +220,13 @@ export default function SuggestWordScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="text-outline" size={22} color="#2B2C51" />
+              <Ionicons name="text-outline" size={22} color="#00D2FF" />
               <Text style={styles.sectionTitle}>അടിസ്ഥാന വിവരങ്ങൾ</Text>
             </View>
             <Ionicons
               name={activeSection === "basic" ? "chevron-up" : "chevron-down"}
               size={20}
-              color="#2B2C51"
+              color="#00D2FF"
             />
           </TouchableOpacity>
 
@@ -236,7 +236,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="ഉദാ: പര"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={word}
                 onChangeText={setWord}
               />
@@ -245,7 +245,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="ഉദാ: para"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={phoneticTranscription}
                 onChangeText={setPhoneticTranscription}
               />
@@ -284,13 +284,13 @@ export default function SuggestWordScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="book-outline" size={22} color="#2B2C51" />
+              <Ionicons name="book-outline" size={22} color="#00D2FF" />
               <Text style={styles.sectionTitle}>അർത്ഥങ്ങളും പ്രയോഗങ്ങളും</Text>
             </View>
             <Ionicons
               name={activeSection === "meanings" ? "chevron-up" : "chevron-down"}
               size={20}
-              color="#2B2C51"
+              color="#00D2FF"
             />
           </TouchableOpacity>
 
@@ -302,7 +302,7 @@ export default function SuggestWordScreen() {
                     <Text style={styles.blockTitle}>അർത്ഥം {idx + 1}</Text>
                     {meanings.length > 1 && (
                       <TouchableOpacity onPress={() => handleRemoveMeaning(idx)}>
-                        <Ionicons name="close-circle-outline" size={22} color="#D32F2F" />
+                        <Ionicons name="close-circle-outline" size={22} color="#EF4444" />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -311,7 +311,7 @@ export default function SuggestWordScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="ഉദാ: സംസാരിക്കുക"
-                    placeholderTextColor="#A59B90"
+                    placeholderTextColor="#64748B"
                     value={m.meaning}
                     onChangeText={(val) => handleMeaningChange(idx, "meaning", val)}
                   />
@@ -320,7 +320,7 @@ export default function SuggestWordScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="ഉദാ: അവൻ കാര്യം പറഞ്ഞു."
-                    placeholderTextColor="#A59B90"
+                    placeholderTextColor="#64748B"
                     value={m.context_usage}
                     onChangeText={(val) => handleMeaningChange(idx, "context_usage", val)}
                   />
@@ -328,7 +328,7 @@ export default function SuggestWordScreen() {
               ))}
 
               <TouchableOpacity style={styles.addButton} onPress={handleAddMeaning}>
-                <Ionicons name="add" size={20} color="#16A697" />
+                <Ionicons name="add" size={20} color="#00D2FF" />
                 <Text style={styles.addButtonText}>അർത്ഥം കൂട്ടിച്ചേർക്കുക</Text>
               </TouchableOpacity>
             </View>
@@ -343,13 +343,13 @@ export default function SuggestWordScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="library-outline" size={22} color="#2B2C51" />
+              <Ionicons name="library-outline" size={22} color="#00D2FF" />
               <Text style={styles.sectionTitle}>ഭാഷാപരമായ വിവരങ്ങൾ</Text>
             </View>
             <Ionicons
               name={activeSection === "linguistic" ? "chevron-up" : "chevron-down"}
               size={20}
-              color="#2B2C51"
+              color="#00D2FF"
             />
           </TouchableOpacity>
 
@@ -359,7 +359,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="ഉദാ: പര"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={root}
                 onChangeText={setRoot}
               />
@@ -368,7 +368,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="ഉദാ: സംസ്കൃതത്തിലെ 'പൃ' എന്ന ധാതുവിൽ നിന്ന്..."
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 multiline
                 numberOfLines={3}
                 value={etymology}
@@ -379,7 +379,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="കമകളായി വേർതിരിക്കുക (ചൊല്ല്, വാക്ക്)"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={synonyms}
                 onChangeText={setSynonyms}
               />
@@ -388,7 +388,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="കമകളായി വേർതിരിക്കുക (മൗനം, നിശബ്ദത)"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={antonyms}
                 onChangeText={setAntonyms}
               />
@@ -397,7 +397,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="ഉദാ: തെക്കൻ കേരളത്തിൽ..."
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={dialects}
                 onChangeText={setDialects}
               />
@@ -406,7 +406,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="ഉദാ: പറയുന്നു, പറഞ്ഞു, പറയും"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={inflections}
                 onChangeText={setInflections}
               />
@@ -415,7 +415,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="ഉദാ: സംസാരം, ഉച്ചാരണം"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={similarWord}
                 onChangeText={setSimilarWord}
               />
@@ -424,7 +424,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="ഉദാ: പറച്ചിൽ, പറയൽ"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={novelWords}
                 onChangeText={setNovelWords}
               />
@@ -433,7 +433,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="ഉദാ: പറയുക (to speak), പറച്ചിൽ (speech)"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={crossReference}
                 onChangeText={setCrossReference}
               />
@@ -442,7 +442,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="പ്രസംഗവും കലാപരവുമായ പ്രാധാന്യം..."
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 multiline
                 numberOfLines={3}
                 value={culturalNote}
@@ -459,7 +459,7 @@ export default function SuggestWordScreen() {
                   <View style={styles.blockHeader}>
                     <Text style={styles.blockTitleSub}>ചൊല്ല് {idx + 1}</Text>
                     <TouchableOpacity onPress={() => handleRemoveProverb(idx)}>
-                      <Ionicons name="close-circle-outline" size={20} color="#D32F2F" />
+                      <Ionicons name="close-circle-outline" size={20} color="#EF4444" />
                     </TouchableOpacity>
                   </View>
 
@@ -467,7 +467,7 @@ export default function SuggestWordScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="പഴഞ്ചൊല്ല് രേഖപ്പെടുത്തുക"
-                    placeholderTextColor="#A59B90"
+                    placeholderTextColor="#64748B"
                     value={p.proverb}
                     onChangeText={(val) => handleProverbChange(idx, "proverb", val)}
                   />
@@ -476,7 +476,7 @@ export default function SuggestWordScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="ഉപയോഗ പശ്ചാത്തലം രേഖപ്പെടുത്തുക"
-                    placeholderTextColor="#A59B90"
+                    placeholderTextColor="#64748B"
                     value={p.context_usage}
                     onChangeText={(val) => handleProverbChange(idx, "context_usage", val)}
                   />
@@ -484,7 +484,7 @@ export default function SuggestWordScreen() {
               ))}
 
               <TouchableOpacity style={styles.addButton} onPress={handleAddProverb}>
-                <Ionicons name="add" size={20} color="#16A697" />
+                <Ionicons name="add" size={20} color="#00D2FF" />
                 <Text style={styles.addButtonText}>പഴഞ്ചൊല്ല് കൂട്ടിച്ചേർക്കുക</Text>
               </TouchableOpacity>
             </View>
@@ -499,13 +499,13 @@ export default function SuggestWordScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="globe-outline" size={22} color="#2B2C51" />
+              <Ionicons name="globe-outline" size={22} color="#00D2FF" />
               <Text style={styles.sectionTitle}>ഇതര ഭാഷാ രൂപങ്ങൾ</Text>
             </View>
             <Ionicons
               name={activeSection === "equivalents" ? "chevron-up" : "chevron-down"}
               size={20}
-              color="#2B2C51"
+              color="#00D2FF"
             />
           </TouchableOpacity>
 
@@ -515,7 +515,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="English translation"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={englishEq}
                 onChangeText={setEnglishEq}
               />
@@ -524,7 +524,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="தமிழ் வடிവം"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={tamilEq}
                 onChangeText={setTamilEq}
               />
@@ -533,7 +533,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="ಕನ್ನಡ ರೂಪ"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={kannadaEq}
                 onChangeText={setKannadaEq}
               />
@@ -542,7 +542,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="తెలుగు రూపం"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={teluguEq}
                 onChangeText={setTeluguEq}
               />
@@ -551,7 +551,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="തുളു രൂപം"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={tuluEq}
                 onChangeText={setTuluEq}
               />
@@ -567,13 +567,13 @@ export default function SuggestWordScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="person-outline" size={22} color="#2B2C51" />
+              <Ionicons name="person-outline" size={22} color="#00D2FF" />
               <Text style={styles.sectionTitle}>പങ്കാളിത്ത വിവരങ്ങൾ</Text>
             </View>
             <Ionicons
               name={activeSection === "contributor" ? "chevron-up" : "chevron-down"}
               size={20}
-              color="#2B2C51"
+              color="#00D2FF"
             />
           </TouchableOpacity>
 
@@ -583,7 +583,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="നിങ്ങളുടെ പേര്"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 value={contributorName}
                 onChangeText={setContributorName}
               />
@@ -592,7 +592,7 @@ export default function SuggestWordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="നിങ്ങളുടെ ഇമെയിൽ വിലാസം"
-                placeholderTextColor="#A59B90"
+                placeholderTextColor="#64748B"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={contributorEmail}
@@ -626,30 +626,42 @@ export default function SuggestWordScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "#090D16",
   },
   header: {
     height: Platform.OS === "android" ? 70 : 90,
-    backgroundColor: "#2B2C51",
+    backgroundColor: "#0F1322",
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
     paddingHorizontal: 15,
     paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1E293B",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
+    backgroundColor: "#1E293B33",
   },
   headerTitle: {
     color: "white",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
     marginBottom: 5,
+    textAlign: "center",
+    flex: 1,
   },
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
   },
   helperText: {
-    color: "#6D625A",
+    color: "#8E9BB4",
     fontSize: 14,
     fontFamily: "NotoSansMalayalam",
     lineHeight: 22,
@@ -657,24 +669,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#131926",
     borderRadius: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#E7E0D7",
+    borderColor: "#222B3F",
     overflow: "hidden",
-    ...Platform.select({
-      web: {
-        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.04)",
-      },
-      default: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 3,
-        elevation: 1,
-      },
-    }),
   },
   sectionHeader: {
     flexDirection: "row",
@@ -682,14 +682,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 18,
     paddingHorizontal: 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#131926",
   },
   sectionTitleRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   sectionTitle: {
-    color: "#2B2C51",
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
@@ -697,12 +697,12 @@ const styles = StyleSheet.create({
   },
   sectionContent: {
     borderTopWidth: 1,
-    borderColor: "#F2EBE1",
+    borderColor: "#222B3F",
     padding: 16,
-    backgroundColor: "#FCFAF7",
+    backgroundColor: "#0F1322",
   },
   label: {
-    color: "#4E473E",
+    color: "#8E9BB4",
     fontSize: 14,
     fontWeight: "600",
     fontFamily: "NotoSansMalayalam",
@@ -710,14 +710,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   input: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#131926",
     borderWidth: 1,
-    borderColor: "#E2D7CB",
+    borderColor: "#222B3F",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#333333",
+    color: "#FFFFFF",
     fontFamily: "NotoSansMalayalam",
     marginBottom: 10,
   },
@@ -733,9 +733,9 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   genderButton: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#131926",
     borderWidth: 1,
-    borderColor: "#E2D7CB",
+    borderColor: "#222B3F",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -743,30 +743,30 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   activeGenderButton: {
-    backgroundColor: "#2B2C51",
-    borderColor: "#2B2C51",
+    backgroundColor: "#1B2335",
+    borderColor: "#00D2FF",
   },
   genderText: {
-    color: "#4E473E",
+    color: "#8E9BB4",
     fontSize: 13,
     fontFamily: "NotoSansMalayalam",
     fontWeight: "600",
   },
   activeGenderText: {
-    color: "#FFFFFF",
+    color: "#00D2FF",
   },
   itemBlock: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#131926",
     borderWidth: 1,
-    borderColor: "#E2D7CB",
+    borderColor: "#222B3F",
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
   },
   itemBlockSub: {
-    backgroundColor: "#FAF6F0",
+    backgroundColor: "#1B2335",
     borderWidth: 1,
-    borderColor: "#E6DCCE",
+    borderColor: "#222B3F",
     borderRadius: 12,
     padding: 12,
     marginBottom: 10,
@@ -782,17 +782,17 @@ const styles = StyleSheet.create({
     marginTop: 18,
     marginBottom: 8,
     borderTopWidth: 1,
-    borderColor: "#E2D7CB",
+    borderColor: "#222B3F",
     paddingTop: 14,
   },
   blockTitle: {
-    color: "#2B2C51",
+    color: "#00D2FF",
     fontSize: 14,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
   },
   blockTitleSub: {
-    color: "#5C5040",
+    color: "#00D2FF",
     fontSize: 13,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
@@ -801,23 +801,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#131926",
     borderWidth: 1.5,
-    borderColor: "#16A697",
+    borderColor: "#00D2FF",
     borderStyle: "dashed",
     borderRadius: 12,
     paddingVertical: 12,
     marginTop: 6,
   },
   addButtonText: {
-    color: "#16A697",
+    color: "#00D2FF",
     fontSize: 14,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
     marginLeft: 6,
   },
   submitButton: {
-    backgroundColor: "#16A697",
+    backgroundColor: "#1B2335",
+    borderColor: "#00D2FF",
+    borderWidth: 1,
     borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
@@ -825,24 +827,12 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     marginTop: 20,
     marginBottom: 20,
-    ...Platform.select({
-      web: {
-        boxShadow: "0 4px 6px rgba(22, 166, 151, 0.2)",
-      },
-      default: {
-        shadowColor: "#16A697",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 5,
-        elevation: 3,
-      },
-    }),
   },
   submittingButton: {
-    backgroundColor: "#8BD3CB",
+    backgroundColor: "#131926",
   },
   submitButtonText: {
-    color: "white",
+    color: "#00D2FF",
     fontSize: 16,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",

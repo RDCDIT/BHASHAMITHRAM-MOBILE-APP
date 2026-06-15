@@ -112,7 +112,7 @@ export default function WordDetailsScreen() {
   if (isLoading) {
     return (
       <View style={styles.stateContainer}>
-        <ActivityIndicator size="large" color="#2B2C51" />
+        <ActivityIndicator size="large" color="#00D2FF" />
         <Text style={styles.stateText}>വിവരങ്ങൾ ശേഖരിക്കുന്നു...</Text>
       </View>
     );
@@ -123,15 +123,15 @@ export default function WordDetailsScreen() {
       <View style={styles.screen}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={27} color="white" />
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={26} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>വിവരങ്ങൾ</Text>
-          <View style={{ width: 27 }} />
+          <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.stateContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color="#7C736B" />
+          <Ionicons name="alert-circle-outline" size={64} color="#8E9BB4" />
           <Text style={styles.stateTitle}>കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല</Text>
           <Text style={styles.stateText}>{errorMessage || "വിവരങ്ങൾ ലഭ്യമല്ല."}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={() => void loadDetails()}>
@@ -146,13 +146,13 @@ export default function WordDetailsScreen() {
     <View style={styles.screen}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={27} color="white" />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="chevron-back" size={26} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {details.word}
         </Text>
-        <View style={{ width: 27 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -190,7 +190,7 @@ export default function WordDetailsScreen() {
                   <Text style={styles.meaningText}>{m.meaning}</Text>
                   {m.context_usage && (
                     <Text style={styles.contextUsage}>
-                      <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
+                      <Text style={{ fontWeight: "700", color: "#00D2FF" }}>പ്രയോഗം: </Text>
                       {m.context_usage}
                     </Text>
                   )}
@@ -281,7 +281,7 @@ export default function WordDetailsScreen() {
             
             {!!details.proverb && (
               <View style={styles.proverbItem}>
-                <Ionicons name="bookmark-outline" size={20} color="#2B2C51" style={{ marginRight: 8, marginTop: 2 }} />
+                <Ionicons name="bookmark-outline" size={20} color="#00D2FF" style={{ marginRight: 8, marginTop: 2 }} />
                 <Text style={styles.proverbText}>{details.proverb}</Text>
               </View>
             )}
@@ -289,13 +289,13 @@ export default function WordDetailsScreen() {
             {details.proverbs?.map((p, idx) => (
               <View key={p.id || idx} style={styles.proverbContainer}>
                 <View style={styles.proverbHeader}>
-                  <Ionicons name="chatbubbles-outline" size={18} color="#2B2C51" style={{ marginRight: 6 }} />
+                  <Ionicons name="chatbubbles-outline" size={18} color="#00D2FF" style={{ marginRight: 6 }} />
                   <Text style={styles.proverbTitle}>ശൈലി {idx + 1}</Text>
                 </View>
                 <Text style={styles.proverbText}>{p.proverb}</Text>
                 {p.context_usage && (
                   <Text style={styles.proverbContext}>
-                    <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
+                    <Text style={{ fontWeight: "700", color: "#00D2FF" }}>പ്രയോഗം: </Text>
                     {p.context_usage}
                   </Text>
                 )}
@@ -309,7 +309,7 @@ export default function WordDetailsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>സാംസ്കാരിക പശ്ചാത്തലം</Text>
             <View style={styles.culturalCard}>
-              <Ionicons name="globe-outline" size={24} color="#2B2C51" style={{ marginBottom: 6 }} />
+              <Ionicons name="globe-outline" size={24} color="#00D2FF" style={{ marginBottom: 6 }} />
               <Text style={styles.culturalText}>{details.cultural_note}</Text>
             </View>
           </View>
@@ -336,16 +336,26 @@ export default function WordDetailsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "#090D16",
   },
   header: {
     height: Platform.OS === "android" ? 70 : 90,
-    backgroundColor: "#2B2C51",
+    backgroundColor: "#0F1322",
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
     paddingHorizontal: 15,
     paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1E293B",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
+    backgroundColor: "#1E293B33",
   },
   headerTitle: {
     color: "white",
@@ -361,30 +371,25 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   wordCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#131926",
     borderRadius: 20,
     padding: 24,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E7E0D7",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: "#222B3F",
     marginBottom: 16,
   },
   wordBadge: {
     width: 60,
     height: 60,
     borderRadius: 18,
-    backgroundColor: "#2B2C51",
+    backgroundColor: "#1B2335",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 14,
   },
   wordBadgeText: {
-    color: "#FFFFFF",
+    color: "#00D2FF",
     fontSize: 24,
     fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
@@ -392,13 +397,13 @@ const styles = StyleSheet.create({
   mainWord: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#1F2330",
+    color: "#FFFFFF",
     fontFamily: "NotoSansMalayalam",
     textAlign: "center",
   },
   phonetic: {
     fontSize: 16,
-    color: "#7C736B",
+    color: "#8E9BB4",
     marginTop: 4,
     fontStyle: "italic",
   },
@@ -406,44 +411,39 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: "#F4EEE7",
+    borderTopColor: "#222B3F",
     width: "100%",
     alignItems: "center",
   },
   englishLabel: {
     fontSize: 12,
-    color: "#898683",
+    color: "#8E9BB4",
     textTransform: "uppercase",
     fontWeight: "600",
   },
   englishValue: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#2B2C51",
+    color: "#00D2FF",
     marginTop: 4,
   },
   section: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#131926",
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: "#E7E0D7",
+    borderColor: "#222B3F",
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#2B2C51",
+    color: "#00D2FF",
     fontFamily: "NotoSansMalayalam",
     marginBottom: 14,
-    borderBottomWidth: 2,
-    borderBottomColor: "#F4EEE7",
-    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "#222B3F",
+    paddingBottom: 8,
   },
   meaningItem: {
     flexDirection: "row",
@@ -453,73 +453,42 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 8,
-    backgroundColor: "#F4EEE7",
+    backgroundColor: "#1B2335",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
     marginTop: 2,
+    borderWidth: 1,
+    borderColor: "#222B3F",
   },
   meaningNumber: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#4E473E",
+    color: "#00D2FF",
   },
   meaningContent: {
     flex: 1,
   },
   meaningText: {
     fontSize: 16,
-    color: "#333333",
+    color: "#FFFFFF",
     lineHeight: 22,
     fontFamily: "NotoSansMalayalam",
   },
   contextUsage: {
     fontSize: 13,
-    color: "#7C736B",
+    color: "#8E9BB4",
     fontFamily: "NotoSansMalayalam",
     marginTop: 6,
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "#1B2335",
     padding: 8,
     borderRadius: 8,
-  },
-  equivalentsGrid: {
-    marginTop: 4,
-  },
-  equivalentRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F4EEE7",
-  },
-  equivalentLang: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#7C736B",
-  },
-  equivalentValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1F2330",
-  },
-  infoList: {
-    marginTop: 4,
-  },
-  infoItem: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F4EEE7",
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: "#898683",
-    fontFamily: "NotoSansMalayalam",
-    marginBottom: 2,
+    borderWidth: 1,
+    borderColor: "#222B3F",
   },
   infoValue: {
     fontSize: 15,
-    color: "#333333",
+    color: "#FFFFFF",
     fontWeight: "600",
     fontFamily: "NotoSansMalayalam",
     lineHeight: 20,
@@ -527,24 +496,28 @@ const styles = StyleSheet.create({
   proverbItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "#1B2335",
     padding: 12,
     borderRadius: 12,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#222B3F",
   },
   proverbText: {
     fontSize: 15,
-    color: "#4E473E",
+    color: "#8E9BB4",
     fontFamily: "NotoSansMalayalam",
     lineHeight: 22,
     flex: 1,
     fontStyle: "italic",
   },
   proverbContainer: {
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "#1B2335",
     padding: 12,
     borderRadius: 12,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#222B3F",
   },
   proverbHeader: {
     flexDirection: "row",
@@ -554,24 +527,24 @@ const styles = StyleSheet.create({
   proverbTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#2B2C51",
+    color: "#00D2FF",
   },
   proverbContext: {
     fontSize: 13,
-    color: "#7C736B",
+    color: "#8E9BB4",
     marginTop: 6,
     fontFamily: "NotoSansMalayalam",
   },
   culturalCard: {
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "#1B2335",
     padding: 16,
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: "#2B2C51",
+    borderLeftColor: "#00D2FF",
   },
   culturalText: {
     fontSize: 15,
-    color: "#4E473E",
+    color: "#8E9BB4",
     fontFamily: "NotoSansMalayalam",
     lineHeight: 22,
   },
@@ -583,7 +556,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#E7E0D7",
+    borderColor: "#222B3F",
   },
   galleryImage: {
     width: 200,
@@ -594,10 +567,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "#090D16",
   },
   stateTitle: {
-    color: "#1F2330",
+    color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
@@ -605,7 +578,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   stateText: {
-    color: "#6D625A",
+    color: "#8E9BB4",
     fontSize: 14,
     fontFamily: "NotoSansMalayalam",
     textAlign: "center",
@@ -613,13 +586,15 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 18,
-    backgroundColor: "#2B2C51",
+    backgroundColor: "#1B2335",
+    borderColor: "#00D2FF",
+    borderWidth: 1,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
   },
   retryButtonText: {
-    color: "#FFFFFF",
+    color: "#00D2FF",
     fontSize: 14,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
@@ -631,17 +606,17 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   categoryBadge: {
-    backgroundColor: "#F4EEE7",
+    backgroundColor: "#1B2335",
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E2D7CB",
+    borderColor: "#222B3F",
   },
   categoryBadgeText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#2B2C51",
+    color: "#00D2FF",
     fontFamily: "NotoSansMalayalam",
   },
 });
