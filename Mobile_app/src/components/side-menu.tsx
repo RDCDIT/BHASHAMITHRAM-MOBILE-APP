@@ -60,7 +60,7 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
             },
           ]}
         >
-          <ScrollView>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.header}>
               <Image
                 source={require("@/assets/images/cdit_logo.png")}
@@ -155,8 +155,10 @@ function MenuRow({
   onPress?: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress}>
-      <Ionicons name={icon} size={24} color="#666" />
+    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.iconContainer}>
+        <Ionicons name={icon} size={20} color="#00D2FF" />
+      </View>
       <Text style={styles.rowText}>{title}</Text>
     </TouchableOpacity>
   );
@@ -166,50 +168,69 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     flexDirection: "row",
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(3, 5, 10, 0.75)",
   },
   backdrop: {
     flex: 1,
   },
   drawer: {
     height: "100%",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#0F1322",
     zIndex: 100,
-    elevation: 10,
+    borderRightWidth: 1,
+    borderRightColor: "#222B3F",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
   },
   header: {
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    paddingTop: 20,
-    paddingBottom: 12,
+    backgroundColor: "#090D16",
+    paddingTop: 40,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#222B3F",
   },
   appTitle: {
-    color: "#000000",
-    fontSize: 20,
-    fontWeight: "600",
-    marginTop: 6,
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "700",
+    marginTop: 10,
     fontFamily: "NotoSansMalayalam",
+    letterSpacing: 0.5,
   },
   section: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: "#222B3F",
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingVertical: 14,
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#1B2335",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0, 210, 255, 0.2)",
   },
   rowText: {
-    marginLeft: 20,
-    fontSize: 16,
-    color: "#000000",
+    marginLeft: 16,
+    fontSize: 15,
+    color: "#E2E8F0",
     fontFamily: "NotoSansMalayalam",
+    fontWeight: "500",
   },
   logoImage: {
-    width: "100%",
-    height: 100,
+    width: "80%",
+    height: 80,
   },
 });
