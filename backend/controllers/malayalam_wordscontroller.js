@@ -1,13 +1,15 @@
 const mongoose = require('mongoose');
 const Dictionary = require('../models/englishmalayalam');
+const EnglishDictionary = require('../models/englishdictionary');
 const RecentSearch = require('../models/RecentSearches');
 const RecentOpening = require('../models/RecentOpening');
 
 const MALAYALAM_ALPHABET = [
-  "അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "എ", "ഏ", "ഐ", "ഒ", "ഓ", "ഔ",
-  "ക", "ഖ", "ഗ", "ഘ", "ച", "ഛ", "ജ", "ഝ", "ട", "ഠ", "ഡ", "ഢ",
-  "ത", "ഥ", "ദ", "ധ", "ന", "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര",
-  "ല", "വ", "ശ", "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
+  "അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "എ", "ഏ", "ഐ", "ഒ", "ഓ", "ഔ", "അം",
+  "ക", "ഖ", "ഗ", "ഘ", "ങ", "ച", "ഛ", "ജ", "ഝ", "ഞ",
+  "ട", "ഠ", "ഡ", "ഢ", "ണ", "ത", "ഥ", "ദ", "ധ", "ന",
+  "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര", "ല", "വ", "ശ",
+  "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
 ];
 
 /**
@@ -17,8 +19,9 @@ const MALAYALAM_ALPHABET = [
 const getWordDetails = async (req, res) => {
   const startTime = Date.now();
   const { id } = req.params;
+  const { type } = req.query;
 
-  console.log(`\n📥 [Incoming Request] GET /api/words/details | Word ID: "${id}"`);
+  console.log(`\n📥 [Incoming Request] GET /api/words/details | Word ID: "${id}" | Type: "${type || 'malayalam'}"`);
 
   if (!id) {
     console.log('⚠️ [Validation Failed] Client omitted the required word ID.');
@@ -29,7 +32,12 @@ const getWordDetails = async (req, res) => {
     console.log(`🔍 [Database Query] Fetching detailed document for ID: ${id} ...`);
     
     // ഡാറ്റാബേസിൽ നിന്ന് ID അടിസ്ഥാനമാക്കി വാക്ക് കണ്ടെത്തുന്നു
-    const wordDetails = await Dictionary.findOne({ _id: Number(id), 'status.approved': true });
+    let wordDetails;
+    if (type === 'english') {
+      wordDetails = await EnglishDictionary.findOne({ _id: Number(id), 'status.approved': true });
+    } else {
+      wordDetails = await Dictionary.findOne({ _id: Number(id), 'status.approved': true });
+    }
 
     if (!wordDetails) {
       console.log(`⚠️ [Not Found] No approved document found with ID: ${id}`);
@@ -82,11 +90,13 @@ const getMalayalamMasterList = async (req, res) => {
   try {
     const searchCriteria = { 'status.approved': true };
     if (query && query.trim() !== '') {
-      const searchRegex = new RegExp(`^${query.trim()}`, 'i');
-      searchCriteria.word = searchRegex;
-      console.log(`🔍 [Database Query] Searching for Malayalam words starting with: /^${query.trim()}/i ...`);
-
       const trimmedQuery = query.trim();
+      const searchRegex = trimmedQuery === 'അ' 
+        ? new RegExp('^അ(?!ം)', 'i') 
+        : new RegExp(`^${trimmedQuery}`, 'i');
+      searchCriteria.word = searchRegex;
+      console.log(`🔍 [Database Query] Searching for Malayalam words starting with: ${searchRegex} ...`);
+
       const isCharacterOnly = trimmedQuery.length === 1 || MALAYALAM_ALPHABET.includes(trimmedQuery);
 
       // Record recent search only if it is a full word search
@@ -137,11 +147,13 @@ const getMalayalamSynonymsList = async (req, res) => {
       synonyms: { $exists: true, $ne: "" } 
     };
     if (query && query.trim() !== '') {
-      const searchRegex = new RegExp(`^${query.trim()}`, 'i');
-      searchCriteria.word = searchRegex;
-      console.log(`🔍 [Database Query] Searching for Malayalam words with synonyms starting with: /^${query.trim()}/i ...`);
-
       const trimmedQuery = query.trim();
+      const searchRegex = trimmedQuery === 'അ'
+        ? new RegExp('^അ(?!ം)', 'i')
+        : new RegExp(`^${trimmedQuery}`, 'i');
+      searchCriteria.word = searchRegex;
+      console.log(`🔍 [Database Query] Searching for Malayalam words with synonyms starting with: ${searchRegex} ...`);
+
       const isCharacterOnly = trimmedQuery.length === 1 || MALAYALAM_ALPHABET.includes(trimmedQuery);
 
       // Record recent search only if it is a full word search

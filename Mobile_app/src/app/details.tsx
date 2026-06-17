@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -8,9 +8,16 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
+import AnimatedCard from "../components/AnimatedCard";
+import SkeletonLoader from "../components/SkeletonLoader";
+import { saveRecentOpening } from "../utils/recentActivity";
 
 type DictionaryEntryDetails = {
   id: number;
@@ -64,6 +71,58 @@ export default function WordDetailsScreen() {
   const [details, setDetails] = useState<DictionaryEntryDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [highlightedCard, _setHighlightedCard] = useState<string | null>(null);
+  const highlightAnim = useRef(new Animated.Value(0)).current;
+
+  const toggleHighlight = (key: string) => {
+    if (highlightedCard === key) {
+      Animated.timing(highlightAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        _setHighlightedCard(null);
+      });
+    } else if (highlightedCard !== null) {
+      Animated.timing(highlightAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        _setHighlightedCard(key);
+        Animated.spring(highlightAnim, {
+          toValue: 1,
+          friction: 7,
+          useNativeDriver: true,
+        }).start();
+      });
+    } else {
+      _setHighlightedCard(key);
+      Animated.spring(highlightAnim, {
+        toValue: 1,
+        friction: 7,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  const getAnimatedCardStyle = (key: string, isSection = true) => {
+    const isHighlighted = highlightedCard === key;
+    const scale = isHighlighted
+      ? highlightAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [1, 1.03],
+        })
+      : 1;
+
+    return [
+      isSection ? styles.section : styles.wordCard,
+      isHighlighted && (isSection ? styles.highlightedSection : styles.highlightedCard),
+      { transform: [{ scale }] },
+    ];
+  };
+
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const loadDetails = async () => {
     if (!dictionaryId) {
@@ -89,6 +148,9 @@ export default function WordDetailsScreen() {
 
           const data = await response.json();
           setDetails(data);
+          if (data && data.word) {
+            void saveRecentOpening(Number(dictionaryId), data.word);
+          }
           return; // Success, exit function
         } catch (error) {
           lastError = error;
@@ -110,27 +172,26 @@ export default function WordDetailsScreen() {
     void loadDetails();
   }, [dictionaryId]);
 
-  if (isLoading) {
-    return (
-      <View style={styles.stateContainer}>
-        <ActivityIndicator size="large" color="#2B2C51" />
-        <Text style={styles.stateText}>വിവരങ്ങൾ ശേഖരിക്കുന്നു...</Text>
-      </View>
-    );
-  }
+  let cardIndex = 0;
 
-  if (errorMessage || !details) {
-    return (
-      <View style={styles.screen}>
-        {/* Header */}
-        <View style={styles.header}>
+  return (
+    <View style={styles.screen}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={27} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>വിവരങ്ങൾ</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {isLoading ? "വിവരങ്ങൾ" : details?.word || "വിവരങ്ങൾ"}
+          </Text>
           <View style={{ width: 27 }} />
         </View>
+      </View>
 
+      {isLoading ? (
+        <SkeletonLoader />
+      ) : errorMessage || !details ? (
         <View style={styles.stateContainer}>
           <Ionicons name="alert-circle-outline" size={64} color="#7C736B" />
           <Text style={styles.stateTitle}>കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല</Text>
@@ -139,204 +200,309 @@ export default function WordDetailsScreen() {
             <Text style={styles.retryButtonText}>വീണ്ടും ശ്രമിക്കുക</Text>
           </TouchableOpacity>
         </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.screen}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={27} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {details.word}
-        </Text>
-        <View style={{ width: 27 }} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      ) : (
+        <Animated.ScrollView 
+          contentContainerStyle={styles.scrollContainer} 
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+        >
         {/* Core Word Banner */}
-        <View style={styles.wordCard}>
-          <View style={styles.wordBadge}>
-            <Text style={styles.wordBadgeText}>
-              {details.word?.[0] ?? "അ"}
-            </Text>
-          </View>
-          <Text style={styles.mainWord}>{details.word}</Text>
-          
-          {!!details.phonetic_transcription && (
-            <Text style={styles.phonetic}>phonetic-transcription: [{details.phonetic_transcription}]</Text>
-          )}
-
-          {!!details.equivalents?.english && (
-            <View style={styles.englishContainer}>
-              <Text style={styles.englishLabel}>English Equivalent:</Text>
-              <Text style={styles.englishValue}>{details.equivalents.english}</Text>
+        <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+          <AnimatedTouchableOpacity
+            activeOpacity={0.95}
+            onPressIn={() => toggleHighlight("word")}
+            delayPressIn={0}
+            style={getAnimatedCardStyle("word", false)}
+          >
+            <View style={styles.wordBadge}>
+              <Text style={styles.wordBadgeText}>
+                {details.word?.[0] ?? "അ"}
+              </Text>
             </View>
-          )}
+            <Text style={styles.mainWord}>{details.word}</Text>
+            
+            {!!details.phonetic_transcription && (
+              <Text style={styles.phonetic}>phonetic-transcription: [{details.phonetic_transcription}]</Text>
+            )}
 
-          {!!details.equivalents?.malayalam && (
-            <View style={styles.englishContainer}>
-              <Text style={styles.englishLabel}>Malayalam Equivalent:</Text>
-              <Text style={styles.englishValue}>{details.equivalents.malayalam}</Text>
-            </View>
-          )}
-        </View>
+            {!!details.equivalents?.english && (
+              <View style={styles.englishContainer}>
+                <Text style={styles.englishLabel}>English Equivalent:</Text>
+                <Text style={styles.englishValue}>{details.equivalents.english}</Text>
+              </View>
+            )}
+
+            {!!details.equivalents?.malayalam && (
+              <View style={styles.englishContainer}>
+                <Text style={styles.englishLabel}>Malayalam Equivalent:</Text>
+                <Text style={styles.englishValue}>{details.equivalents.malayalam}</Text>
+              </View>
+            )}
+          </AnimatedTouchableOpacity>
+        </AnimatedCard>
 
         {/* Meanings Section */}
         {details.meanings && details.meanings.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ (Meanings)</Text>
-            {details.meanings.map((m, idx) => (
-              <View key={m.id || idx} style={styles.meaningItem}>
-                <View style={styles.meaningNumberBox}>
-                  <Text style={styles.meaningNumber}>{idx + 1}</Text>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("meanings")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("meanings")}
+            >
+              <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ (Meanings)</Text>
+              {details.meanings.map((m, idx) => (
+                <View key={m.id || idx} style={styles.meaningItem}>
+                  <View style={styles.meaningNumberBox}>
+                    <Text style={styles.meaningNumber}>{idx + 1}</Text>
+                  </View>
+                  <View style={styles.meaningContent}>
+                    <Text style={styles.meaningText}>{m.meaning}</Text>
+                    {m.context_usage && (
+                      <Text style={styles.contextUsage}>
+                        <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
+                        {m.context_usage}
+                      </Text>
+                    )}
+                  </View>
                 </View>
-                <View style={styles.meaningContent}>
-                  <Text style={styles.meaningText}>{m.meaning}</Text>
-                  {m.context_usage && (
-                    <Text style={styles.contextUsage}>
-                      <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
-                      {m.context_usage}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            ))}
-          </View>
+              ))}
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
 
         {/* Lexical Information Cards */}
         {!!details.root && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ധാതു (Root)</Text>
-            <Text style={styles.infoValue}>{details.root}</Text>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("root")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("root")}
+            >
+              <Text style={styles.sectionTitle}>ധാതു (Root)</Text>
+              <Text style={styles.infoValue}>{details.root}</Text>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
         {details.category_names && details.category_names.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>വ്യാകരണ വിഭാഗം (Category)</Text>
-            <View style={styles.categoriesContainer}>
-              {details.category_names.map((catName, idx) => (
-                <View key={idx} style={styles.categoryBadge}>
-                  <Text style={styles.categoryBadgeText}>{catName}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("category_names")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("category_names")}
+            >
+              <Text style={styles.sectionTitle}>വ്യാകരണ വിഭാഗം (Category)</Text>
+              <View style={styles.categoriesContainer}>
+                {details.category_names.map((catName, idx) => (
+                  <View key={idx} style={styles.categoryBadge}>
+                    <Text style={styles.categoryBadgeText}>{catName}</Text>
+                  </View>
+                ))}
+              </View>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
         {!!details.etymology && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>വ്യുല്പത്തി (Etymology)</Text>
-            <Text style={styles.infoValue}>{details.etymology}</Text>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("etymology")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("etymology")}
+            >
+              <Text style={styles.sectionTitle}>व्युല്പത്തി (Etymology)</Text>
+              <Text style={styles.infoValue}>{details.etymology}</Text>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
         {!!details.pronunciation && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ഉച്ചാരണം (Pronunciation)</Text>
-            <Text style={styles.infoValue}>{details.pronunciation}</Text>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("pronunciation")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("pronunciation")}
+            >
+              <Text style={styles.sectionTitle}>ഉച്ചാരണം (Pronunciation)</Text>
+              <Text style={styles.infoValue}>{details.pronunciation}</Text>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
         {!!details.inflections && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>രൂപങ്ങൾ (Inflections)</Text>
-            <Text style={styles.infoValue}>{details.inflections}</Text>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("inflections")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("inflections")}
+            >
+              <Text style={styles.sectionTitle}>രൂപങ്ങൾ (Inflections)</Text>
+              <Text style={styles.infoValue}>{details.inflections}</Text>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
         {!!details.synonyms && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>പര്യായപദങ്ങൾ (Synonyms)</Text>
-            <Text style={styles.infoValue}>{details.synonyms}</Text>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("synonyms")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("synonyms")}
+            >
+              <Text style={styles.sectionTitle}>പര്യായപദങ്ങൾ (Synonyms)</Text>
+              <Text style={styles.infoValue}>{details.synonyms}</Text>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
         {!!details.antonyms && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>വിപരീതപദങ്ങൾ (Antonyms)</Text>
-            <Text style={styles.infoValue}>{details.antonyms}</Text>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("antonyms")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("antonyms")}
+            >
+              <Text style={styles.sectionTitle}>വിപരീതപദങ്ങൾ (Antonyms)</Text>
+              <Text style={styles.infoValue}>{details.antonyms}</Text>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
         {!!details.dialects && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>പ്രാദേശിക രൂപങ്ങൾ (Dialects)</Text>
-            <Text style={styles.infoValue}>{details.dialects}</Text>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("dialects")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("dialects")}
+            >
+              <Text style={styles.sectionTitle}>പ്രാദേശിക രൂപങ്ങൾ (Dialects)</Text>
+              <Text style={styles.infoValue}>{details.dialects}</Text>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
         {!!details.similar_word && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>സമാന പദങ്ങൾ (Similar Words)</Text>
-            <Text style={styles.infoValue}>{details.similar_word}</Text>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("similar_word")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("similar_word")}
+            >
+              <Text style={styles.sectionTitle}>സമാന പദങ്ങൾ (Similar Words)</Text>
+              <Text style={styles.infoValue}>{details.similar_word}</Text>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
         {!!details.novel_words && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>നവീന പ്രയോഗങ്ങൾ (Novel Words)</Text>
-            <Text style={styles.infoValue}>{details.novel_words}</Text>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("novel_words")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("novel_words")}
+            >
+              <Text style={styles.sectionTitle}>നവീന പ്രയോഗങ്ങൾ (Novel Words)</Text>
+              <Text style={styles.infoValue}>{details.novel_words}</Text>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
         {!!details.cross_reference && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>മറ്റു സൂചനകൾ (Cross Ref)</Text>
-            <Text style={styles.infoValue}>{details.cross_reference}</Text>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("cross_reference")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("cross_reference")}
+            >
+              <Text style={styles.sectionTitle}>മറ്റു സൂചനകൾ (Cross Ref)</Text>
+              <Text style={styles.infoValue}>{details.cross_reference}</Text>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
 
         {/* Proverbs Section */}
         {((details.proverbs && details.proverbs.length > 0) || !!details.proverb) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>പഴഞ്ചൊല്ലുകൾ / ശൈലികൾ</Text>
-            
-            {!!details.proverb && (
-              <View style={styles.proverbItem}>
-                <Ionicons name="bookmark-outline" size={20} color="#2B2C51" style={{ marginRight: 8, marginTop: 2 }} />
-                <Text style={styles.proverbText}>{details.proverb}</Text>
-              </View>
-            )}
-
-            {details.proverbs?.map((p, idx) => (
-              <View key={p.id || idx} style={styles.proverbContainer}>
-                <View style={styles.proverbHeader}>
-                  <Ionicons name="chatbubbles-outline" size={18} color="#2B2C51" style={{ marginRight: 6 }} />
-                  <Text style={styles.proverbTitle}>ശൈലി {idx + 1}</Text>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("proverbs")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("proverbs")}
+            >
+              <Text style={styles.sectionTitle}>പഴஞ்சൊല്ലുകൾ / ശൈലികൾ</Text>
+              
+              {!!details.proverb && (
+                <View style={styles.proverbItem}>
+                  <Ionicons name="bookmark-outline" size={20} color="#2B2C51" style={{ marginRight: 8, marginTop: 2 }} />
+                  <Text style={styles.proverbText}>{details.proverb}</Text>
                 </View>
-                <Text style={styles.proverbText}>{p.proverb}</Text>
-                {p.context_usage && (
-                  <Text style={styles.proverbContext}>
-                    <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
-                    {p.context_usage}
-                  </Text>
-                )}
-              </View>
-            ))}
-          </View>
+              )}
+
+              {details.proverbs?.map((p, idx) => (
+                <View key={p.id || idx} style={styles.proverbContainer}>
+                  <View style={styles.proverbHeader}>
+                    <Ionicons name="chatbubbles-outline" size={18} color="#2B2C51" style={{ marginRight: 6 }} />
+                    <Text style={styles.proverbTitle}>ശൈലി {idx + 1}</Text>
+                  </View>
+                  <Text style={styles.proverbText}>{p.proverb}</Text>
+                  {p.context_usage && (
+                    <Text style={styles.proverbContext}>
+                      <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
+                      {p.context_usage}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
 
         {/* Cultural Note */}
         {!!details.cultural_note && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>സാംസ്കാരിക പശ്ചാത്തലം</Text>
-            <View style={styles.culturalCard}>
-              <Ionicons name="globe-outline" size={24} color="#2B2C51" style={{ marginBottom: 6 }} />
-              <Text style={styles.culturalText}>{details.cultural_note}</Text>
-            </View>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("cultural_note")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("cultural_note")}
+            >
+              <Text style={styles.sectionTitle}>സാംസ്കാരിക പശ്ചാത്തലം</Text>
+              <View style={styles.culturalCard}>
+                <Ionicons name="globe-outline" size={24} color="#2B2C51" style={{ marginBottom: 6 }} />
+                <Text style={styles.culturalText}>{details.cultural_note}</Text>
+              </View>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
 
         {/* Images Section */}
         {details.images && details.images.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ചിത്രങ്ങൾ (Gallery)</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
-              {details.images.map((imgUrl, idx) => (
-                <View key={idx} style={styles.imageWrapper}>
-                  <Image source={{ uri: imgUrl }} style={styles.galleryImage} resizeMode="cover" />
-                </View>
-              ))}
-            </ScrollView>
-          </View>
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("images")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("images")}
+            >
+              <Text style={styles.sectionTitle}>ചിത്രങ്ങൾ (Gallery)</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
+                {details.images.map((imgUrl, idx) => (
+                  <View key={idx} style={styles.imageWrapper}>
+                    <Image source={{ uri: imgUrl }} style={styles.galleryImage} resizeMode="cover" />
+                  </View>
+                ))}
+              </ScrollView>
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
+      )}
     </View>
   );
 }
@@ -347,20 +513,24 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9F6F1",
   },
   header: {
-    height: Platform.OS === "android" ? 70 : 90,
+    height: Platform.OS === "android" ? 75 : 95,
     backgroundColor: "#2B2C51",
+    justifyContent: "flex-end",
+    paddingBottom: 12,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  headerContent: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 15,
-    paddingBottom: 15,
+    paddingHorizontal: 20,
   },
   headerTitle: {
     color: "white",
     fontSize: 18,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
-    marginBottom: 5,
     flex: 1,
     textAlign: "center",
   },
@@ -374,10 +544,10 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E7E0D7",
+    borderColor: "#F0ECE6",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 2,
     marginBottom: 16,
@@ -400,7 +570,7 @@ const styles = StyleSheet.create({
   mainWord: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#1F2330",
+    color: "#2B2C51",
     fontFamily: "NotoSansMalayalam",
     textAlign: "center",
   },
@@ -435,13 +605,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: "#E7E0D7",
+    borderColor: "#F0ECE6",
     marginBottom: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+    borderLeftColor: "#43AC98",
+    borderLeftWidth: 4,
   },
   sectionTitle: {
     fontSize: 16,
@@ -470,7 +642,7 @@ const styles = StyleSheet.create({
   meaningNumber: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#4E473E",
+    color: "#2B2C51",
   },
   meaningContent: {
     flex: 1,
@@ -542,7 +714,7 @@ const styles = StyleSheet.create({
   },
   proverbText: {
     fontSize: 15,
-    color: "#4E473E",
+    color: "#2B2C51",
     fontFamily: "NotoSansMalayalam",
     lineHeight: 22,
     flex: 1,
@@ -579,7 +751,7 @@ const styles = StyleSheet.create({
   },
   culturalText: {
     fontSize: 15,
-    color: "#4E473E",
+    color: "#2B2C51",
     fontFamily: "NotoSansMalayalam",
     lineHeight: 22,
   },
@@ -651,5 +823,35 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#2B2C51",
     fontFamily: "NotoSansMalayalam",
+  },
+  highlightedCard: {
+    zIndex: 10,
+    ...Platform.select({
+      web: {
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+      },
+      default: {
+        shadowColor: "#000000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 6,
+      },
+    }),
+  },
+  highlightedSection: {
+    zIndex: 10,
+    ...Platform.select({
+      web: {
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+      },
+      default: {
+        shadowColor: "#000000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 6,
+      },
+    }),
   },
 });

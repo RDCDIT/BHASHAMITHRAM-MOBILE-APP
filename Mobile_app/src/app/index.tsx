@@ -1,9 +1,12 @@
 import SideMenu from "@/components/side-menu";
+import AnimatedCard from "@/components/AnimatedCard";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
+  Animated,
   Platform,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -14,93 +17,167 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 interface MenuItem {
   id: string;
-  label: string;
-  icon: string;
+  title: string;
+  subtitle: string;
+  badgeText?: string;
+  badgeIcon?: keyof typeof Ionicons.glyphMap;
+  badgeType: "text" | "icon";
+  color: string;
+  bgColor: string;
   onPress: () => void;
 }
 
 export default function HomeScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const router = useRouter();
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const menuItems: MenuItem[] = [
-    {
-      id: "1",
-      label: "ഇംഗ്ലീഷ് - മലയാളം നിഘണ്ടു",
-      icon: "A->അ",
-      onPress: () => router.push("./english-malayalm"),
-    },
-    {
+        {
       id: "2",
-      label: "മലയാളം - മലയാളം നിഘണ്ടു",
-      icon: "അ->A",
+      title: "മലയാളം - മലയാളം",
+      subtitle: "നിഘണ്ടു",
+      badgeText: "അ → A",
+      badgeType: "text",
+      color: "#2563EB",
+      bgColor: "#FFF7ED",
       onPress: () => router.push("./malayalam-english"),
     },
     {
+      id: "1",
+      title: "ഇംഗ്ലീഷ് - മലയാളം",
+      subtitle: "നിഘണ്ടു",
+      badgeText: "A → അ",
+      badgeType: "text",
+      color: "#2563EB",
+      bgColor: "#FFF7ED",
+      onPress: () => router.push("./english-malayalm"),
+    },
+    {
       id: "3",
-      label: "മലയാളം നാനാത്ഥ നിഘണ്ടു",
-      icon: "അ->അ",
+      title: "മലയാളം നാനാത്ഥം",
+      subtitle: "നിഘണ്ടു",
+      badgeText: "അ→അ",
+      badgeType: "text",
+      color: "#2563EB",
+      bgColor: "#FFF7ED",
       onPress: () => router.push("./nanaarth"),
     },
     {
       id: "4",
-      label: "സമീപകാല തിരച്ചിലുകൾ",
-      icon: "⟲",
+      title: "സമീപകാല",
+      subtitle: "തിരച്ചിലുകൾ",
+      badgeIcon: "book",
+      badgeType: "icon",
+      color: "#2563EB",
+      bgColor: "#FFF7ED",
       onPress: () => router.push("./savishesha_thirayal"),
     },
   ];
 
   const colors = {
     headerBg: "#2B2C51",
-    containerBg:  "#F9F6F1",
-    cardBg: "#2B5BA8",
-    cardText: "#FFFFFF",
-    fabBg: "#16A697",
+    containerBg: "#F9F6F1",
+    cardText: "#1F2937",
+    subtitleText: "#6B7280",
   };
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.containerBg }]}
+      style={[styles.container, { backgroundColor: colors.headerBg }]}
+      edges={["top", "left", "right"]}
     >
-      {Platform.OS === "android" && (
-        <StatusBar backgroundColor={colors.headerBg} barStyle="light-content" />
-      )}
+      <StatusBar backgroundColor={colors.headerBg} barStyle="light-content" />
 
+      {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.headerBg }]}>
         <TouchableOpacity
           onPress={() => setDrawerVisible(true)}
           style={styles.headerButton}
+          activeOpacity={0.7}
         >
-          <Text style={styles.menuIcon}>≡</Text>
+          <Ionicons name="menu" size={26} color="#FFFFFF" />
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>ഭാഷാമിത്രം</Text>
+        <Text style={styles.headerTitle}>ഭാഷാമിത്രം II</Text>
 
-        <TouchableOpacity style={styles.headerButton}>
-          <Text style={styles.shareIcon}>↗</Text>
+        <TouchableOpacity
+          onPress={() => router.push("./settings")}
+          style={styles.headerButton}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {menuItems.map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            activeOpacity={0.8}
-            onPress={item.onPress}
-            style={[styles.card, { backgroundColor: colors.cardBg }]}
-          >
-            <View style={styles.iconContainer}>
-              <Text style={styles.iconText}>{item.icon}</Text>
-            </View>
-            <Text style={[styles.cardText, { color: colors.cardText }]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={{ flex: 1, backgroundColor: colors.containerBg }}>
+        <Animated.ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+        >
+          {/* Menu Items */}
+          {menuItems.map((item, index) => (
+            <AnimatedCard key={item.id} index={index} scrollY={scrollY}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={item.onPress}
+                style={styles.card}
+              >
+                {/* Badge Indicator */}
+                <View
+                  style={[
+                    styles.badgeContainer,
+                    { borderColor: item.color + "30", backgroundColor: item.bgColor },
+                  ]}
+                >
+                  {item.badgeType === "text" ? (
+                    <Text style={[styles.badgeText, { color: item.color }]}>
+                      {item.badgeText}
+                    </Text>
+                  ) : (
+                    <Ionicons
+                      name={item.badgeIcon as any}
+                      size={26}
+                      color={item.color}
+                    />
+                  )}
+                </View>
+
+                {/* Label and Info */}
+                <View style={styles.textContainer}>
+                  <Text style={[styles.cardTitle, { color: colors.cardText }]}>
+                    {item.title}
+                  </Text>
+                  <Text style={[styles.cardSubtitle, { color: colors.subtitleText }]}>
+                    {item.subtitle}
+                  </Text>
+                </View>
+
+                {/* Right Action Chevron */}
+                <View
+                  style={[
+                    styles.chevronContainer,
+                    { backgroundColor: item.bgColor },
+                  ]}
+                >
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={item.color}
+                  />
+                </View>
+              </TouchableOpacity>
+            </AnimatedCard>
+          ))}
+        </Animated.ScrollView>
+      </View>
+
+
 
       <SideMenu
         visible={drawerVisible}
@@ -115,10 +192,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    height: Platform.OS === "android" ? 70 : 90,
+    height: Platform.OS === "android" ? 65 : 75,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
   },
   headerButton: {
     width: 40,
@@ -126,72 +204,78 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  menuIcon: {
-    color: "#FFFFFF",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
   headerTitle: {
     flex: 1,
     textAlign: "center",
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
-  },
-  shareIcon: {
-    color: "#FFFFFF",
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
   },
   scrollContent: {
-    paddingHorizontal: 14,
-    paddingTop: 18,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 32,
   },
   card: {
-    marginTop: 7,
-    height: 140,
-    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    height: 125,
+    marginTop: 8,
+    borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    marginBottom: 16,
     ...Platform.select({
       web: {
-        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.08)",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
       },
       default: {
-        shadowColor: "#000",
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowColor: "#000000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        elevation: 3,
       },
     }),
   },
-  iconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "#FFFFFF",
+  badgeContainer: {
+    width: 58,
+    height: 58,
+    borderRadius: 39,
+    borderWidth: 1.5,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 18,
+    marginRight: 16,
   },
-  iconText: {
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    fontFamily: "NotoSansMalayalam",
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  textContainer: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  cardTitle: {
     fontSize: 16,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
+    marginBottom: 2,
   },
-  cardText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "left",
+  cardSubtitle: {
+    fontSize: 13,
+    fontWeight: "500",
     fontFamily: "NotoSansMalayalam",
   },
+  chevronContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });
+

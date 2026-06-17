@@ -2,10 +2,14 @@ const express = require("express");
 const router = express.Router();
 const EnglishMalayalam = require("../models/englishmalayalam");
 const { getEnglishMasterList } = require("../controllers/dictionary_word");
+const { getEnglishMasterList: getEnglishMasterListNew } = require("../controllers/english_wordscontroller");
 const { suggestWord } = require("../controllers/suggest_word");
 
 // GET /api/words/browse?letter=A - Fetch words filtered by starting letter
 router.get("/browse", getEnglishMasterList);
+
+// GET /api/words/browse-english?query=... - Fetch English words starting with query
+router.get("/browse-english", getEnglishMasterListNew);
 
 // POST /api/words/suggest - Submit a suggested word
 router.post("/suggest", suggestWord);
