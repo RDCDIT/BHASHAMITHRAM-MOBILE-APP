@@ -29,8 +29,8 @@ type SynonymEntry = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
-  "http://192.168.1.2:5000",
+  Platform.OS === "android" ? "http://192.168.1.3:5000" : "http://localhost:5000",
+  "http://192.168.1.3:5000",
 ].filter((value): value is string => Boolean(value));
 
 // മലയാളം സ്വരാക്ഷരങ്ങളും പ്രധാന വ്യഞ്ജനാക്ഷരങ്ങളും അടങ്ങിയ ലിസ്റ്റ് (Browsing എളുപ്പമാക്കാൻ)
@@ -150,12 +150,6 @@ export default function Naanarthscreen() {
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderText}>
               <Text style={styles.malayalamWord}>{item.word}</Text>
-            </View>
-
-            <View style={styles.cardHeaderRight}>
-              <View style={styles.playButtonCircle}>
-                <Ionicons name="play" size={14} color="white" style={{ marginLeft: 2 }} />
-              </View>
             </View>
           </View>
 

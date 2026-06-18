@@ -31,8 +31,8 @@ type DictionaryEntry = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
-  "http://192.168.1.2:5000",
+  Platform.OS === "android" ? "http://192.168.1.3:5000" : "http://localhost:5000",
+  "http://192.168.1.3:5000",
 ].filter((value): value is string => Boolean(value));
 
 // Alphabet list for the browser menu layout
@@ -146,12 +146,6 @@ export default function EnglishMalayalamScreen() {
             <View style={styles.cardHeaderText}>
               <Text style={styles.englishWord}>{item.english_equivalent}</Text>
               <Text style={styles.cardSubtext}>{item.word}</Text>
-            </View>
-
-            <View style={styles.cardHeaderRight}>
-              <View style={styles.playButtonCircle}>
-                <Ionicons name="play" size={14} color="white" style={{ marginLeft: 2 }} />
-              </View>
             </View>
           </View>
 

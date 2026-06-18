@@ -16,8 +16,8 @@ import { router } from "expo-router";
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
-  "http://192.168.1.2:5000",
+  Platform.OS === "android" ? "http://192.168.1.3:5000" : "http://localhost:5000",
+  "http://192.168.1.3:5000",
 ].filter((value): value is string => Boolean(value));
 
 interface MeaningInput {
