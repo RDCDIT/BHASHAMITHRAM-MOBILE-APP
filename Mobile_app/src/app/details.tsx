@@ -35,6 +35,8 @@ type DictionaryEntryDetails = {
   pronunciation?: string;
   cross_reference?: string;
   inflections?: string;
+  gender?: string;
+  metadata?: any;
   
   equivalents?: {
     kannada?: string;
@@ -174,6 +176,21 @@ export default function WordDetailsScreen() {
 
   let cardIndex = 0;
 
+  const renderBulletedList = (text?: string) => {
+    if (!text) return null;
+    const items = text.split(/[,;\n]+/).map(item => item.trim()).filter(Boolean);
+    return (
+      <View style={styles.bulletList}>
+        {items.map((item, idx) => (
+          <View key={idx} style={styles.bulletItem}>
+            <Text style={styles.bulletIcon}>•</Text>
+            <Text style={styles.bulletText}>{item}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   return (
     <View style={styles.screen}>
       {/* Header */}
@@ -210,7 +227,7 @@ export default function WordDetailsScreen() {
             { useNativeDriver: true }
           )}
         >
-        {/* Core Word Banner */}
+        {/* 1. Word Title with phonetic-transcription */}
         <AnimatedCard index={cardIndex++} scrollY={scrollY}>
           <AnimatedTouchableOpacity
             activeOpacity={0.95}
@@ -223,24 +240,10 @@ export default function WordDetailsScreen() {
             {!!details.phonetic_transcription && (
               <Text style={styles.phonetic}>phonetic-transcription: [{details.phonetic_transcription}]</Text>
             )}
-
-            {!!details.equivalents?.english && (
-              <View style={styles.englishContainer}>
-                <Text style={styles.englishLabel}>English Equivalent:</Text>
-                <Text style={styles.englishValue}>{details.equivalents.english}</Text>
-              </View>
-            )}
-
-            {!!details.equivalents?.malayalam && (
-              <View style={styles.englishContainer}>
-                <Text style={styles.englishLabel}>Malayalam Equivalent:</Text>
-                <Text style={styles.englishValue}>{details.equivalents.malayalam}</Text>
-              </View>
-            )}
           </AnimatedTouchableOpacity>
         </AnimatedCard>
 
-        {/* Meanings Section */}
+        {/* 2. Malayalam Meanings */}
         {details.meanings && details.meanings.length > 0 && (
           <AnimatedCard index={cardIndex++} scrollY={scrollY}>
             <AnimatedTouchableOpacity
@@ -249,7 +252,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("meanings")}
             >
-              <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ (Meanings)</Text>
+              <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ / Meanings</Text>
               {details.meanings.map((m, idx) => (
                 <View key={m.id || idx} style={styles.meaningItem}>
                   <View style={styles.meaningNumberBox}>
@@ -257,12 +260,6 @@ export default function WordDetailsScreen() {
                   </View>
                   <View style={styles.meaningContent}>
                     <Text style={styles.meaningText}>{m.meaning}</Text>
-                    {m.context_usage && (
-                      <Text style={styles.contextUsage}>
-                        <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
-                        {m.context_usage}
-                      </Text>
-                    )}
                   </View>
                 </View>
               ))}
@@ -270,7 +267,7 @@ export default function WordDetailsScreen() {
           </AnimatedCard>
         )}
 
-        {/* Lexical Information Cards */}
+        {/* 3. Root */}
         {!!details.root && (
           <AnimatedCard index={cardIndex++} scrollY={scrollY}>
             <AnimatedTouchableOpacity
@@ -279,11 +276,13 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("root")}
             >
-              <Text style={styles.sectionTitle}>ധാതു (Root)</Text>
-              <Text style={styles.infoValue}>{details.root}</Text>
+              <Text style={styles.sectionTitle}>ധാതു / Root</Text>
+              {renderBulletedList(details.root)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
         )}
+
+        {/* 4. Category */}
         {details.category_names && details.category_names.length > 0 && (
           <AnimatedCard index={cardIndex++} scrollY={scrollY}>
             <AnimatedTouchableOpacity
@@ -292,7 +291,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("category_names")}
             >
-              <Text style={styles.sectionTitle}>വ്യാകരണ വിഭാഗം (Category)</Text>
+              <Text style={styles.sectionTitle}>വ്യാകരണവിഭാഗം / Category</Text>
               <View style={styles.categoriesContainer}>
                 {details.category_names.map((catName, idx) => (
                   <View key={idx} style={styles.categoryBadge}>
@@ -303,6 +302,23 @@ export default function WordDetailsScreen() {
             </AnimatedTouchableOpacity>
           </AnimatedCard>
         )}
+
+        {/* 5. Gender */}
+        {!!(details.gender || details.metadata?.gender) && (
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("gender")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("gender")}
+            >
+              <Text style={styles.sectionTitle}>ലിംഗം / Gender</Text>
+              {renderBulletedList(details.gender || details.metadata?.gender)}
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
+        )}
+
+        {/* 6. Etymology */}
         {!!details.etymology && (
           <AnimatedCard index={cardIndex++} scrollY={scrollY}>
             <AnimatedTouchableOpacity
@@ -311,76 +327,31 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("etymology")}
             >
-              <Text style={styles.sectionTitle}>व्युല്പത്തി (Etymology)</Text>
-              <Text style={styles.infoValue}>{details.etymology}</Text>
+              <Text style={styles.sectionTitle}>വാക്കിന്റെ ഉത്ഭവം / Etymology</Text>
+              {renderBulletedList(details.etymology)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
         )}
-        {!!details.pronunciation && (
+
+        {/* 7. Cultural Notes */}
+        {!!details.cultural_note && (
           <AnimatedCard index={cardIndex++} scrollY={scrollY}>
             <AnimatedTouchableOpacity
               activeOpacity={0.95}
-              onPressIn={() => toggleHighlight("pronunciation")}
+              onPressIn={() => toggleHighlight("cultural_note")}
               delayPressIn={0}
-              style={getAnimatedCardStyle("pronunciation")}
+              style={getAnimatedCardStyle("cultural_note")}
             >
-              <Text style={styles.sectionTitle}>ഉച്ചാരണം (Pronunciation)</Text>
-              <Text style={styles.infoValue}>{details.pronunciation}</Text>
+              <Text style={styles.sectionTitle}>സാംസ്കാരിക കുറിപ്പ്  / Cultural Notes </Text>
+              <View style={styles.culturalCard}>
+                <Ionicons name="globe-outline" size={24} color="#2B2C51" style={{ marginBottom: 6 }} />
+                {renderBulletedList(details.cultural_note)}
+              </View>
             </AnimatedTouchableOpacity>
           </AnimatedCard>
         )}
-        {!!details.inflections && (
-          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-            <AnimatedTouchableOpacity
-              activeOpacity={0.95}
-              onPressIn={() => toggleHighlight("inflections")}
-              delayPressIn={0}
-              style={getAnimatedCardStyle("inflections")}
-            >
-              <Text style={styles.sectionTitle}>രൂപങ്ങൾ (Inflections)</Text>
-              <Text style={styles.infoValue}>{details.inflections}</Text>
-            </AnimatedTouchableOpacity>
-          </AnimatedCard>
-        )}
-        {!!details.synonyms && (
-          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-            <AnimatedTouchableOpacity
-              activeOpacity={0.95}
-              onPressIn={() => toggleHighlight("synonyms")}
-              delayPressIn={0}
-              style={getAnimatedCardStyle("synonyms")}
-            >
-              <Text style={styles.sectionTitle}>പര്യായപദങ്ങൾ (Synonyms)</Text>
-              <Text style={styles.infoValue}>{details.synonyms}</Text>
-            </AnimatedTouchableOpacity>
-          </AnimatedCard>
-        )}
-        {!!details.antonyms && (
-          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-            <AnimatedTouchableOpacity
-              activeOpacity={0.95}
-              onPressIn={() => toggleHighlight("antonyms")}
-              delayPressIn={0}
-              style={getAnimatedCardStyle("antonyms")}
-            >
-              <Text style={styles.sectionTitle}>വിപരീതപദങ്ങൾ (Antonyms)</Text>
-              <Text style={styles.infoValue}>{details.antonyms}</Text>
-            </AnimatedTouchableOpacity>
-          </AnimatedCard>
-        )}
-        {!!details.dialects && (
-          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-            <AnimatedTouchableOpacity
-              activeOpacity={0.95}
-              onPressIn={() => toggleHighlight("dialects")}
-              delayPressIn={0}
-              style={getAnimatedCardStyle("dialects")}
-            >
-              <Text style={styles.sectionTitle}>പ്രാദേശിക രൂപങ്ങൾ (Dialects)</Text>
-              <Text style={styles.infoValue}>{details.dialects}</Text>
-            </AnimatedTouchableOpacity>
-          </AnimatedCard>
-        )}
+
+        {/* Similar Words */}
         {!!details.similar_word && (
           <AnimatedCard index={cardIndex++} scrollY={scrollY}>
             <AnimatedTouchableOpacity
@@ -389,11 +360,13 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("similar_word")}
             >
-              <Text style={styles.sectionTitle}>സമാന പദങ്ങൾ (Similar Words)</Text>
-              <Text style={styles.infoValue}>{details.similar_word}</Text>
+              <Text style={styles.sectionTitle}>സമാന പദങ്ങൾ / Similar Words</Text>
+              {renderBulletedList(details.similar_word)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
         )}
+
+        {/* 8. Novel Words */}
         {!!details.novel_words && (
           <AnimatedCard index={cardIndex++} scrollY={scrollY}>
             <AnimatedTouchableOpacity
@@ -402,26 +375,66 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("novel_words")}
             >
-              <Text style={styles.sectionTitle}>നവീന പ്രയോഗങ്ങൾ (Novel Words)</Text>
-              <Text style={styles.infoValue}>{details.novel_words}</Text>
-            </AnimatedTouchableOpacity>
-          </AnimatedCard>
-        )}
-        {!!details.cross_reference && (
-          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-            <AnimatedTouchableOpacity
-              activeOpacity={0.95}
-              onPressIn={() => toggleHighlight("cross_reference")}
-              delayPressIn={0}
-              style={getAnimatedCardStyle("cross_reference")}
-            >
-              <Text style={styles.sectionTitle}>മറ്റു സൂചനകൾ (Cross Ref)</Text>
-              <Text style={styles.infoValue}>{details.cross_reference}</Text>
+              <Text style={styles.sectionTitle}>നവീന പ്രയോഗങ്ങൾ / Novel Words</Text>
+              {renderBulletedList(details.novel_words)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
         )}
 
-        {/* Proverbs Section */}
+        {/* 9. Synonyms */}
+        {!!details.synonyms && (
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("synonyms")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("synonyms")}
+            >
+              <Text style={styles.sectionTitle}>പര്യായപദങ്ങൾ / Synonyms</Text>
+              {renderBulletedList(details.synonyms)}
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
+        )}
+
+        {/* 10. Antonyms */}
+        {!!details.antonyms && (
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("antonyms")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("antonyms")}
+            >
+              <Text style={styles.sectionTitle}>വിപരീതപദങ്ങൾ / Antonyms</Text>
+              {renderBulletedList(details.antonyms)}
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
+        )}
+
+        {/* 11. Context Usage (Display it as meaning Context) */}
+        {details.meanings && details.meanings.some(m => !!m.context_usage) && (
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("meaning_context")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("meaning_context")}
+            >
+              <Text style={styles.sectionTitle}>അർത്ഥ സന്ദർഭങ്ങൾ / Meaning Context</Text>
+              {details.meanings.filter(m => !!m.context_usage).map((m, idx) => (
+                <View key={m.id || idx} style={styles.proverbContainer}>
+                  <View style={styles.proverbHeader}>
+                    <Ionicons name="bulb-outline" size={18} color="#2B2C51" style={{ marginRight: 6 }} />
+                    <Text style={styles.proverbTitle}>അർത്ഥം {idx + 1}: {m.meaning}</Text>
+                  </View>
+                  <Text style={styles.proverbContext}>{m.context_usage}</Text>
+                </View>
+              ))}
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
+        )}
+
+        {/* 12. Proverbs */}
         {((details.proverbs && details.proverbs.length > 0) || !!details.proverb) && (
           <AnimatedCard index={cardIndex++} scrollY={scrollY}>
             <AnimatedTouchableOpacity
@@ -430,13 +443,13 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("proverbs")}
             >
-              <Text style={styles.sectionTitle}>പഴஞ்சൊല്ലുകൾ / ശൈലികൾ</Text>
+              <Text style={styles.sectionTitle}> പഴഞ്ചൊല്ലുകൾ / Proverbs</Text>
               
               {!!details.proverb && (
-                <View style={styles.proverbItem}>
-                  <Ionicons name="bookmark-outline" size={20} color="#2B2C51" style={{ marginRight: 8, marginTop: 2 }} />
-                  <Text style={styles.proverbText}>{details.proverb}</Text>
-                </View>
+                 <View style={styles.proverbItem}>
+                   <Ionicons name="bookmark-outline" size={20} color="#2B2C51" style={{ marginRight: 8, marginTop: 2 }} />
+                   <Text style={styles.proverbText}>{details.proverb}</Text>
+                 </View>
               )}
 
               {details.proverbs?.map((p, idx) => (
@@ -458,25 +471,103 @@ export default function WordDetailsScreen() {
           </AnimatedCard>
         )}
 
-        {/* Cultural Note */}
-        {!!details.cultural_note && (
+        {/* 13. Dialects */}
+        {!!details.dialects && (
           <AnimatedCard index={cardIndex++} scrollY={scrollY}>
             <AnimatedTouchableOpacity
               activeOpacity={0.95}
-              onPressIn={() => toggleHighlight("cultural_note")}
+              onPressIn={() => toggleHighlight("dialects")}
               delayPressIn={0}
-              style={getAnimatedCardStyle("cultural_note")}
+              style={getAnimatedCardStyle("dialects")}
             >
-              <Text style={styles.sectionTitle}>സാംസ്കാരിക പശ്ചാത്തലം</Text>
-              <View style={styles.culturalCard}>
-                <Ionicons name="globe-outline" size={24} color="#2B2C51" style={{ marginBottom: 6 }} />
-                <Text style={styles.culturalText}>{details.cultural_note}</Text>
+              <Text style={styles.sectionTitle}>പ്രാദേശിക പ്രയോഗങ്ങൾ / Dialects</Text>
+              {renderBulletedList(details.dialects)}
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
+        )}
+
+        {/* 14. Cross References */}
+        {!!details.cross_reference && (
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("cross_reference")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("cross_reference")}
+            >
+              <Text style={styles.sectionTitle}>പരാമർശങ്ങൾ / Cross References</Text>
+              {renderBulletedList(details.cross_reference)}
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
+        )}
+
+        {/* 15. Inflections */}
+        {!!details.inflections && (
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("inflections")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("inflections")}
+            >
+              <Text style={styles.sectionTitle}>വ്യാകരണ രൂപങ്ങൾ / Inflections</Text>
+              {renderBulletedList(details.inflections)}
+            </AnimatedTouchableOpacity>
+          </AnimatedCard>
+        )}
+
+        {/* 16. Language Equivalents with 5 sub cards for each languages */}
+        {details.equivalents && (!!details.equivalents.english || !!details.equivalents.kannada || !!details.equivalents.tamil || !!details.equivalents.telugu || !!details.equivalents.tulu) && (
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <AnimatedTouchableOpacity
+              activeOpacity={0.95}
+              onPressIn={() => toggleHighlight("equivalents")}
+              delayPressIn={0}
+              style={getAnimatedCardStyle("equivalents")}
+            >
+              <Text style={styles.sectionTitle}>ഭാഷാ തുല്യതകൾ / Language Equivalents</Text>
+              <View style={styles.equivalentsGrid}>
+                {/* English Sub Card */}
+                {!!details.equivalents.english && (
+                  <View style={styles.subCard}>
+                    <Text style={styles.subCardTitle}>English</Text>
+                    <Text style={styles.subCardValue}>{details.equivalents.english}</Text>
+                  </View>
+                )}
+                {/* Kannada Sub Card */}
+                {!!details.equivalents.kannada && (
+                  <View style={styles.subCard}>
+                    <Text style={styles.subCardTitle}>ಕನ್ನಡ / Kannada</Text>
+                    <Text style={styles.subCardValue}>{details.equivalents.kannada}</Text>
+                  </View>
+                )}
+                {/* Tamil Sub Card */}
+                {!!details.equivalents.tamil && (
+                  <View style={styles.subCard}>
+                    <Text style={styles.subCardTitle}>தமிழ் / Tamil</Text>
+                    <Text style={styles.subCardValue}>{details.equivalents.tamil}</Text>
+                  </View>
+                )}
+                {/* Telugu Sub Card */}
+                {!!details.equivalents.telugu && (
+                  <View style={styles.subCard}>
+                    <Text style={styles.subCardTitle}>తెలుగు / Telugu </Text>
+                    <Text style={styles.subCardValue}>{details.equivalents.telugu}</Text>
+                  </View>
+                )}
+                {/* Tulu Sub Card */}
+                {!!details.equivalents.tulu && (
+                  <View style={styles.subCard}>
+                    <Text style={styles.subCardTitle}>ತುಳು / Tulu</Text>
+                    <Text style={styles.subCardValue}>{details.equivalents.tulu}</Text>
+                  </View>
+                )}
               </View>
             </AnimatedTouchableOpacity>
           </AnimatedCard>
         )}
 
-        {/* Images Section */}
+        {/* 17. Images */}
         {details.images && details.images.length > 0 && (
           <AnimatedCard index={cardIndex++} scrollY={scrollY}>
             <AnimatedTouchableOpacity
@@ -660,6 +751,26 @@ const styles = StyleSheet.create({
   equivalentsGrid: {
     marginTop: 4,
   },
+  subCard: {
+    backgroundColor: "#F9F6F1",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#E2D7CB",
+  },
+  subCardTitle: {
+    fontSize: 12,
+    color: "#898683",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  subCardValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#2B2C51",
+  },
   equivalentRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -818,6 +929,28 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#2B2C51",
     fontFamily: "NotoSansMalayalam",
+  },
+  bulletList: {
+    marginTop: 6,
+  },
+  bulletItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 6,
+    paddingLeft: 4,
+  },
+  bulletIcon: {
+    fontSize: 16,
+    color: "#2B2C51",
+    marginRight: 8,
+    lineHeight: 20,
+  },
+  bulletText: {
+    fontSize: 15,
+    color: "#333333",
+    fontFamily: "NotoSansMalayalam",
+    lineHeight: 20,
+    flex: 1,
   },
   highlightedCard: {
     zIndex: 10,
