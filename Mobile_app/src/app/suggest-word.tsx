@@ -1,18 +1,100 @@
-import React, { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import React, { useState, useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
   Alert,
+  ActivityIndicator,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+// Voice Visualizer Component with modern animated bars
+function VoiceVisualizer({ animating }: { animating: boolean }) {
+  const anims = useRef([
+    new Animated.Value(5),
+    new Animated.Value(15),
+    new Animated.Value(8),
+    new Animated.Value(22),
+    new Animated.Value(12),
+    new Animated.Value(6),
+    new Animated.Value(18),
+    new Animated.Value(10),
+    new Animated.Value(15),
+    new Animated.Value(5),
+  ]).current;
+
+  useEffect(() => {
+    let active = true;
+    const runAnimation = () => {
+      if (!animating || !active) return;
+      const animations = anims.map((anim) => {
+        const targetHeight = Math.floor(Math.random() * 32) + 6;
+        return Animated.timing(anim, {
+          toValue: targetHeight,
+          duration: 150 + Math.random() * 80,
+          useNativeDriver: false,
+        });
+      });
+      Animated.parallel(animations).start(() => {
+        if (active && animating) {
+          runAnimation();
+        }
+      });
+    };
+
+    if (animating) {
+      runAnimation();
+    } else {
+      anims.forEach((anim, idx) => {
+        Animated.timing(anim, {
+          toValue: [5, 10, 5, 10, 5, 10, 5, 10, 5, 5][idx],
+          duration: 200,
+          useNativeDriver: false,
+        }).start();
+      });
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [animating]);
+
+  return (
+    <View style={styles.voiceBarContainer}>
+      {anims.map((anim, index) => (
+        <Animated.View
+          key={index}
+          style={[
+            styles.voiceBar,
+            {
+              height: anim,
+              backgroundColor: animating ? "#EF4444" : "#9CA3AF",
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+// Dynamic audio recording imports (handles environment compatibility)
+let Audio: any = null;
+try {
+  Audio = require("expo-av").Audio;
+} catch (e) {
+  console.log("expo-av Audio not loaded in this environment.");
+}
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
@@ -20,831 +102,1646 @@ const API_BASE_URLS = [
   "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
-interface MeaningInput {
-  meaning: string;
-  context_usage: string;
-}
-
-interface ProverbInput {
-  proverb: string;
-  context_usage: string;
+interface EquivalentLanguage {
+  language: string;
+  translation: string;
 }
 
 export default function SuggestWordScreen() {
-  // Collapsible section visibility states
-  const [activeSection, setActiveSection] = useState<string>("basic");
+  const router = useRouter();
+  
+  // App Setup Selection state
+  const [selectedLanguage, setSelectedLanguage] = useState<"malayalam" | "english" | null>(null);
 
-  // Form Field States
+  // Form Section 1 State
   const [word, setWord] = useState("");
-  const [phoneticTranscription, setPhoneticTranscription] = useState("");
   const [root, setRoot] = useState("");
   const [etymology, setEtymology] = useState("");
   const [culturalNote, setCulturalNote] = useState("");
-  const [synonyms, setSynonyms] = useState("");
-  const [antonyms, setAntonyms] = useState("");
-  const [dialects, setDialects] = useState("");
-  const [proverb, setProverb] = useState("");
-  const [similarWord, setSimilarWord] = useState("");
-  const [novelWords, setNovelWords] = useState("");
-  const [crossReference, setCrossReference] = useState("");
-  const [inflections, setInflections] = useState("");
-  const [gender, setGender] = useState("ഉഭയലിംഗം"); // default
+  const [phoneticTranscription, setPhoneticTranscription] = useState("");
 
-  // Equivalents
-  const [englishEq, setEnglishEq] = useState("");
-  const [tamilEq, setTamilEq] = useState("");
-  const [kannadaEq, setKannadaEq] = useState("");
-  const [teluguEq, setTeluguEq] = useState("");
-  const [tuluEq, setTuluEq] = useState("");
+  // Form Section 2 State (Arrays of entries, represented as tags in UI)
+  const [synonymsList, setSynonymsList] = useState<string[]>([]);
+  const [synonymInput, setSynonymInput] = useState("");
 
-  // Contributor details
+  const [antonymsList, setAntonymsList] = useState<string[]>([]);
+  const [antonymInput, setAntonymInput] = useState("");
+
+  const [dialectsList, setDialectsList] = useState<string[]>([]);
+  const [dialectInput, setDialectInput] = useState("");
+
+  const [proverbsList, setProverbsList] = useState<string[]>([]);
+  const [proverbInput, setProverbInput] = useState("");
+
+  const [novelWordsList, setNovelWordsList] = useState<string[]>([]);
+  const [novelWordInput, setNovelWordInput] = useState("");
+
+  const [crossRefsList, setCrossRefsList] = useState<string[]>([]);
+  const [crossRefInput, setCrossRefInput] = useState("");
+
+  const [inflectionsList, setInflectionsList] = useState<string[]>([]);
+  const [inflectionInput, setInflectionInput] = useState("");
+
+  // Equivalent Languages
+  const [equivalents, setEquivalents] = useState({
+    kannada: "",
+    tamil: "",
+    malayalam: "",
+    english: "",
+  });
+  const [customLanguages, setCustomLanguages] = useState<EquivalentLanguage[]>([]);
+  const [customLanguageName, setCustomLanguageName] = useState("");
+  const [customLanguageValue, setCustomLanguageValue] = useState("");
+  const [showCustomLangForm, setShowCustomLangForm] = useState(false);
+
+  // Form Section 3 State (Media & Pronunciation)
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [recording, setRecording] = useState<any>(null);
+  const [recordedUri, setRecordedUri] = useState<string | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+  const [importedAudioUri, setImportedAudioUri] = useState<string | null>(null);
+  const [importedAudioName, setImportedAudioName] = useState<string | null>(null);
+
+  // Form Section 4 State (Contributor & Declarations)
   const [contributorName, setContributorName] = useState("");
   const [contributorEmail, setContributorEmail] = useState("");
+  const [declaration1, setDeclaration1] = useState(false);
+  const [declaration2, setDeclaration2] = useState(false);
+  const [receiveEmails, setReceiveEmails] = useState(false);
 
-  // Meanings Array
-  const [meanings, setMeanings] = useState<MeaningInput[]>([
-    { meaning: "", context_usage: "" },
-  ]);
+  // Playback sound state
+  const [sound, setSound] = useState<any>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  // Proverbs Array
-  const [proverbsList, setProverbsList] = useState<ProverbInput[]>([]);
-
-  // Page States
+  // Form Submission Status
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const toggleSection = (sectionName: string) => {
-    setActiveSection(activeSection === sectionName ? "" : sectionName);
-  };
+  // Unload audio on unmount
+  useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync();
+        }
+      : undefined;
+  }, [sound]);
 
-  const handleAddMeaning = () => {
-    setMeanings([...meanings, { meaning: "", context_usage: "" }]);
-  };
+  // Timer for audio recording
+  useEffect(() => {
+    let interval: any;
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setRecordingDuration(0);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
 
-  const handleRemoveMeaning = (index: number) => {
-    if (meanings.length > 1) {
-      setMeanings(meanings.filter((_, i) => i !== index));
+  // Helpers for tag inputs
+  const addTag = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, input: string, setInput: React.Dispatch<React.SetStateAction<string>>) => {
+    if (input.trim() !== "") {
+      if (!list.includes(input.trim())) {
+        setList([...list, input.trim()]);
+      }
+      setInput("");
     }
   };
 
-  const handleMeaningChange = (index: number, field: keyof MeaningInput, value: string) => {
-    const newMeanings = [...meanings];
-    newMeanings[index][field] = value;
-    setMeanings(newMeanings);
+  const removeTag = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, item: string) => {
+    setList(list.filter((t) => t !== item));
   };
 
-  const handleAddProverb = () => {
-    setProverbsList([...proverbsList, { proverb: "", context_usage: "" }]);
-  };
-
-  const handleRemoveProverb = (index: number) => {
-    setProverbsList(proverbsList.filter((_, i) => i !== index));
-  };
-
-  const handleProverbChange = (index: number, field: keyof ProverbInput, value: string) => {
-    const newList = [...proverbsList];
-    newList[index][field] = value;
-    setProverbsList(newList);
-  };
-
-  const handleSubmit = async () => {
-    if (!word.trim()) {
-      Alert.alert("അപൂർണ്ണം", "ദയവായി മലയാളം വാക്ക് രേഖപ്പെടുത്തുക.");
-      setActiveSection("basic");
+  // Add custom equivalent language
+  const handleAddCustomLanguage = () => {
+    if (!customLanguageName.trim() || !customLanguageValue.trim()) {
+      Alert.alert("പിശക്", "ഭാഷയുടെ പേരും അർത്ഥവും നൽകുക.");
       return;
     }
+    const alreadyExists = customLanguages.some(
+      (lang) => lang.language.toLowerCase() === customLanguageName.trim().toLowerCase()
+    );
+    if (alreadyExists) {
+      Alert.alert("പിശക്", "ഈ ഭാഷ ഇതിനകം ചേർത്തിട്ടുണ്ട്.");
+      return;
+    }
+    setCustomLanguages([
+      ...customLanguages,
+      { language: customLanguageName.trim(), translation: customLanguageValue.trim() },
+    ]);
+    setCustomLanguageName("");
+    setCustomLanguageValue("");
+    setShowCustomLangForm(false);
+  };
 
-    const filteredMeanings = meanings.filter((m) => m.meaning.trim() !== "");
-    if (filteredMeanings.length === 0) {
-      Alert.alert("അപൂർണ്ണം", "ദയവായി കുറഞ്ഞത് ഒരു അർത്ഥമെങ്കിലും രേഖപ്പെടുത്തുക.");
-      setActiveSection("meanings");
+  // Image Selection using Expo ImagePicker
+  const handleSelectImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert("അനുമതി ആവശ്യമാണ്", "ചിത്രങ്ങൾ തിരഞ്ഞെടുക്കാൻ ഗാലറി അനുമതി നൽകേണ്ടതുണ്ട്.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        quality: 0.6,
+        base64: true,
+      });
+
+      if (!result.canceled) {
+        const uris = result.assets.map((asset: any) => asset.uri);
+        setSelectedImages([...selectedImages, ...uris]);
+      }
+    } catch (error) {
+      console.error("Image pick error:", error);
+      // Fallback dummy image path for demo if failed/not supported
+      setSelectedImages([...selectedImages, "https://picsum.photos/200/200"]);
+    }
+  };
+
+  // Audio Recording (Expo AV)
+  const handleStartRecording = async () => {
+    if (!Audio) {
+      // Simulation for web testing or missing package
+      setIsRecording(true);
+      return;
+    }
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("അനുമതി ആവശ്യമാണ്", "റെക്കോർഡ് ചെയ്യുന്നതിനായി മൈക്രോഫോൺ അനുമതി നൽകുക.");
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        shouldRouteAudioToSpeakerIfSupported: true,
+        staysActiveInBackground: true,
+      });
+
+      let newRecording;
+      try {
+        console.log("Attempting high quality recording preset...");
+        const result = await Audio.Recording.createAsync(
+          Audio.RecordingOptionsPresets.HIGH_QUALITY
+        );
+        newRecording = result.recording;
+      } catch (err) {
+        console.log("High quality preset failed, falling back to low quality preset...", err);
+        const result = await Audio.Recording.createAsync(
+          Audio.RecordingOptionsPresets.LOW_QUALITY
+        );
+        newRecording = result.recording;
+      }
+
+      setRecording(newRecording);
+      setIsRecording(true);
+      setRecordedUri(null);
+    } catch (err) {
+      console.error("Failed to start recording", err);
+      Alert.alert("പിശക്", "റെക്കോർഡിംഗ് ആരംഭിക്കാൻ സാധിച്ചില്ല. മൈക്രോഫോൺ പ്രവർത്തനക്ഷമമാണെന്ന് ഉറപ്പുവരുത്തുക.");
+    }
+  };
+
+  const handleStopRecording = async () => {
+    setIsRecording(false);
+    if (!Audio) {
+      setRecordedUri("simulated-audio-recording.wav");
+      return;
+    }
+    try {
+      if (!recording) return;
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecordedUri(uri);
+      setRecording(null);
+    } catch (err) {
+      console.error("Failed to stop recording", err);
+    }
+  };
+
+  // Play Recorded Audio
+  const handlePlayRecording = async () => {
+    if (!recordedUri) return;
+    if (!Audio) {
+      // Simulation for web testing or missing package
+      setIsPlaying(true);
+      setTimeout(() => setIsPlaying(false), 3000);
+      return;
+    }
+    try {
+      // Configure audio session to allow playback through speaker
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        shouldRouteAudioToSpeakerIfSupported: true,
+        staysActiveInBackground: true,
+      });
+
+      if (sound) {
+        if (isPlaying) {
+          await sound.pauseAsync();
+          setIsPlaying(false);
+        } else {
+          await sound.playAsync();
+          setIsPlaying(true);
+        }
+      } else {
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: recordedUri },
+          { shouldPlay: true }
+        );
+        setSound(newSound);
+        setIsPlaying(true);
+        newSound.setOnPlaybackStatusUpdate((status: any) => {
+          if (status.didJustFinish) {
+            setIsPlaying(false);
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Error playing sound", err);
+      Alert.alert("പിശക്", "ഓഡിയോ പ്ലേ ചെയ്യാൻ സാധിച്ചില്ല.");
+    }
+  };
+
+  // File Import for audio file (using expo-document-picker)
+  const handleImportAudio = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "audio/*",
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setImportedAudioUri(asset.uri);
+        setImportedAudioName(asset.name || "imported_audio.mp3");
+      }
+    } catch (error) {
+      console.error("Audio import error:", error);
+      Alert.alert("പിശക്", "ഓഡിയോ ഫയൽ ഇമ്പോർട്ട് ചെയ്യാൻ സാധിച്ചില്ല.");
+    }
+  };
+
+  // Form submission handler
+  const handleSubmit = async () => {
+    if (!word.trim()) {
+      Alert.alert("പിശക്", "പദം (Word) നിർബന്ധമായും നൽകേണ്ടതുണ്ട്.");
+      return;
+    }
+    if (!contributorName.trim() || !contributorEmail.trim()) {
+      Alert.alert("പിശക്", "നിങ്ങളുടെ പേരും ഇമെയിലും നൽകുക.");
+      return;
+    }
+    if (!declaration1 || !declaration2 || !receiveEmails) {
+      Alert.alert("പിശക്", "തുടരുന്നതിന് എല്ലാ സത്യപ്രസ്താവനകളും വിവരങ്ങളും അംഗീകരിക്കുക.");
       return;
     }
 
     setIsSubmitting(true);
 
+    // Convert audio file/recording to base64 if present
+    let base64Audio = "";
+    if (recordedUri || importedAudioUri) {
+      try {
+        const audioUri = recordedUri || importedAudioUri;
+        const response = await fetch(audioUri!);
+        const blob = await response.blob();
+        base64Audio = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (err) {
+        console.error("Error converting audio to base64:", err);
+      }
+    }
+
+    // Convert any local image URIs (not already in base64 format) to base64
+    const base64Images: string[] = [];
+    for (const imgUri of selectedImages) {
+      if (imgUri.startsWith("data:")) {
+        base64Images.push(imgUri);
+      } else {
+        try {
+          const response = await fetch(imgUri);
+          const blob = await response.blob();
+          const base64Str = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          base64Images.push(base64Str);
+        } catch (err) {
+          console.error("Error converting image to base64:", err);
+          base64Images.push(imgUri); // fallback
+        }
+      }
+    }
+
+    // Prepare payload
     const payload = {
       word: word.trim(),
       root: root.trim(),
       etymology: etymology.trim(),
       cultural_note: culturalNote.trim(),
-      synonyms: synonyms.trim(),
-      antonyms: antonyms.trim(),
-      dialects: dialects.trim(),
-      proverb: proverb.trim(),
-      similar_word: similarWord.trim(),
-      novel_words: novelWords.trim(),
-      cross_reference: crossReference.trim(),
-      inflections: inflections.trim(),
-      gender: gender,
       phonetic_transcription: phoneticTranscription.trim(),
+      synonyms: synonymsList.join(", "),
+      antonyms: antonymsList.join(", "),
+      dialects: dialectsList.join(", "),
+      proverb: proverbsList.join(", "),
+      novel_words: novelWordsList.join(", "),
+      cross_reference: crossRefsList.join(", "),
+      inflections: inflectionsList.join(", "),
       equivalents: {
-        english: englishEq.trim(),
-        tamil: tamilEq.trim(),
-        kannada: kannadaEq.trim(),
-        telugu: teluguEq.trim(),
-        tulu: tuluEq.trim(),
+        kannada: equivalents.kannada.trim(),
+        tamil: equivalents.tamil.trim(),
+        telugu: "", // Default empty as no subentry required
+        tulu: "",
+        english: equivalents.english.trim(),
       },
+      equivalent_languages: customLanguages,
       contributor: {
         name: contributorName.trim(),
         email: contributorEmail.trim(),
+        receive_emails: receiveEmails,
       },
-      meanings: filteredMeanings,
-      proverbs: proverbsList.filter((p) => p.proverb.trim() !== ""),
+      images: base64Images,
+      pronunciation: base64Audio,
+      language_type: "malayalam",
+      meanings: [], // Default empty or structured if meaning is added later
+      proverbs: [],
     };
 
-    let lastError: unknown = null;
-    for (const apiBaseUrl of API_BASE_URLS) {
-      try {
-        console.log(`[Suggest Word] Sending submission to ${apiBaseUrl}`);
-        const response = await fetch(`${apiBaseUrl}/api/words/suggest`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
+    try {
+      let submissionSuccess = false;
+      let lastError = null;
 
-        if (!response.ok) {
-          const responseText = await response.text();
-          throw new Error(responseText || `Request failed with status ${response.status}`);
+      for (const apiBaseUrl of API_BASE_URLS) {
+        try {
+          console.log(`[Suggest] Submitting word to ${apiBaseUrl}/api/words/suggest`);
+          const response = await fetch(`${apiBaseUrl}/api/words/suggest`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (response.ok) {
+            submissionSuccess = true;
+            
+            // Send another request to the Dataview_collection endpoint
+            try {
+              console.log(`[Suggest] Submitting dataview to ${apiBaseUrl}/api/words/dataview`);
+              await fetch(`${apiBaseUrl}/api/words/dataview`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  name: contributorName.trim(),
+                  email: contributorEmail.trim(),
+                  word: word.trim(),
+                }),
+              });
+            } catch (dvErr) {
+              console.error("Failed to save to Dataview_collection:", dvErr);
+            }
+            
+            break;
+          } else {
+            const errText = await response.text();
+            throw new Error(errText || `Server responded with ${response.status}`);
+          }
+        } catch (err) {
+          lastError = err;
         }
-
-        setIsSubmitting(false);
-        Alert.alert(
-          "വിജയകരം",
-          "നിങ്ങളുടെ വാക്ക് വിജയകരമായി സമർപ്പിച്ചു. നന്ദി!",
-          [{ text: "ശരി", onPress: () => router.back() }]
-        );
-        return;
-      } catch (error) {
-        lastError = error;
       }
-    }
 
-    setIsSubmitting(false);
-    console.error(lastError);
-    Alert.alert(
-      "പരാജയപ്പെട്ടു",
-      lastError instanceof Error ? lastError.message : "വിവരങ്ങൾ സേവ് ചെയ്യാൻ സാധിച്ചില്ല."
+      if (submissionSuccess) {
+        Alert.alert("വിജയം", "പദ നിർദ്ദേശം വിജയകരമായി സമർപ്പിച്ചു. പരിശോധനയ്ക്ക് ശേഷം പ്രസിദ്ധീകരിക്കുന്നതാണ്.", [
+          { text: "ശരി", onPress: () => router.replace("/") },
+        ]);
+      } else {
+        throw lastError || new Error("നെറ്റ്‌വർക്ക് കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല.");
+      }
+    } catch (error: any) {
+      Alert.alert("സമർപ്പണം പരാജയപ്പെട്ടു", error.message || "സെർവറുമായി ബന്ധപ്പെടാൻ സാധിച്ചില്ല.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ------------------------------------------------------------
+  // Render Selection Screen (Language Select)
+  // ------------------------------------------------------------
+  if (!selectedLanguage) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: "#2B2C51" }]} edges={["top", "left", "right"]}>
+        <StatusBar backgroundColor="#2B2C51" barStyle="light-content" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>വാക്ക് നിർദ്ദേശിക്കുക</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        <View style={[styles.body, styles.selectionContainer]}>
+          <Text style={styles.selectionPrompt}>പദ നിർദ്ദേശത്തിലേക്ക് സ്വാഗതം</Text>
+          <Text style={styles.selectionSubPrompt}>നിങ്ങൾ ചേർക്കാൻ ആഗ്രഹിക്കുന്ന വാക്കിന്റെ ഭാഷ തിരഞ്ഞെടുക്കുക:</Text>
+
+          <TouchableOpacity
+            style={styles.langButton}
+            onPress={() => setSelectedLanguage("malayalam")}
+            activeOpacity={0.8}
+          >
+            <View style={styles.langBtnIconBg}>
+              <Text style={styles.langEmoji}>അ</Text>
+            </View>
+            <View style={styles.langBtnTextContainer}>
+              <Text style={styles.langBtnTitle}>മലയാളം പദം (Malayalam Word)</Text>
+              <Text style={styles.langBtnSub}>മലയാളം വാക്കിന്റെ നിർദ്ദേശങ്ങൾ സമർപ്പിക്കുക</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#2563EB" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.langButton, { marginTop: 16 }]}
+            onPress={() => setSelectedLanguage("english")}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.langBtnIconBg, { backgroundColor: "#EFF6FF" }]}>
+              <Text style={[styles.langEmoji, { color: "#2563EB" }]}>A</Text>
+            </View>
+            <View style={styles.langBtnTextContainer}>
+              <Text style={styles.langBtnTitle}>ഇംഗ്ലീഷ് പദം (English Word)</Text>
+              <Text style={styles.langBtnSub}>English language suggestion form</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#2563EB" />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ------------------------------------------------------------
+  // Render English Screen (Placeholder)
+  // ------------------------------------------------------------
+  if (selectedLanguage === "english") {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: "#2B2C51" }]} edges={["top", "left", "right"]}>
+        <StatusBar backgroundColor="#2B2C51" barStyle="light-content" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setSelectedLanguage(null)} style={styles.headerButton}>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>ഇംഗ്ലീഷ് പദം</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        <View style={[styles.body, styles.placeholderContainer]}>
+          <Ionicons name="construct-outline" size={80} color="#2B2C51" style={{ marginBottom: 20 }} />
+          <Text style={styles.placeholderText}>
+            ഇംഗ്ലീഷ് പദങ്ങൾ കൂട്ടിച്ചേർക്കാനുള്ള സൗകര്യം പിന്നീട് ലഭ്യമാക്കുന്നതാണ്.
+          </Text>
+          <Text style={styles.placeholderSubText}>
+            English word suggestion features are not configured yet. Please check back later.
+          </Text>
+          <TouchableOpacity style={styles.backBtn} onPress={() => setSelectedLanguage(null)}>
+            <Text style={styles.backBtnText}>തിരികെ പോകുക (Go Back)</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Helper component to render array tags
+  const renderTagList = (list: string[], onRemove: (item: string) => void) => {
+    if (list.length === 0) return null;
+    return (
+      <View style={styles.tagContainer}>
+        {list.map((item, index) => (
+          <View key={index} style={styles.tag}>
+            <Text style={styles.tagText}>{item}</Text>
+            <TouchableOpacity onPress={() => onRemove(item)} style={styles.removeTagBtn}>
+              <Ionicons name="close" size={14} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
     );
   };
 
+  // ------------------------------------------------------------
+  // Render Malayalam Screen (4-Section Form)
+  // ------------------------------------------------------------
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.screen}
-    >
-      {/* Header */}
+    <SafeAreaView style={[styles.container, { backgroundColor: "#2B2C51" }]} edges={["top", "left", "right"]}>
+      <StatusBar backgroundColor="#2B2C51" barStyle="light-content" />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={27} color="white" />
+        <TouchableOpacity onPress={() => setSelectedLanguage(null)} style={styles.headerButton}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>വാക്ക് നിർദ്ദേശിക്കുക</Text>
-        <View style={{ width: 24 }} />
+        <Text style={styles.headerTitle}>മലയാളം പദ നിർദ്ദേശം</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.helperText}>
-          പുതിയ വാക്കുകളോ പ്രയോഗങ്ങളോ നിഘണ്ടുവിലേക്ക് കൂട്ടിച്ചേർക്കാൻ താഴെയുള്ള ഫോം പൂരിപ്പിക്കുക.
-        </Text>
-
-        {/* 1. Basic details section */}
-        <View style={styles.card}>
-          <TouchableOpacity
-            style={styles.sectionHeader}
-            onPress={() => toggleSection("basic")}
-            activeOpacity={0.8}
-          >
-            <View style={styles.sectionTitleRow}>
-              <Ionicons name="text-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionTitle}>അടിസ്ഥാന വിവരങ്ങൾ</Text>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          
+          {/* SECTION 1: Disclaimer & Basic Details */}
+          <View style={styles.card}>
+            <View style={styles.sectionHeaderContainer}>
+              <Ionicons name="document-text-outline" size={22} color="#2B2C51" />
+              <Text style={styles.sectionHeading}>വിഭാഗം 1: അടിസ്ഥാന വിവരങ്ങൾ (Basic Details)</Text>
             </View>
-            <Ionicons
-              name={activeSection === "basic" ? "chevron-up" : "chevron-down"}
-              size={20}
-              color="#2B2C51"
-            />
-          </TouchableOpacity>
 
-          {activeSection === "basic" && (
-            <View style={styles.sectionContent}>
-              <Text style={styles.label}>വാക്ക് (മലയാളം) *</Text>
+            {/* Disclaimer */}
+            <View style={styles.disclaimerContainer}>
+              <Ionicons name="information-circle-outline" size={20} color="#92400E" style={{ marginRight: 8, marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.disclaimerTitle}>നിർദ്ദേശങ്ങൾ (Instructions):</Text>
+                <Text style={styles.disclaimerText}>
+                  * അടയാളപ്പെടുത്തിയവ പൂരിപ്പിക്കൽ നിർബന്ധമാണ് (Mandatory fields). മറ്റുള്ളവ നിങ്ങൾക്ക് ആവശ്യമെങ്കിൽ നൽകാവുന്നതാണ് (Optional fields).
+                </Text>
+              </View>
+            </View>
+
+            {/* Fields */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>വാക്ക് (Word) <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={styles.input}
-                placeholder="ഉദാ: പര"
-                placeholderTextColor="#A59B90"
+                placeholder="വാക്ക് നൽകുക (उदा. കല്ല്)"
                 value={word}
                 onChangeText={setWord}
               />
+            </View>
 
-              <Text style={styles.label}>ഉച്ചാരണം (ഇംഗ്ലീഷിൽ)</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>ധാതു (Root)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="ഉദാ: para"
-                placeholderTextColor="#A59B90"
-                value={phoneticTranscription}
-                onChangeText={setPhoneticTranscription}
-              />
-
-              <Text style={styles.label}>വ്യാകരണ ലിംഗം</Text>
-              <View style={styles.genderOptions}>
-                {["സ്ത്രീലിംഗം", "പുല്ലിംഗം", "ഉഭയലിംഗം", "നപുംസകലിംഗം"].map((g) => (
-                  <TouchableOpacity
-                    key={g}
-                    style={[
-                      styles.genderButton,
-                      gender === g && styles.activeGenderButton,
-                    ]}
-                    onPress={() => setGender(g)}
-                  >
-                    <Text
-                      style={[
-                        styles.genderText,
-                        gender === g && styles.activeGenderText,
-                      ]}
-                    >
-                      {g}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* 2. Meanings and examples section */}
-        <View style={styles.card}>
-          <TouchableOpacity
-            style={styles.sectionHeader}
-            onPress={() => toggleSection("meanings")}
-            activeOpacity={0.8}
-          >
-            <View style={styles.sectionTitleRow}>
-              <Ionicons name="book-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionTitle}>അർത്ഥങ്ങളും പ്രയോഗങ്ങളും</Text>
-            </View>
-            <Ionicons
-              name={activeSection === "meanings" ? "chevron-up" : "chevron-down"}
-              size={20}
-              color="#2B2C51"
-            />
-          </TouchableOpacity>
-
-          {activeSection === "meanings" && (
-            <View style={styles.sectionContent}>
-              {meanings.map((m, idx) => (
-                <View key={idx} style={styles.itemBlock}>
-                  <View style={styles.blockHeader}>
-                    <Text style={styles.blockTitle}>അർത്ഥം {idx + 1}</Text>
-                    {meanings.length > 1 && (
-                      <TouchableOpacity onPress={() => handleRemoveMeaning(idx)}>
-                        <Ionicons name="close-circle-outline" size={22} color="#D32F2F" />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  <Text style={styles.label}>അർത്ഥം *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="ഉദാ: സംസാരിക്കുക"
-                    placeholderTextColor="#A59B90"
-                    value={m.meaning}
-                    onChangeText={(val) => handleMeaningChange(idx, "meaning", val)}
-                  />
-
-                  <Text style={styles.label}>ഉദാഹരണ വാക്യം</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="ഉദാ: അവൻ കാര്യം പറഞ്ഞു."
-                    placeholderTextColor="#A59B90"
-                    value={m.context_usage}
-                    onChangeText={(val) => handleMeaningChange(idx, "context_usage", val)}
-                  />
-                </View>
-              ))}
-
-              <TouchableOpacity style={styles.addButton} onPress={handleAddMeaning}>
-                <Ionicons name="add" size={20} color="#16A697" />
-                <Text style={styles.addButtonText}>അർത്ഥം കൂട്ടിച്ചേർക്കുക</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        {/* 3. Linguistic Details section */}
-        <View style={styles.card}>
-          <TouchableOpacity
-            style={styles.sectionHeader}
-            onPress={() => toggleSection("linguistic")}
-            activeOpacity={0.8}
-          >
-            <View style={styles.sectionTitleRow}>
-              <Ionicons name="library-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionTitle}>ഭാഷാപരമായ വിവരങ്ങൾ</Text>
-            </View>
-            <Ionicons
-              name={activeSection === "linguistic" ? "chevron-up" : "chevron-down"}
-              size={20}
-              color="#2B2C51"
-            />
-          </TouchableOpacity>
-
-          {activeSection === "linguistic" && (
-            <View style={styles.sectionContent}>
-              <Text style={styles.label}>ധാതു / അടിസ്ഥാന രൂപം (Root)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="ഉദാ: പര"
-                placeholderTextColor="#A59B90"
+                placeholder="ധാതു നൽകുക"
                 value={root}
                 onChangeText={setRoot}
               />
+            </View>
 
-              <Text style={styles.label}>വ്യുല്പത്തി വിവരണം (Etymology)</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>വാക്കിന്റെ ഉത്ഭവം (Etymology)</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="ഉദാ: സംസ്കൃതത്തിലെ 'പൃ' എന്ന ധാതുവിൽ നിന്ന്..."
-                placeholderTextColor="#A59B90"
-                multiline
-                numberOfLines={3}
+                style={styles.input}
+                placeholder="ഉത്ഭവം നൽകുക"
                 value={etymology}
                 onChangeText={setEtymology}
               />
+            </View>
 
-              <Text style={styles.label}>പര്യായങ്ങൾ (Synonyms)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="കമകളായി വേർതിരിക്കുക (ചൊല്ല്, വാക്ക്)"
-                placeholderTextColor="#A59B90"
-                value={synonyms}
-                onChangeText={setSynonyms}
-              />
-
-              <Text style={styles.label}>വിപരീതപദങ്ങൾ (Antonyms)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="കമകളായി വേർതിരിക്കുക (മൗനം, നിശബ്ദത)"
-                placeholderTextColor="#A59B90"
-                value={antonyms}
-                onChangeText={setAntonyms}
-              />
-
-              <Text style={styles.label}>പ്രാദേശിക രൂപങ്ങൾ (Dialects)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="ഉദാ: തെക്കൻ കേരളത്തിൽ..."
-                placeholderTextColor="#A59B90"
-                value={dialects}
-                onChangeText={setDialects}
-              />
-
-              <Text style={styles.label}>രൂപഭേദങ്ങൾ (Inflections)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="ഉദാ: പറയുന്നു, പറഞ്ഞു, പറയും"
-                placeholderTextColor="#A59B90"
-                value={inflections}
-                onChangeText={setInflections}
-              />
-
-              <Text style={styles.label}>സമാന പദങ്ങൾ (Similar Words)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="ഉദാ: സംസാരം, ഉച്ചാരണം"
-                placeholderTextColor="#A59B90"
-                value={similarWord}
-                onChangeText={setSimilarWord}
-              />
-
-              <Text style={styles.label}>പുതിയ പ്രയോഗങ്ങൾ (Novel Words)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="ഉദാ: പറച്ചിൽ, പറയൽ"
-                placeholderTextColor="#A59B90"
-                value={novelWords}
-                onChangeText={setNovelWords}
-              />
-
-              <Text style={styles.label}>മറ്റ് സൂചനകൾ (Cross Reference)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="ഉദാ: പറയുക (to speak), പറച്ചിൽ (speech)"
-                placeholderTextColor="#A59B90"
-                value={crossReference}
-                onChangeText={setCrossReference}
-              />
-
-              <Text style={styles.label}>സംസ്കാരിക പ്രത്യേകത (Cultural Note)</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>സാംസ്കാരിക കുറിപ്പ് (Cultural Note)</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="പ്രസംഗവും കലാപരവുമായ പ്രാധാന്യം..."
-                placeholderTextColor="#A59B90"
-                multiline
-                numberOfLines={3}
+                placeholder="സാംസ്കാരിക പ്രാധാന്യം നൽകുക"
                 value={culturalNote}
                 onChangeText={setCulturalNote}
+                multiline
+                numberOfLines={3}
               />
+            </View>
 
-              {/* Proverbs entry nested under linguistic details */}
-              <View style={styles.subBlockHeader}>
-                <Text style={styles.blockTitle}>പഴഞ്ചൊല്ലുകൾ (Proverbs)</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>ഉച്ചാരണ രീതി (Phonetic Transcription)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="phonetic-transcription"
+                value={phoneticTranscription}
+                onChangeText={setPhoneticTranscription}
+              />
+            </View>
+          </View>
+
+          {/* SECTION 2: Lexical Relations & Languages */}
+          <View style={styles.card}>
+            <View style={styles.sectionHeaderContainer}>
+              <Ionicons name="git-branch-outline" size={22} color="#2B2C51" />
+              <Text style={styles.sectionHeading}>വിഭാഗം 2: പദബന്ധങ്ങളും വിവർത്തനങ്ങളും</Text>
+            </View>
+            <Text style={styles.sectionSubtext}>എല്ലാ വിവരങ്ങളും നിർബന്ധമില്ലാത്തവയാണ് (All entries optional)</Text>
+
+            {/* Synonyms */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>പര്യായപദങ്ങൾ (Synonyms)</Text>
+              <View style={styles.tagInputRow}>
+                <TextInput
+                  style={styles.flexInput}
+                  placeholder="പര്യായപദം നൽകുക"
+                  value={synonymInput}
+                  onChangeText={setSynonymInput}
+                />
+                <TouchableOpacity
+                  style={styles.addTagBtn}
+                  onPress={() => addTag(synonymsList, setSynonymsList, synonymInput, setSynonymInput)}
+                >
+                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                </TouchableOpacity>
               </View>
-
-              {proverbsList.map((p, idx) => (
-                <View key={idx} style={styles.itemBlockSub}>
-                  <View style={styles.blockHeader}>
-                    <Text style={styles.blockTitleSub}>ചൊല്ല് {idx + 1}</Text>
-                    <TouchableOpacity onPress={() => handleRemoveProverb(idx)}>
-                      <Ionicons name="close-circle-outline" size={20} color="#D32F2F" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <Text style={styles.label}>പഴഞ്ചൊല്ല്</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="പഴഞ്ചൊല്ല് രേഖപ്പെടുത്തുക"
-                    placeholderTextColor="#A59B90"
-                    value={p.proverb}
-                    onChangeText={(val) => handleProverbChange(idx, "proverb", val)}
-                  />
-
-                  <Text style={styles.label}>അർത്ഥ പശ്ചാത്തലം</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="ഉപയോഗ പശ്ചാത്തലം രേഖപ്പെടുത്തുക"
-                    placeholderTextColor="#A59B90"
-                    value={p.context_usage}
-                    onChangeText={(val) => handleProverbChange(idx, "context_usage", val)}
-                  />
-                </View>
-              ))}
-
-              <TouchableOpacity style={styles.addButton} onPress={handleAddProverb}>
-                <Ionicons name="add" size={20} color="#16A697" />
-                <Text style={styles.addButtonText}>പഴഞ്ചൊല്ല് കൂട്ടിച്ചേർക്കുക</Text>
-              </TouchableOpacity>
+              {renderTagList(synonymsList, (item) => removeTag(synonymsList, setSynonymsList, item))}
             </View>
-          )}
-        </View>
 
-        {/* 4. Equivalents in other languages */}
-        <View style={styles.card}>
-          <TouchableOpacity
-            style={styles.sectionHeader}
-            onPress={() => toggleSection("equivalents")}
-            activeOpacity={0.8}
-          >
-            <View style={styles.sectionTitleRow}>
-              <Ionicons name="globe-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionTitle}>ഇതര ഭാഷാ രൂപങ്ങൾ</Text>
+            {/* Antonyms */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>വിപരീതപദങ്ങൾ (Antonyms)</Text>
+              <View style={styles.tagInputRow}>
+                <TextInput
+                  style={styles.flexInput}
+                  placeholder="വിപരീതപദം നൽകുക"
+                  value={antonymInput}
+                  onChangeText={setAntonymInput}
+                />
+                <TouchableOpacity
+                  style={styles.addTagBtn}
+                  onPress={() => addTag(antonymsList, setAntonymsList, antonymInput, setAntonymInput)}
+                >
+                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                </TouchableOpacity>
+              </View>
+              {renderTagList(antonymsList, (item) => removeTag(antonymsList, setAntonymsList, item))}
             </View>
-            <Ionicons
-              name={activeSection === "equivalents" ? "chevron-up" : "chevron-down"}
-              size={20}
-              color="#2B2C51"
-            />
-          </TouchableOpacity>
 
-          {activeSection === "equivalents" && (
-            <View style={styles.sectionContent}>
-              <Text style={styles.label}>ഇംഗ്ലീഷ് (English Equivalent)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="English translation"
-                placeholderTextColor="#A59B90"
-                value={englishEq}
-                onChangeText={setEnglishEq}
-              />
+            {/* Dialects */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>പ്രാദേശിക പ്രയോഗങ്ങൾ (Dialects)</Text>
+              <View style={styles.tagInputRow}>
+                <TextInput
+                  style={styles.flexInput}
+                  placeholder="പ്രാദേശിക രൂപങ്ങൾ നൽകുക"
+                  value={dialectInput}
+                  onChangeText={setDialectInput}
+                />
+                <TouchableOpacity
+                  style={styles.addTagBtn}
+                  onPress={() => addTag(dialectsList, setDialectsList, dialectInput, setDialectInput)}
+                >
+                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                </TouchableOpacity>
+              </View>
+              {renderTagList(dialectsList, (item) => removeTag(dialectsList, setDialectsList, item))}
+            </View>
 
-              <Text style={styles.label}>തമിഴ് (Tamil)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="தமிழ் வடிവം"
-                placeholderTextColor="#A59B90"
-                value={tamilEq}
-                onChangeText={setTamilEq}
-              />
+            {/* Proverbs */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>പഴഞ്ചൊല്ലുകൾ (Proverbs)</Text>
+              <View style={styles.tagInputRow}>
+                <TextInput
+                  style={styles.flexInput}
+                  placeholder="പഴഞ്ചൊല്ലുകൾ നൽകുക"
+                  value={proverbInput}
+                  onChangeText={setProverbInput}
+                />
+                <TouchableOpacity
+                  style={styles.addTagBtn}
+                  onPress={() => addTag(proverbsList, setProverbsList, proverbInput, setProverbInput)}
+                >
+                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                </TouchableOpacity>
+              </View>
+              {renderTagList(proverbsList, (item) => removeTag(proverbsList, setProverbsList, item))}
+            </View>
 
+            {/* Novel Words */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>നവീന പ്രയോഗങ്ങൾ (Novel Words)</Text>
+              <View style={styles.tagInputRow}>
+                <TextInput
+                  style={styles.flexInput}
+                  placeholder="നവീന പദം നൽകുക"
+                  value={novelWordInput}
+                  onChangeText={setNovelWordInput}
+                />
+                <TouchableOpacity
+                  style={styles.addTagBtn}
+                  onPress={() => addTag(novelWordsList, setNovelWordsList, novelWordInput, setNovelWordInput)}
+                >
+                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                </TouchableOpacity>
+              </View>
+              {renderTagList(novelWordsList, (item) => removeTag(novelWordsList, setNovelWordsList, item))}
+            </View>
+
+            {/* Cross Reference */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>പരാമർശങ്ങൾ (Cross Reference)</Text>
+              <View style={styles.tagInputRow}>
+                <TextInput
+                  style={styles.flexInput}
+                  placeholder="പരാമർശം നൽകുക"
+                  value={crossRefInput}
+                  onChangeText={setCrossRefInput}
+                />
+                <TouchableOpacity
+                  style={styles.addTagBtn}
+                  onPress={() => addTag(crossRefsList, setCrossRefsList, crossRefInput, setCrossRefInput)}
+                >
+                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                </TouchableOpacity>
+              </View>
+              {renderTagList(crossRefsList, (item) => removeTag(crossRefsList, setCrossRefsList, item))}
+            </View>
+
+            {/* Inflections */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>വ്യാകരണ രൂപങ്ങൾ (Inflections)</Text>
+              <View style={styles.tagInputRow}>
+                <TextInput
+                  style={styles.flexInput}
+                  placeholder="വ്യാകരണ രൂപങ്ങൾ നൽകുക"
+                  value={inflectionInput}
+                  onChangeText={setInflectionInput}
+                />
+                <TouchableOpacity
+                  style={styles.addTagBtn}
+                  onPress={() => addTag(inflectionsList, setInflectionsList, inflectionInput, setInflectionInput)}
+                >
+                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                </TouchableOpacity>
+              </View>
+              {renderTagList(inflectionsList, (item) => removeTag(inflectionsList, setInflectionsList, item))}
+            </View>
+
+            {/* Equivalents */}
+            <Text style={styles.subSectionTitle}>ഭാഷാ തുല്യതകൾ (Equivalent Languages)</Text>
+
+            <View style={styles.inputGroup}>
               <Text style={styles.label}>കന്നഡ (Kannada)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="ಕನ್ನಡ ರೂಪ"
-                placeholderTextColor="#A59B90"
-                value={kannadaEq}
-                onChangeText={setKannadaEq}
-              />
-
-              <Text style={styles.label}>തെലുങ്ക് (Telugu)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="తెలుగు రూపం"
-                placeholderTextColor="#A59B90"
-                value={teluguEq}
-                onChangeText={setTeluguEq}
-              />
-
-              <Text style={styles.label}>തുളു (Tulu)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="തുളു രൂപം"
-                placeholderTextColor="#A59B90"
-                value={tuluEq}
-                onChangeText={setTuluEq}
+                placeholder="ಕನ್ನಡ വിവർത്തനം"
+                value={equivalents.kannada}
+                onChangeText={(text) => setEquivalents({ ...equivalents, kannada: text })}
               />
             </View>
-          )}
-        </View>
 
-        {/* 5. Contributor Info */}
-        <View style={styles.card}>
-          <TouchableOpacity
-            style={styles.sectionHeader}
-            onPress={() => toggleSection("contributor")}
-            activeOpacity={0.8}
-          >
-            <View style={styles.sectionTitleRow}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>തമിഴ് (Tamil)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="தமிழ் വിവർത്തനം"
+                value={equivalents.tamil}
+                onChangeText={(text) => setEquivalents({ ...equivalents, tamil: text })}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>മലയാളം (Malayalam Translation)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="മലയാള വിവർത്തനം"
+                value={equivalents.malayalam}
+                onChangeText={(text) => setEquivalents({ ...equivalents, malayalam: text })}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>ഇംഗ്ലീഷ് (English)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="English Translation"
+                value={equivalents.english}
+                onChangeText={(text) => setEquivalents({ ...equivalents, english: text })}
+              />
+            </View>
+
+            {/* Custom Languages */}
+            {customLanguages.map((item, idx) => (
+              <View key={idx} style={styles.customLangWrapper}>
+                <Text style={styles.label}>{item.language}</Text>
+                <View style={styles.rowAlign}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    value={item.translation}
+                    editable={false}
+                  />
+                  <TouchableOpacity
+                    style={styles.deleteCustomBtn}
+                    onPress={() => setCustomLanguages(customLanguages.filter((_, i) => i !== idx))}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+
+            {/* Add custom lang form toggle */}
+            {!showCustomLangForm ? (
+              <TouchableOpacity
+                style={styles.addCustomLangBtn}
+                onPress={() => setShowCustomLangForm(true)}
+              >
+                <Ionicons name="add-circle-outline" size={18} color="#2563EB" style={{ marginRight: 6 }} />
+                <Text style={styles.addCustomLangText}>മറ്റ് ഭാഷകൾ ചേർക്കുക (Add custom language)</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.customLangForm}>
+                <Text style={styles.customFormHeading}>മറ്റ് ഭാഷ നിർദ്ദേശം</Text>
+                <TextInput
+                  style={[styles.input, { marginBottom: 10 }]}
+                  placeholder="ഭാഷയുടെ പേര് (ഉദാ. French)"
+                  value={customLanguageName}
+                  onChangeText={setCustomLanguageName}
+                />
+                <TextInput
+                  style={[styles.input, { marginBottom: 10 }]}
+                  placeholder="ഭാഷയിലെ അർത്ഥം (ഉദാ. Bonjour)"
+                  value={customLanguageValue}
+                  onChangeText={setCustomLanguageValue}
+                />
+                <View style={styles.customFormActions}>
+                  <TouchableOpacity
+                    style={[styles.customFormBtn, styles.cancelBtn]}
+                    onPress={() => setShowCustomLangForm(false)}
+                  >
+                    <Text style={styles.cancelText}>അല്ല</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.customFormBtn, styles.confirmBtn]}
+                    onPress={handleAddCustomLanguage}
+                  >
+                    <Text style={styles.confirmText}>ചേർക്കുക</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* SECTION 3: Uploads & Pronunciation */}
+          <View style={[styles.card, styles.uploadCard]}>
+            <View style={styles.sectionHeaderContainer}>
+              <Ionicons name="cloud-upload-outline" size={22} color="#2B2C51" />
+              <Text style={styles.sectionHeading}>വിഭാഗം 3: ഫയൽ അപ്‌ലോഡ് & ഉച്ചാരണം (Media)</Text>
+            </View>
+
+            {/* Disclaimer */}
+            <View style={[styles.disclaimerContainer, { backgroundColor: "#EFF6FF" }]}>
+              <Ionicons name="information-circle-outline" size={20} color="#1E40AF" style={{ marginRight: 8, marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.disclaimerText, { color: "#1E40AF" }]}>
+                  ഇവിടെ നൽകുന്ന വിവരങ്ങൾ നിർബന്ധമല്ല. വാക്കുമായി ബന്ധപ്പെട്ട ചിത്രങ്ങളും ഉച്ചാരണങ്ങളും അപ്‌ലോഡ് ചെയ്യാം.
+                </Text>
+              </View>
+            </View>
+
+            {/* Images */}
+            <Text style={styles.subSectionTitle}>ചിത്രങ്ങൾ ചേർക്കുക (Upload Images)</Text>
+            <TouchableOpacity style={styles.mediaButton} onPress={handleSelectImage}>
+              <Ionicons name="image-outline" size={24} color="#2B2C51" />
+              <Text style={styles.mediaButtonText}>ചിത്രങ്ങൾ തിരഞ്ഞെടുക്കുക</Text>
+            </TouchableOpacity>
+            {selectedImages.length > 0 && (
+              <View style={styles.imageGrid}>
+                {selectedImages.map((uri, idx) => (
+                  <View key={idx} style={styles.imageThumbWrapper}>
+                    <Text style={styles.imageThumbText}>ചിത്രം {idx + 1}</Text>
+                    <TouchableOpacity
+                      style={styles.deleteImageBtn}
+                      onPress={() => setSelectedImages(selectedImages.filter((_, i) => i !== idx))}
+                    >
+                      <Ionicons name="close-circle" size={18} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Audio Recording */}
+            <Text style={[styles.subSectionTitle, { marginTop: 18 }]}>ഉച്ചാരണം റെക്കോർഡ് ചെയ്യുക (Record Audio)</Text>
+            
+            {/* Voice animated bars */}
+            {(isRecording || isPlaying) && (
+              <VoiceVisualizer animating={isRecording || isPlaying} />
+            )}
+
+            <View style={styles.audioControlsRow}>
+              {!isRecording ? (
+                <TouchableOpacity style={styles.recordStartBtn} onPress={handleStartRecording}>
+                  <Ionicons name="mic" size={20} color="#FFFFFF" />
+                  <Text style={styles.recordStartBtnText}>റിക്കോർഡിങ് തുടങ്ങുക</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.recordStopBtn} onPress={handleStopRecording}>
+                  <Ionicons name="stop" size={20} color="#FFFFFF" />
+                  <Text style={styles.recordStopBtnText}>നിർത്തുക ({recordingDuration}s)</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {recordedUri && (
+              <View style={styles.audioPlayWrapper}>
+                <View style={styles.mediaSuccessBadge}>
+                  <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                  <Text style={styles.mediaSuccessText}>റെക്കോർഡിംഗ് സൂക്ഷിച്ചു ({recordedUri.split("/").pop()})</Text>
+                  <TouchableOpacity onPress={() => { setRecordedUri(null); setIsPlaying(false); if (sound) { sound.unloadAsync(); setSound(null); } }}>
+                    <Ionicons name="trash" size={18} color="#EF4444" style={{ marginLeft: 8 }} />
+                  </TouchableOpacity>
+                </View>
+                
+                <View style={styles.playbackRow}>
+                  <TouchableOpacity
+                    style={[styles.playbackBtn, isPlaying && styles.playbackBtnActive]}
+                    onPress={handlePlayRecording}
+                  >
+                    <Ionicons
+                      name={isPlaying ? "pause" : "play"}
+                      size={20}
+                      color="#FFFFFF"
+                    />
+                    <Text style={styles.playbackBtnText}>
+                      {isPlaying ? "നിർത്തുക (Pause)" : "കേൾക്കുക (Play Recording)"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Audio File Import */}
+            <Text style={[styles.subSectionTitle, { marginTop: 18 }]}>ഓഡിയോ ഫയൽ ഇറക്കുമതി (Import Audio File)</Text>
+            <TouchableOpacity style={styles.mediaButton} onPress={handleImportAudio}>
+              <Ionicons name="document-attach-outline" size={24} color="#2B2C51" />
+              <Text style={styles.mediaButtonText}>ഓഡിയോ ഫയൽ തിരഞ്ഞെടുക്കുക (mp3/wav/m4a)</Text>
+            </TouchableOpacity>
+            {importedAudioUri && (
+              <View style={styles.mediaSuccessBadge}>
+                <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                <Text style={styles.mediaSuccessText}>ഫയൽ തയ്യാറാണ്: {importedAudioName}</Text>
+                <TouchableOpacity onPress={() => { setImportedAudioUri(null); setImportedAudioName(null); }}>
+                  <Ionicons name="trash" size={18} color="#EF4444" style={{ marginLeft: 8 }} />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          {/* SECTION 4: Contributor Details & Finish */}
+          <View style={styles.card}>
+            <View style={styles.sectionHeaderContainer}>
               <Ionicons name="person-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionTitle}>പങ്കാളിത്ത വിവരങ്ങൾ</Text>
+              <Text style={styles.sectionHeading}>വിഭാഗം 4: കോൺട്രിബ്യൂട്ടർ വിവരങ്ങളും സമർപ്പണവും</Text>
             </View>
-            <Ionicons
-              name={activeSection === "contributor" ? "chevron-up" : "chevron-down"}
-              size={20}
-              color="#2B2C51"
-            />
-          </TouchableOpacity>
 
-          {activeSection === "contributor" && (
-            <View style={styles.sectionContent}>
-              <Text style={styles.label}>നിങ്ങളുടെ പേര് (Your Name)</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>പേര് (Name) <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={styles.input}
-                placeholder="നിങ്ങളുടെ പേര്"
-                placeholderTextColor="#A59B90"
+                placeholder="നിങ്ങളുടെ പേര് നൽകുക"
                 value={contributorName}
                 onChangeText={setContributorName}
               />
+            </View>
 
-              <Text style={styles.label}>ഇമെയിൽ (Email Address)</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>ഇമെയിൽ (Email) <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={styles.input}
                 placeholder="നിങ്ങളുടെ ഇമെയിൽ വിലാസം"
-                placeholderTextColor="#A59B90"
-                keyboardType="email-address"
-                autoCapitalize="none"
                 value={contributorEmail}
                 onChangeText={setContributorEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
               />
             </View>
-          )}
-        </View>
 
-        {/* Submit Button */}
-        <TouchableOpacity
-          style={[styles.submitButton, isSubmitting && styles.submittingButton]}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-          activeOpacity={0.8}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#white" />
-          ) : (
-            <>
-              <Ionicons name="paper-plane" size={18} color="white" style={{ marginRight: 8 }} />
-              <Text style={styles.submitButtonText}>സമർപ്പിക്കുക</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            {/* Checkboxes declarations */}
+            <View style={styles.checkboxWrapper}>
+              <TouchableOpacity
+                style={styles.checkbox}
+                onPress={() => setDeclaration1(!declaration1)}
+              >
+                <Ionicons
+                  name={declaration1 ? "checkbox" : "square-outline"}
+                  size={24}
+                  color={declaration1 ? "#2B2C51" : "#6B7280"}
+                />
+              </TouchableOpacity>
+              <Text style={styles.checkboxText}>
+                ഞാൻ സമർപ്പിച്ച ഈ വിവരങ്ങൾ പൂർണ്ണമായും കൃത്യവും വസ്തുതാപരവുമാണെന്ന് സാക്ഷ്യപ്പെടുത്തുന്നു.
+              </Text>
+            </View>
+
+            <View style={styles.checkboxWrapper}>
+              <TouchableOpacity
+                style={styles.checkbox}
+                onPress={() => setDeclaration2(!declaration2)}
+              >
+                <Ionicons
+                  name={declaration2 ? "checkbox" : "square-outline"}
+                  size={24}
+                  color={declaration2 ? "#2B2C51" : "#6B7280"}
+                />
+              </TouchableOpacity>
+              <Text style={styles.checkboxText}>
+                നിഘണ്ടുവിലേക്ക് പദങ്ങൾ ചേർക്കുന്നതിനുള്ള C-DIT നിബന്ധനകൾ ഞാൻ അംഗീകരിക്കുന്നു.
+              </Text>
+            </View>
+
+            <View style={styles.checkboxWrapper}>
+              <TouchableOpacity
+                style={styles.checkbox}
+                onPress={() => setReceiveEmails(!receiveEmails)}
+              >
+                <Ionicons
+                  name={receiveEmails ? "checkbox" : "square-outline"}
+                  size={24}
+                  color={receiveEmails ? "#2B2C51" : "#6B7280"}
+                />
+              </TouchableOpacity>
+              <Text style={styles.checkboxText}>
+                R&D C-DIT-ൽ നിന്നുള്ള ഇമെയിലുകൾ ലഭിക്കുന്നതിനും ആശയവിനിമയം നടത്തുന്നതിനും ഞാൻ സമ്മതിക്കുന്നു (Receive updates/mails from R&D C-DIT).
+              </Text>
+            </View>
+
+            {/* Finish/Submit button */}
+            <TouchableOpacity
+              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}
+              activeOpacity={0.8}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-done" size={22} color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.submitBtnText}>സമർപ്പിക്കുക (Submit)</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  container: {
     flex: 1,
-    backgroundColor: "#F9F6F1",
   },
   header: {
-    height: Platform.OS === "android" ? 70 : 90,
-    backgroundColor: "#2B2C51",
+    height: Platform.OS === "android" ? 65 : 75,
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 15,
-    paddingBottom: 15,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#3B3D6B",
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
-    color: "white",
-    fontSize: 16,
+    flex: 1,
+    textAlign: "center",
+    color: "#FFFFFF",
+    fontSize: 18,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
-    marginBottom: 5,
+  },
+  body: {
+    flex: 1,
+    backgroundColor: "#F9F6F1",
+    padding: 16,
   },
   scrollContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 40,
+    backgroundColor: "#F9F6F1",
   },
-  helperText: {
-    color: "#6D625A",
-    fontSize: 14,
+  selectionContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  selectionPrompt: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#2B2C51",
+    textAlign: "center",
+    marginBottom: 8,
     fontFamily: "NotoSansMalayalam",
-    lineHeight: 22,
-    marginBottom: 16,
-    paddingHorizontal: 4,
+  },
+  selectionSubPrompt: {
+    fontSize: 15,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 32,
+    fontFamily: "NotoSansMalayalam",
+  },
+  langButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    borderRadius: 16,
+    width: "100%",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  langBtnIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FFF1F2",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  langEmoji: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#F43F5E",
+  },
+  langBtnTextContainer: {
+    flex: 1,
+  },
+  langBtnTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F2937",
+    fontFamily: "NotoSansMalayalam",
+    marginBottom: 2,
+  },
+  langBtnSub: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontFamily: "NotoSansMalayalam",
+  },
+  placeholderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  placeholderText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#2B2C51",
+    textAlign: "center",
+    marginBottom: 10,
+    lineHeight: 26,
+    fontFamily: "NotoSansMalayalam",
+  },
+  placeholderSubText: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 30,
+    lineHeight: 20,
+    fontFamily: "NotoSansMalayalam",
+  },
+  backBtn: {
+    backgroundColor: "#2B2C51",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  backBtnText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontFamily: "NotoSansMalayalam",
   },
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginBottom: 14,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#E7E0D7",
-    overflow: "hidden",
-    ...Platform.select({
-      web: {
-        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.04)",
-      },
-      default: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 3,
-        elevation: 1,
-      },
-    }),
+    borderColor: "#F0ECE6",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
   },
-  sectionHeader: {
+  uploadCard: {
+    minHeight: 480,
+    padding: 26,
+  },
+  sectionHeaderContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    backgroundColor: "#FFFFFF",
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+    paddingBottom: 8,
   },
-  sectionTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  sectionTitle: {
-    color: "#2B2C51",
+  sectionHeading: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
+    color: "#2B2C51",
     fontFamily: "NotoSansMalayalam",
-    marginLeft: 12,
+    marginLeft: 8,
   },
-  sectionContent: {
-    borderTopWidth: 1,
-    borderColor: "#F2EBE1",
-    padding: 16,
-    backgroundColor: "#FCFAF7",
+  sectionSubtext: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginBottom: 16,
+    fontStyle: "italic",
+    fontFamily: "NotoSansMalayalam",
+  },
+  disclaimerContainer: {
+    flexDirection: "row",
+    backgroundColor: "#FEF3C7",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  disclaimerTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#92400E",
+    fontFamily: "NotoSansMalayalam",
+    marginBottom: 2,
+  },
+  disclaimerText: {
+    fontSize: 12,
+    color: "#92400E",
+    fontFamily: "NotoSansMalayalam",
+    lineHeight: 18,
+  },
+  inputGroup: {
+    marginBottom: 16,
   },
   label: {
-    color: "#4E473E",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
+    color: "#374151",
     fontFamily: "NotoSansMalayalam",
     marginBottom: 6,
-    marginTop: 10,
+  },
+  required: {
+    color: "#EF4444",
   },
   input: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: "#E2D7CB",
+    borderColor: "#E5E7EB",
     borderRadius: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    fontSize: 14,
-    color: "#333333",
+    fontSize: 15,
+    color: "#1F2937",
     fontFamily: "NotoSansMalayalam",
-    marginBottom: 10,
   },
   textArea: {
     minHeight: 80,
     textAlignVertical: "top",
   },
-  genderOptions: {
+  tagInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  flexInput: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: "#1F2937",
+    marginRight: 8,
+    fontFamily: "NotoSansMalayalam",
+  },
+  addTagBtn: {
+    backgroundColor: "#2B2C51",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  addTagBtnText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: "NotoSansMalayalam",
+  },
+  tagContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginHorizontal: -4,
-    marginTop: 4,
+    marginTop: 8,
+  },
+  tag: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#3B3D6B",
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginRight: 6,
     marginBottom: 6,
   },
-  genderButton: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2D7CB",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginHorizontal: 4,
-    marginVertical: 4,
-  },
-  activeGenderButton: {
-    backgroundColor: "#2B2C51",
-    borderColor: "#2B2C51",
-  },
-  genderText: {
-    color: "#4E473E",
+  tagText: {
+    color: "#FFFFFF",
     fontSize: 13,
     fontFamily: "NotoSansMalayalam",
-    fontWeight: "600",
+    marginRight: 6,
   },
-  activeGenderText: {
-    color: "#FFFFFF",
+  removeTagBtn: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  itemBlock: {
-    backgroundColor: "#FFFFFF",
+  subSectionTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1F2937",
+    fontFamily: "NotoSansMalayalam",
+    marginTop: 14,
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  customLangWrapper: {
+    backgroundColor: "#F9FAF9",
     borderWidth: 1,
-    borderColor: "#E2D7CB",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-  },
-  itemBlockSub: {
-    backgroundColor: "#FAF6F0",
-    borderWidth: 1,
-    borderColor: "#E6DCCE",
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     padding: 12,
-    marginBottom: 10,
-    marginTop: 4,
+    marginBottom: 12,
   },
-  blockHeader: {
+  rowAlign: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 6,
   },
-  subBlockHeader: {
-    marginTop: 18,
-    marginBottom: 8,
-    borderTopWidth: 1,
-    borderColor: "#E2D7CB",
-    paddingTop: 14,
+  deleteCustomBtn: {
+    marginLeft: 12,
+    padding: 6,
   },
-  blockTitle: {
-    color: "#2B2C51",
-    fontSize: 14,
+  addCustomLangBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#3B82F6",
+    marginTop: 8,
+  },
+  addCustomLangText: {
+    fontSize: 13,
     fontWeight: "700",
+    color: "#2563EB",
     fontFamily: "NotoSansMalayalam",
   },
-  blockTitleSub: {
-    color: "#5C5040",
+  customLangForm: {
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 10,
+  },
+  customFormHeading: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1E40AF",
+    fontFamily: "NotoSansMalayalam",
+    marginBottom: 8,
+  },
+  customFormActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 4,
+  },
+  customFormBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  cancelBtn: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+  },
+  cancelText: {
+    color: "#374151",
     fontSize: 13,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
   },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1.5,
-    borderColor: "#16A697",
-    borderStyle: "dashed",
-    borderRadius: 12,
-    paddingVertical: 12,
-    marginTop: 6,
+  confirmBtn: {
+    backgroundColor: "#2563EB",
   },
-  addButtonText: {
-    color: "#16A697",
-    fontSize: 14,
+  confirmText: {
+    color: "#FFFFFF",
+    fontSize: 13,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
-    marginLeft: 6,
   },
-  submitButton: {
-    backgroundColor: "#16A697",
-    borderRadius: 14,
+  mediaButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  mediaButtonText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#374151",
+    fontFamily: "NotoSansMalayalam",
+    flexShrink: 1,
+  },
+  imageGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 10,
+  },
+  imageThumbWrapper: {
+    backgroundColor: "#E5E7EB",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  imageThumbText: {
+    fontSize: 13,
+    color: "#374151",
+    fontWeight: "600",
+    marginRight: 6,
+    fontFamily: "NotoSansMalayalam",
+  },
+  deleteImageBtn: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  audioControlsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  recordStartBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#DC2626",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    flex: 1,
+  },
+  recordStartBtnText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    marginLeft: 8,
+    fontFamily: "NotoSansMalayalam",
+  },
+  recordStopBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1F2937",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    flex: 1,
+  },
+  recordStopBtnText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    marginLeft: 8,
+    fontFamily: "NotoSansMalayalam",
+  },
+  mediaSuccessBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#D1FAE5",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  mediaSuccessText: {
+    flex: 1,
+    color: "#065F46",
+    fontSize: 13,
+    marginLeft: 8,
+    fontFamily: "NotoSansMalayalam",
+  },
+  checkboxWrapper: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 14,
+    paddingRight: 10,
+  },
+  checkbox: {
+    marginRight: 10,
+    marginTop: 2,
+  },
+  checkboxText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#4B5563",
+    lineHeight: 18,
+    fontFamily: "NotoSansMalayalam",
+  },
+  submitButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2B2C51",
+    borderRadius: 14,
     paddingVertical: 15,
     marginTop: 20,
-    marginBottom: 20,
-    ...Platform.select({
-      web: {
-        boxShadow: "0 4px 6px rgba(22, 166, 151, 0.2)",
-      },
-      default: {
-        shadowColor: "#16A697",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 5,
-        elevation: 3,
-      },
-    }),
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  submittingButton: {
-    backgroundColor: "#8BD3CB",
+  submitButtonDisabled: {
+    backgroundColor: "#9CA3AF",
   },
-  submitButtonText: {
-    color: "white",
+  submitBtnText: {
+    color: "#FFFFFF",
     fontSize: 16,
+    fontWeight: "800",
+    fontFamily: "NotoSansMalayalam",
+  },
+  voiceBarContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 40,
+    marginBottom: 12,
+  },
+  voiceBar: {
+    width: 4,
+    borderRadius: 2,
+    marginHorizontal: 3,
+  },
+  audioPlayWrapper: {
+    marginTop: 8,
+  },
+  playbackRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  playbackBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2563EB",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  playbackBtnActive: {
+    backgroundColor: "#1D4ED8",
+  },
+  playbackBtnText: {
+    color: "#FFFFFF",
+    fontSize: 14,
     fontWeight: "700",
+    marginLeft: 8,
     fontFamily: "NotoSansMalayalam",
   },
 });

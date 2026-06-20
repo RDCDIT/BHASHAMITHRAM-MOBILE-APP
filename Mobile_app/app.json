@@ -36,7 +36,7 @@
           }
         }
       ],
-      "@react-native-voice/voice"
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,

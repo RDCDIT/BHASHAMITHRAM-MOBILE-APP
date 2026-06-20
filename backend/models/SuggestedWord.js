@@ -24,6 +24,7 @@ const suggestedWordSchema = new mongoose.Schema({
   inflections: { type: String, trim: true },
   gender: { type: String, trim: true },
   phonetic_transcription: { type: String, trim: true },
+  pronunciation: { type: String, trim: true },
   equivalents: {
     kannada: { type: String, trim: true, default: "" },
     tamil: { type: String, trim: true, default: "" },
@@ -31,6 +32,10 @@ const suggestedWordSchema = new mongoose.Schema({
     tulu: { type: String, trim: true, default: "" },
     english: { type: String, trim: true, default: "" }
   },
+  equivalent_languages: [{
+    language: { type: String, trim: true },
+    translation: { type: String, trim: true }
+  }],
   contributor: {
     name: { type: String, trim: true, default: "" },
     email: { type: String, trim: true, default: "" }

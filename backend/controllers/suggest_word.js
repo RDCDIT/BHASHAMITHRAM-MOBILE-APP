@@ -1,8 +1,11 @@
 const SuggestedWord = require('../models/SuggestedWord');
+const DataviewSuggestion = require('../models/DataviewSuggestion');
+const DataviewCollection = require('../models/DataviewCollection');
 
 /**
  * POST /api/words/suggest
- * Creates a new word suggestion entry in the Suggested_words collection.
+ * Creates a new word suggestion entry in the Suggested_words collection
+ * and contributor records in the DataviewSuggestions collection.
  */
 const suggestWord = async (req, res) => {
   const startTime = Date.now();
@@ -25,9 +28,13 @@ const suggestWord = async (req, res) => {
       gender,
       phonetic_transcription,
       equivalents,
+      equivalent_languages,
       contributor,
       meanings,
-      proverbs
+      proverbs,
+      images,
+      pronunciation,
+      language_type
     } = req.body;
 
     // Validation
@@ -44,6 +51,7 @@ const suggestWord = async (req, res) => {
 
     console.log(`🔄 [Database] Auto-increment ID resolved to: ${nextId}`);
 
+    // Create the suggested word entry
     const newSuggestion = new SuggestedWord({
       _id: nextId,
       word: word.trim(),
@@ -60,6 +68,7 @@ const suggestWord = async (req, res) => {
       inflections: inflections ? inflections.trim() : '',
       gender: gender ? gender.trim() : '',
       phonetic_transcription: phonetic_transcription ? phonetic_transcription.trim() : '',
+      pronunciation: pronunciation ? pronunciation.trim() : '',
       equivalents: {
         kannada: equivalents?.kannada ? equivalents.kannada.trim() : '',
         tamil: equivalents?.tamil ? equivalents.tamil.trim() : '',
@@ -67,6 +76,10 @@ const suggestWord = async (req, res) => {
         tulu: equivalents?.tulu ? equivalents.tulu.trim() : '',
         english: equivalents?.english ? equivalents.english.trim() : ''
       },
+      equivalent_languages: Array.isArray(equivalent_languages) ? equivalent_languages.map(el => ({
+        language: el.language ? el.language.trim() : '',
+        translation: el.translation ? el.translation.trim() : ''
+      })) : [],
       contributor: {
         name: contributor?.name ? contributor.name.trim() : '',
         email: contributor?.email ? contributor.email.trim() : ''
@@ -76,6 +89,7 @@ const suggestWord = async (req, res) => {
         superuser_approved: false,
         done_by_user: false
       },
+      images: Array.isArray(images) ? images : [],
       meanings: Array.isArray(meanings) ? meanings.filter(m => m.meaning && m.meaning.trim() !== '').map((m, idx) => ({
         id: idx + 1,
         meaning: m.meaning.trim(),
@@ -88,15 +102,30 @@ const suggestWord = async (req, res) => {
       })) : []
     });
 
-    const savedDoc = await newSuggestion.save();
+    const savedWord = await newSuggestion.save();
+
+    // Create the DataviewSuggestions contributor record
+    const newDataviewSuggestion = new DataviewSuggestion({
+      name: contributor?.name ? contributor.name.trim() : 'Anonymous',
+      email: contributor?.email ? contributor.email.trim() : 'anonymous@example.com',
+      word: word.trim(),
+      submitted_text: word.trim(),
+      wordId: nextId,
+      receive_emails: contributor?.receive_emails || false
+    });
+
+    const savedDataview = await newDataviewSuggestion.save();
 
     const duration = Date.now() - startTime;
-    console.log(`✅ [Database Success] Word suggestion for "${savedDoc.word}" successfully saved (ID: ${savedDoc._id}).`);
+    console.log(`✅ [Database Success] Word suggestion saved (ID: ${savedWord._id}) and contributor details logged to DataviewSuggestions (ID: ${savedDataview._id}).`);
     console.log(`⚡ [Performance] Request lifecycle resolved in ${duration}ms.`);
 
     return res.status(201).json({
       message: "Suggestion submitted successfully.",
-      data: savedDoc
+      data: {
+        word: savedWord,
+        contributor: savedDataview
+      }
     });
   } catch (error) {
     console.error(`🚨 [Execution Error] Failed to process word suggestion.`);
@@ -105,4 +134,66 @@ const suggestWord = async (req, res) => {
   }
 };
 
-module.exports = { suggestWord };
+/**
+ * GET /api/words/suggestions
+ * Fetches all word suggestions merged with their contributor attributes
+ */
+const getSuggestions = async (req, res) => {
+  try {
+    const wordSuggestions = await SuggestedWord.find().sort({ createdAt: -1 });
+    const dataviewSuggestions = await DataviewSuggestion.find();
+
+    const combined = wordSuggestions.map(wordDoc => {
+      const dvDoc = dataviewSuggestions.find(d => d.wordId === wordDoc._id);
+      return {
+        ...wordDoc.toObject(),
+        contributor: dvDoc ? {
+          name: dvDoc.name,
+          email: dvDoc.email,
+          createdAt: dvDoc.createdAt
+        } : wordDoc.contributor
+      };
+    });
+
+    return res.status(200).json(combined);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * POST /api/words/dataview
+ * Saves contributor information and suggested word to the Dataview_collection.
+ */
+const saveDataviewCollection = async (req, res) => {
+  try {
+    const { name, email, word } = req.body;
+    if (!name || !name.trim() || !email || !email.trim() || !word || !word.trim()) {
+      return res.status(400).json({ error: "name, email, and word are required." });
+    }
+    const newDoc = new DataviewCollection({
+      name: name.trim(),
+      email: email.trim(),
+      word: word.trim()
+    });
+    const saved = await newDoc.save();
+    return res.status(201).json({ message: "Saved to Dataview_collection successfully.", data: saved });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/words/dataview
+ * Fetches all records from Dataview_collection.
+ */
+const getDataviewCollection = async (req, res) => {
+  try {
+    const data = await DataviewCollection.find().sort({ timestamp: -1 });
+    return res.status(200).json(data);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = { suggestWord, getSuggestions, saveDataviewCollection, getDataviewCollection };

@@ -116,7 +116,7 @@ export default function Naanarthscreen() {
 
   const handleCardPress = (id: number) => {
     router.push({
-      pathname: "/details",
+      pathname: "/nanaarth_details",
       params: { dictionaryId: id },
     });
   };
