@@ -191,6 +191,8 @@ export default function WordDetailsScreen() {
     );
   };
 
+  const isEnglishMode = type === "english";
+
   return (
     <View style={styles.screen}>
       {/* Header */}
@@ -200,7 +202,7 @@ export default function WordDetailsScreen() {
             <Ionicons name="chevron-back" size={27} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {isLoading ? "വിവരങ്ങൾ" : details?.word || "വിവരങ്ങൾ"}
+            {isLoading ? (isEnglishMode ? "Details" : "വിവരങ്ങൾ") : details?.word || (isEnglishMode ? "Details" : "വിവരങ്ങൾ")}
           </Text>
           <View style={{ width: 27 }} />
         </View>
@@ -211,10 +213,10 @@ export default function WordDetailsScreen() {
       ) : errorMessage || !details ? (
         <View style={styles.stateContainer}>
           <Ionicons name="alert-circle-outline" size={64} color="#7C736B" />
-          <Text style={styles.stateTitle}>കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല</Text>
-          <Text style={styles.stateText}>{errorMessage || "വിവരങ്ങൾ ലഭ്യമല്ല."}</Text>
+          <Text style={styles.stateTitle}>{isEnglishMode ? "Could not connect" : "കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല"}</Text>
+          <Text style={styles.stateText}>{errorMessage || (isEnglishMode ? "Details not available." : "വിവരങ്ങൾ ലഭ്യമല്ല.")}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={() => void loadDetails()}>
-            <Text style={styles.retryButtonText}>വീണ്ടും ശ്രമിക്കുക</Text>
+            <Text style={styles.retryButtonText}>{isEnglishMode ? "Try Again" : "വീണ്ടും ശ്രമിക്കുക"}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -252,7 +254,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("meanings")}
             >
-              <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ / Meanings</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Meanings" : "അർത്ഥങ്ങൾ / Meanings"}</Text>
               {details.meanings.map((m, idx) => (
                 <View key={m.id || idx} style={styles.meaningItem}>
                   <View style={styles.meaningNumberBox}>
@@ -276,7 +278,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("root")}
             >
-              <Text style={styles.sectionTitle}>ധാതു / Root</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Root" : "ധാതു / Root"}</Text>
               {renderBulletedList(details.root)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
@@ -291,7 +293,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("category_names")}
             >
-              <Text style={styles.sectionTitle}>വ്യാകരണവിഭാഗം / Category</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Category" : "വ്യാകരണവിഭാഗം / Category"}</Text>
               <View style={styles.categoriesContainer}>
                 {details.category_names.map((catName, idx) => (
                   <View key={idx} style={styles.categoryBadge}>
@@ -312,7 +314,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("gender")}
             >
-              <Text style={styles.sectionTitle}>ലിംഗം / Gender</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Gender" : "ലിംഗം / Gender"}</Text>
               {renderBulletedList(details.gender || details.metadata?.gender)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
@@ -327,7 +329,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("etymology")}
             >
-              <Text style={styles.sectionTitle}>വാക്കിന്റെ ഉത്ഭവം / Etymology</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Etymology" : "വാക്കിന്റെ ഉത്ഭവം / Etymology"}</Text>
               {renderBulletedList(details.etymology)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
@@ -342,7 +344,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("cultural_note")}
             >
-              <Text style={styles.sectionTitle}>സാംസ്കാരിക കുറിപ്പ്  / Cultural Notes </Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Cultural Notes" : "സാംസ്കാരിക കുറിപ്പ്  / Cultural Notes "}</Text>
               <View style={styles.culturalCard}>
                 <Ionicons name="globe-outline" size={24} color="#2B2C51" style={{ marginBottom: 6 }} />
                 {renderBulletedList(details.cultural_note)}
@@ -360,7 +362,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("similar_word")}
             >
-              <Text style={styles.sectionTitle}>സമാന പദങ്ങൾ / Similar Words</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Similar Words" : "സമാന പദങ്ങൾ / Similar Words"}</Text>
               {renderBulletedList(details.similar_word)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
@@ -375,7 +377,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("novel_words")}
             >
-              <Text style={styles.sectionTitle}>നവീന പ്രയോഗങ്ങൾ / Novel Words</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Novel Words" : "നവീന പ്രയോഗങ്ങൾ / Novel Words"}</Text>
               {renderBulletedList(details.novel_words)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
@@ -390,7 +392,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("synonyms")}
             >
-              <Text style={styles.sectionTitle}>പര്യായപദങ്ങൾ / Synonyms</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Synonyms" : "പര്യായപദങ്ങൾ / Synonyms"}</Text>
               {renderBulletedList(details.synonyms)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
@@ -405,7 +407,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("antonyms")}
             >
-              <Text style={styles.sectionTitle}>വിപരീതപദങ്ങൾ / Antonyms</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Antonyms" : "വിപരീതപദങ്ങൾ / Antonyms"}</Text>
               {renderBulletedList(details.antonyms)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
@@ -420,7 +422,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("meaning_context")}
             >
-              <Text style={styles.sectionTitle}>അർത്ഥ സന്ദർഭങ്ങൾ / Meaning Context</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Meaning Context" : "അർത്ഥ സന്ദർഭങ്ങൾ / Meaning Context"}</Text>
               {details.meanings.filter(m => !!m.context_usage).map((m, idx) => (
                 <View key={m.id || idx} style={styles.proverbContainer}>
                   <View style={styles.proverbHeader}>
@@ -443,7 +445,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("proverbs")}
             >
-              <Text style={styles.sectionTitle}> പഴഞ്ചൊല്ലുകൾ / Proverbs</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Proverbs" : " പഴഞ്ചൊല്ലുകൾ / Proverbs"}</Text>
               
               {!!details.proverb && (
                  <View style={styles.proverbItem}>
@@ -480,7 +482,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("dialects")}
             >
-              <Text style={styles.sectionTitle}>പ്രാദേശിക പ്രയോഗങ്ങൾ / Dialects</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Dialects" : "പ്രാദേശിക പ്രയോഗങ്ങൾ / Dialects"}</Text>
               {renderBulletedList(details.dialects)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
@@ -495,7 +497,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("cross_reference")}
             >
-              <Text style={styles.sectionTitle}>പരാമർശങ്ങൾ / Cross References</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Cross References" : "പരാമർശങ്ങൾ / Cross References"}</Text>
               {renderBulletedList(details.cross_reference)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
@@ -510,7 +512,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("inflections")}
             >
-              <Text style={styles.sectionTitle}>വ്യാകരണ രൂപങ്ങൾ / Inflections</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Inflections" : "വ്യാകരണ രൂപങ്ങൾ / Inflections"}</Text>
               {renderBulletedList(details.inflections)}
             </AnimatedTouchableOpacity>
           </AnimatedCard>
@@ -525,7 +527,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("equivalents")}
             >
-              <Text style={styles.sectionTitle}>ഭാഷാ തുല്യതകൾ / Language Equivalents</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Language Equivalents" : "ഭാഷാ തുല്യതകൾ / Language Equivalents"}</Text>
               <View style={styles.equivalentsGrid}>
                 {/* English Sub Card */}
                 {!!details.equivalents.english && (
@@ -576,7 +578,7 @@ export default function WordDetailsScreen() {
               delayPressIn={0}
               style={getAnimatedCardStyle("images")}
             >
-              <Text style={styles.sectionTitle}>ചിത്രങ്ങൾ (Gallery)</Text>
+              <Text style={styles.sectionTitle}>{isEnglishMode ? "Gallery" : "ചിത്രങ്ങൾ (Gallery)"}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
                 {details.images.map((imgUrl, idx) => (
                   <View key={idx} style={styles.imageWrapper}>

@@ -145,7 +145,6 @@ export default function EnglishMalayalamScreen() {
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderText}>
               <Text style={styles.englishWord}>{item.english_equivalent}</Text>
-              <Text style={styles.cardSubtext}>{item.word}</Text>
             </View>
           </View>
 
@@ -174,7 +173,7 @@ export default function EnglishMalayalamScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={27} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>ഇംഗ്ലീഷ് - മലയാളം നിഘണ്ടു</Text>
+          <Text style={styles.headerTitle}>ഇംഗ്ലീഷ് - ഇംഗ്ലീഷ് നിഘണ്ടു</Text>
           <View style={{ width: 27 }} />
         </View>
       </View>
