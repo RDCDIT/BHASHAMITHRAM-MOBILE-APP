@@ -64,8 +64,8 @@ type DictionaryEntryDetails = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
-  "http://192.168.1.2:5000",
+  Platform.OS === "android" ? "http://192.168.1.3:5000" : "http://localhost:5000",
+  "http://192.168.1.3:5000",
 ].filter((value): value is string => Boolean(value));
 
 export default function WordDetailsScreen() {
@@ -235,11 +235,6 @@ export default function WordDetailsScreen() {
             delayPressIn={0}
             style={getAnimatedCardStyle("word", false)}
           >
-            <View style={styles.wordBadge}>
-              <Text style={styles.wordBadgeText}>
-                {details.word?.[0] ?? "അ"}
-              </Text>
-            </View>
             <Text style={styles.mainWord}>{details.word}</Text>
             
             {!!details.phonetic_transcription && (

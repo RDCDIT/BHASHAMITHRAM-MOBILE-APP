@@ -38,8 +38,8 @@ type DictionaryEntry = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
-  "http://192.168.1.2:5000",
+  Platform.OS === "android" ? "http://192.168.1.3:5000" : "http://localhost:5000",
+  "http://192.168.1.3:5000",
 ].filter((value): value is string => Boolean(value));
 
 export default function SavisheshaThirayalScreen() {
@@ -242,12 +242,6 @@ export default function SavisheshaThirayalScreen() {
           <View style={styles.cardHeaderText}>
             <Text style={styles.malayalamWord}>{item.word}</Text>
             <Text style={styles.cardSubtext}>English: {item.english_equivalent}</Text>
-          </View>
-
-          <View style={styles.cardHeaderRight}>
-            <View style={styles.playButtonCircle}>
-              <Ionicons name="play" size={14} color="white" style={{ marginLeft: 2 }} />
-            </View>
           </View>
         </View>
 
@@ -459,11 +453,6 @@ export default function SavisheshaThirayalScreen() {
                             <Text style={styles.timestampText}>
                               തുറന്നത്: {formatDateTime(item.openedAt)}
                             </Text>
-                          </View>
-                          <View style={styles.cardHeaderRight}>
-                            <View style={styles.playButtonCircle}>
-                              <Ionicons name="play" size={14} color="white" style={{ marginLeft: 2 }} />
-                            </View>
                           </View>
                         </View>
                       </TouchableOpacity>
