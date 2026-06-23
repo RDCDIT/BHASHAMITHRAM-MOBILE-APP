@@ -98,8 +98,8 @@ try {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.3:5000" : "http://localhost:5000",
-  "http://192.168.1.3:5000",
+  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
+  "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
 interface EquivalentLanguage {
@@ -112,6 +112,7 @@ export default function SuggestWordScreen() {
   
   // App Setup Selection state
   const [selectedLanguage, setSelectedLanguage] = useState<"malayalam" | "english" | null>(null);
+  const isEnglish = selectedLanguage === "english";
 
   // Form Section 1 State
   const [word, setWord] = useState("");
@@ -119,6 +120,7 @@ export default function SuggestWordScreen() {
   const [etymology, setEtymology] = useState("");
   const [culturalNote, setCulturalNote] = useState("");
   const [phoneticTranscription, setPhoneticTranscription] = useState("");
+  const [gender, setGender] = useState("");
 
   // Form Section 2 State (Arrays of entries, represented as tags in UI)
   const [synonymsList, setSynonymsList] = useState<string[]>([]);
@@ -391,15 +393,24 @@ export default function SuggestWordScreen() {
   // Form submission handler
   const handleSubmit = async () => {
     if (!word.trim()) {
-      Alert.alert("പിശക്", "പദം (Word) നിർബന്ധമായും നൽകേണ്ടതുണ്ട്.");
+      Alert.alert(
+        selectedLanguage === "english" ? "Error" : "പിശക്",
+        selectedLanguage === "english" ? "Word is required." : "പദം (Word) നിർബന്ധമായും നൽകേണ്ടതുണ്ട്."
+      );
       return;
     }
     if (!contributorName.trim() || !contributorEmail.trim()) {
-      Alert.alert("പിശക്", "നിങ്ങളുടെ പേരും ഇമെയിലും നൽകുക.");
+      Alert.alert(
+        selectedLanguage === "english" ? "Error" : "പിശക്",
+        selectedLanguage === "english" ? "Please enter your name and email." : "നിങ്ങളുടെ പേരും ഇമെയിലും നൽകുക."
+      );
       return;
     }
     if (!declaration1 || !declaration2 || !receiveEmails) {
-      Alert.alert("പിശക്", "തുടരുന്നതിന് എല്ലാ സത്യപ്രസ്താവനകളും വിവരങ്ങളും അംഗീകരിക്കുക.");
+      Alert.alert(
+        selectedLanguage === "english" ? "Error" : "പിശക്",
+        selectedLanguage === "english" ? "Please accept all declarations and terms to proceed." : "തുടരുന്നതിന് എല്ലാ സത്യപ്രസ്താവനകളും വിവരങ്ങളും അംഗീകരിക്കുക."
+      );
       return;
     }
 
@@ -453,6 +464,7 @@ export default function SuggestWordScreen() {
       etymology: etymology.trim(),
       cultural_note: culturalNote.trim(),
       phonetic_transcription: phoneticTranscription.trim(),
+      gender: gender,
       synonyms: synonymsList.join(", "),
       antonyms: antonymsList.join(", "),
       dialects: dialectsList.join(", "),
@@ -475,7 +487,7 @@ export default function SuggestWordScreen() {
       },
       images: base64Images,
       pronunciation: base64Audio,
-      language_type: "malayalam",
+      language_type: selectedLanguage || "malayalam",
       meanings: [], // Default empty or structured if meaning is added later
       proverbs: [],
     };
@@ -527,14 +539,23 @@ export default function SuggestWordScreen() {
       }
 
       if (submissionSuccess) {
-        Alert.alert("വിജയം", "പദ നിർദ്ദേശം വിജയകരമായി സമർപ്പിച്ചു. പരിശോധനയ്ക്ക് ശേഷം പ്രസിദ്ധീകരിക്കുന്നതാണ്.", [
-          { text: "ശരി", onPress: () => router.replace("/") },
-        ]);
+        Alert.alert(
+          selectedLanguage === "english" ? "Success" : "വിജയം",
+          selectedLanguage === "english"
+            ? "Word suggestion submitted successfully. It will be published after verification."
+            : "പദ നിർദ്ദേശം വിജയകരമായി സമർപ്പിച്ചു. പരിശോധനയ്ക്ക് ശേഷം പ്രസിദ്ധീകരിക്കുന്നതാണ്.",
+          [
+            { text: selectedLanguage === "english" ? "OK" : "ശരി", onPress: () => router.replace("/") },
+          ]
+        );
       } else {
-        throw lastError || new Error("നെറ്റ്‌വർക്ക് കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല.");
+        throw lastError || new Error(selectedLanguage === "english" ? "Failed to connect to network." : "നെറ്റ്‌വർക്ക് കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല.");
       }
     } catch (error: any) {
-      Alert.alert("സമർപ്പണം പരാജയപ്പെട്ടു", error.message || "സെർവറുമായി ബന്ധപ്പെടാൻ സാധിച്ചില്ല.");
+      Alert.alert(
+        selectedLanguage === "english" ? "Submission Failed" : "സമർപ്പണം പരാജയപ്പെട്ടു",
+        error.message || (selectedLanguage === "english" ? "Failed to connect to the server." : "സെർവറുമായി ബന്ധപ്പെടാൻ സാധിച്ചില്ല.")
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -593,36 +614,7 @@ export default function SuggestWordScreen() {
     );
   }
 
-  // ------------------------------------------------------------
-  // Render English Screen (Placeholder)
-  // ------------------------------------------------------------
-  if (selectedLanguage === "english") {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: "#2B2C51" }]} edges={["top", "left", "right"]}>
-        <StatusBar backgroundColor="#2B2C51" barStyle="light-content" />
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setSelectedLanguage(null)} style={styles.headerButton}>
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>ഇംഗ്ലീഷ് പദം</Text>
-          <View style={{ width: 40 }} />
-        </View>
 
-        <View style={[styles.body, styles.placeholderContainer]}>
-          <Ionicons name="construct-outline" size={80} color="#2B2C51" style={{ marginBottom: 20 }} />
-          <Text style={styles.placeholderText}>
-            ഇംഗ്ലീഷ് പദങ്ങൾ കൂട്ടിച്ചേർക്കാനുള്ള സൗകര്യം പിന്നീട് ലഭ്യമാക്കുന്നതാണ്.
-          </Text>
-          <Text style={styles.placeholderSubText}>
-            English word suggestion features are not configured yet. Please check back later.
-          </Text>
-          <TouchableOpacity style={styles.backBtn} onPress={() => setSelectedLanguage(null)}>
-            <Text style={styles.backBtnText}>തിരികെ പോകുക (Go Back)</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   // Helper component to render array tags
   const renderTagList = (list: string[], onRemove: (item: string) => void) => {
@@ -651,7 +643,7 @@ export default function SuggestWordScreen() {
         <TouchableOpacity onPress={() => setSelectedLanguage(null)} style={styles.headerButton}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>മലയാളം പദ നിർദ്ദേശം</Text>
+        <Text style={styles.headerTitle}>{isEnglish ? "English Word Suggestion" : "മലയാളം പദ നിർദ്ദേശം"}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -662,56 +654,58 @@ export default function SuggestWordScreen() {
           <View style={styles.card}>
             <View style={styles.sectionHeaderContainer}>
               <Ionicons name="document-text-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionHeading}>വിഭാഗം 1: അടിസ്ഥാന വിവരങ്ങൾ (Basic Details)</Text>
+              <Text style={styles.sectionHeading}>{isEnglish ? "Section 1: Basic Details" : "വിഭാഗം 1: അടിസ്ഥാന വിവരങ്ങൾ (Basic Details)"}</Text>
             </View>
 
             {/* Disclaimer */}
             <View style={styles.disclaimerContainer}>
               <Ionicons name="information-circle-outline" size={20} color="#92400E" style={{ marginRight: 8, marginTop: 2 }} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.disclaimerTitle}>നിർദ്ദേശങ്ങൾ (Instructions):</Text>
+                <Text style={styles.disclaimerTitle}>{isEnglish ? "Instructions:" : "നിർദ്ദേശങ്ങൾ (Instructions):"}</Text>
                 <Text style={styles.disclaimerText}>
-                  * അടയാളപ്പെടുത്തിയവ പൂരിപ്പിക്കൽ നിർബന്ധമാണ് (Mandatory fields). മറ്റുള്ളവ നിങ്ങൾക്ക് ആവശ്യമെങ്കിൽ നൽകാവുന്നതാണ് (Optional fields).
+                  {isEnglish 
+                    ? "* Marked fields are mandatory. Others are optional." 
+                    : "* അടയാളപ്പെടുത്തിയവ പൂരിപ്പിക്കൽ നിർബന്ധമാണ് (Mandatory fields). മറ്റുള്ളവ നിങ്ങൾക്ക് ആവശ്യമെങ്കിൽ നൽകാവുന്നതാണ് (Optional fields)."}
                 </Text>
               </View>
             </View>
 
             {/* Fields */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>വാക്ക് (Word) <Text style={styles.required}>*</Text></Text>
+              <Text style={styles.label}>{isEnglish ? "Word *" : "വാക്ക് (Word) *"}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="വാക്ക് നൽകുക (उदा. കല്ല്)"
+                placeholder={isEnglish ? "Enter word (e.g., stone)" : "വാക്ക് നൽകുക (उदा. കല്ല്)"}
                 value={word}
                 onChangeText={setWord}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>ധാതു (Root)</Text>
+              <Text style={styles.label}>{isEnglish ? "Root Word" : "ധാതു (Root)"}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="ധാതു നൽകുക"
+                placeholder={isEnglish ? "Enter root word" : "ധാതു നൽകുക"}
                 value={root}
                 onChangeText={setRoot}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>വാക്കിന്റെ ഉത്ഭവം (Etymology)</Text>
+              <Text style={styles.label}>{isEnglish ? "Etymology" : "വാക്കിന്റെ ഉത്ഭവം (Etymology)"}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="ഉത്ഭവം നൽകുക"
+                placeholder={isEnglish ? "Enter etymology" : "ഉത്ഭവം നൽകുക"}
                 value={etymology}
                 onChangeText={setEtymology}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>സാംസ്കാരിക കുറിപ്പ് (Cultural Note)</Text>
+              <Text style={styles.label}>{isEnglish ? "Cultural Note" : "സാംസ്കാരിക കുറിപ്പ് (Cultural Note)"}</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="സാംസ്കാരിക പ്രാധാന്യം നൽകുക"
+                placeholder={isEnglish ? "Enter cultural significance" : "സാംസ്കാരിക പ്രാധാന്യം നൽകുക"}
                 value={culturalNote}
                 onChangeText={setCulturalNote}
                 multiline
@@ -720,7 +714,7 @@ export default function SuggestWordScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>ഉച്ചാരണ രീതി (Phonetic Transcription)</Text>
+              <Text style={styles.label}>{isEnglish ? "Phonetic Transcription" : "ഉച്ചാരണ രീതി (Phonetic Transcription)"}</Text>
               <TextInput
                 style={styles.input}
                 placeholder="phonetic-transcription"
@@ -728,23 +722,59 @@ export default function SuggestWordScreen() {
                 onChangeText={setPhoneticTranscription}
               />
             </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{isEnglish ? "Gender" : "ലിംഗം (Gender)"}</Text>
+              <View style={styles.genderRow}>
+                {(isEnglish 
+                  ? [
+                      { label: "Masculine", value: "പുല്ലിംഗം" },
+                      { label: "Feminine", value: "സ്ത്രീലിംഗം" },
+                      { label: "Neuter", value: "നപുംസകലിംഗം" }
+                    ]
+                  : [
+                      { label: "പുല്ലിംഗം", value: "പുല്ലിംഗം" },
+                      { label: "സ്ത്രീലിംഗം", value: "സ്ത്രീലിംഗം" },
+                      { label: "നപുംസകലിംഗം", value: "നപുംസകലിംഗം" }
+                    ]
+                ).map((g) => (
+                  <TouchableOpacity
+                    key={g.value}
+                    style={[
+                      styles.genderButton,
+                      gender === g.value && styles.genderButtonSelected,
+                    ]}
+                    onPress={() => setGender(gender === g.value ? "" : g.value)}
+                  >
+                    <Text
+                      style={[
+                        styles.genderButtonText,
+                        gender === g.value && styles.genderButtonTextSelected,
+                      ]}
+                    >
+                      {g.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </View>
 
           {/* SECTION 2: Lexical Relations & Languages */}
           <View style={styles.card}>
             <View style={styles.sectionHeaderContainer}>
               <Ionicons name="git-branch-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionHeading}>വിഭാഗം 2: പദബന്ധങ്ങളും വിവർത്തനങ്ങളും</Text>
+              <Text style={styles.sectionHeading}>{isEnglish ? "Section 2: Lexical Relations & Translations" : "വിഭാഗം 2: പദബന്ധങ്ങളും വിവർത്തനങ്ങളും"}</Text>
             </View>
-            <Text style={styles.sectionSubtext}>എല്ലാ വിവരങ്ങളും നിർബന്ധമില്ലാത്തവയാണ് (All entries optional)</Text>
+            <Text style={styles.sectionSubtext}>{isEnglish ? "All entries optional" : "എല്ലാ വിവരങ്ങളും നിർബന്ധമില്ലാത്തവയാണ് (All entries optional)"}</Text>
 
             {/* Synonyms */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>പര്യായപദങ്ങൾ (Synonyms)</Text>
+              <Text style={styles.label}>{isEnglish ? "Synonyms" : "പര്യായപദങ്ങൾ (Synonyms)"}</Text>
               <View style={styles.tagInputRow}>
                 <TextInput
                   style={styles.flexInput}
-                  placeholder="പര്യായപദം നൽകുക"
+                  placeholder={isEnglish ? "Enter synonym" : "പര്യായപദം നൽകുക"}
                   value={synonymInput}
                   onChangeText={setSynonymInput}
                 />
@@ -752,7 +782,7 @@ export default function SuggestWordScreen() {
                   style={styles.addTagBtn}
                   onPress={() => addTag(synonymsList, setSynonymsList, synonymInput, setSynonymInput)}
                 >
-                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
                 </TouchableOpacity>
               </View>
               {renderTagList(synonymsList, (item) => removeTag(synonymsList, setSynonymsList, item))}
@@ -760,11 +790,11 @@ export default function SuggestWordScreen() {
 
             {/* Antonyms */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>വിപരീതപദങ്ങൾ (Antonyms)</Text>
+              <Text style={styles.label}>{isEnglish ? "Antonyms" : "വിപരീതപദങ്ങൾ (Antonyms)"}</Text>
               <View style={styles.tagInputRow}>
                 <TextInput
                   style={styles.flexInput}
-                  placeholder="വിപരീതപദം നൽകുക"
+                  placeholder={isEnglish ? "Enter antonym" : "വിപരീതപദം നൽകുക"}
                   value={antonymInput}
                   onChangeText={setAntonymInput}
                 />
@@ -772,7 +802,7 @@ export default function SuggestWordScreen() {
                   style={styles.addTagBtn}
                   onPress={() => addTag(antonymsList, setAntonymsList, antonymInput, setAntonymInput)}
                 >
-                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
                 </TouchableOpacity>
               </View>
               {renderTagList(antonymsList, (item) => removeTag(antonymsList, setAntonymsList, item))}
@@ -780,11 +810,11 @@ export default function SuggestWordScreen() {
 
             {/* Dialects */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>പ്രാദേശിക പ്രയോഗങ്ങൾ (Dialects)</Text>
+              <Text style={styles.label}>{isEnglish ? "Dialects / Regional Usages" : "പ്രാദേശിക പ്രയോഗങ്ങൾ (Dialects)"}</Text>
               <View style={styles.tagInputRow}>
                 <TextInput
                   style={styles.flexInput}
-                  placeholder="പ്രാദേശിക രൂപങ്ങൾ നൽകുക"
+                  placeholder={isEnglish ? "Enter regional usage" : "പ്രാദേശിക രൂപങ്ങൾ നൽകുക"}
                   value={dialectInput}
                   onChangeText={setDialectInput}
                 />
@@ -792,7 +822,7 @@ export default function SuggestWordScreen() {
                   style={styles.addTagBtn}
                   onPress={() => addTag(dialectsList, setDialectsList, dialectInput, setDialectInput)}
                 >
-                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
                 </TouchableOpacity>
               </View>
               {renderTagList(dialectsList, (item) => removeTag(dialectsList, setDialectsList, item))}
@@ -800,11 +830,11 @@ export default function SuggestWordScreen() {
 
             {/* Proverbs */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>പഴഞ്ചൊല്ലുകൾ (Proverbs)</Text>
+              <Text style={styles.label}>{isEnglish ? "Proverbs" : "പഴഞ്ചൊല്ലുകൾ (Proverbs)"}</Text>
               <View style={styles.tagInputRow}>
                 <TextInput
                   style={styles.flexInput}
-                  placeholder="പഴഞ്ചൊല്ലുകൾ നൽകുക"
+                  placeholder={isEnglish ? "Enter proverb" : "പഴഞ്ചൊല്ലുകൾ നൽകുക"}
                   value={proverbInput}
                   onChangeText={setProverbInput}
                 />
@@ -812,7 +842,7 @@ export default function SuggestWordScreen() {
                   style={styles.addTagBtn}
                   onPress={() => addTag(proverbsList, setProverbsList, proverbInput, setProverbInput)}
                 >
-                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
                 </TouchableOpacity>
               </View>
               {renderTagList(proverbsList, (item) => removeTag(proverbsList, setProverbsList, item))}
@@ -820,11 +850,11 @@ export default function SuggestWordScreen() {
 
             {/* Novel Words */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>നവീന പ്രയോഗങ്ങൾ (Novel Words)</Text>
+              <Text style={styles.label}>{isEnglish ? "Novel Words" : "നവീന പ്രയോഗങ്ങൾ (Novel Words)"}</Text>
               <View style={styles.tagInputRow}>
                 <TextInput
                   style={styles.flexInput}
-                  placeholder="നവീന പദം നൽകുക"
+                  placeholder={isEnglish ? "Enter novel word" : "നവീന പദം നൽകുക"}
                   value={novelWordInput}
                   onChangeText={setNovelWordInput}
                 />
@@ -832,7 +862,7 @@ export default function SuggestWordScreen() {
                   style={styles.addTagBtn}
                   onPress={() => addTag(novelWordsList, setNovelWordsList, novelWordInput, setNovelWordInput)}
                 >
-                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
                 </TouchableOpacity>
               </View>
               {renderTagList(novelWordsList, (item) => removeTag(novelWordsList, setNovelWordsList, item))}
@@ -840,11 +870,11 @@ export default function SuggestWordScreen() {
 
             {/* Cross Reference */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>പരാമർശങ്ങൾ (Cross Reference)</Text>
+              <Text style={styles.label}>{isEnglish ? "Cross References" : "പരാമർശങ്ങൾ (Cross Reference)"}</Text>
               <View style={styles.tagInputRow}>
                 <TextInput
                   style={styles.flexInput}
-                  placeholder="പരാമർശം നൽകുക"
+                  placeholder={isEnglish ? "Enter cross reference" : "പരാമർശം നൽകുക"}
                   value={crossRefInput}
                   onChangeText={setCrossRefInput}
                 />
@@ -852,7 +882,7 @@ export default function SuggestWordScreen() {
                   style={styles.addTagBtn}
                   onPress={() => addTag(crossRefsList, setCrossRefsList, crossRefInput, setCrossRefInput)}
                 >
-                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
                 </TouchableOpacity>
               </View>
               {renderTagList(crossRefsList, (item) => removeTag(crossRefsList, setCrossRefsList, item))}
@@ -860,11 +890,11 @@ export default function SuggestWordScreen() {
 
             {/* Inflections */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>വ്യാകരണ രൂപങ്ങൾ (Inflections)</Text>
+              <Text style={styles.label}>{isEnglish ? "Grammatical Forms / Inflections" : "വ്യാകരണ രൂപങ്ങൾ (Inflections)"}</Text>
               <View style={styles.tagInputRow}>
                 <TextInput
                   style={styles.flexInput}
-                  placeholder="വ്യാകരണ രൂപങ്ങൾ നൽകുക"
+                  placeholder={isEnglish ? "Enter grammatical inflection" : "വ്യാകരണ രൂപങ്ങൾ നൽകുക"}
                   value={inflectionInput}
                   onChangeText={setInflectionInput}
                 />
@@ -872,50 +902,50 @@ export default function SuggestWordScreen() {
                   style={styles.addTagBtn}
                   onPress={() => addTag(inflectionsList, setInflectionsList, inflectionInput, setInflectionInput)}
                 >
-                  <Text style={styles.addTagBtnText}>ചേർക്കുക</Text>
+                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
                 </TouchableOpacity>
               </View>
               {renderTagList(inflectionsList, (item) => removeTag(inflectionsList, setInflectionsList, item))}
             </View>
 
             {/* Equivalents */}
-            <Text style={styles.subSectionTitle}>ഭാഷാ തുല്യതകൾ (Equivalent Languages)</Text>
+            <Text style={styles.subSectionTitle}>{isEnglish ? "Equivalent Languages" : "ഭാഷാ തുല്യതകൾ (Equivalent Languages)"}</Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>കന്നഡ (Kannada)</Text>
+              <Text style={styles.label}>{isEnglish ? "Kannada" : "കന്നഡ (Kannada)"}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="ಕನ್ನಡ വിവർത്തനം"
+                placeholder={isEnglish ? "Kannada translation" : "ಕನ್ನಡ വിവർത്തനം"}
                 value={equivalents.kannada}
                 onChangeText={(text) => setEquivalents({ ...equivalents, kannada: text })}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>തമിഴ് (Tamil)</Text>
+              <Text style={styles.label}>{isEnglish ? "Tamil" : "തമിഴ് (Tamil)"}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="தமிழ் വിവർത്തനം"
+                placeholder={isEnglish ? "Tamil translation" : "தமிழ் വിവർത്തനം"}
                 value={equivalents.tamil}
                 onChangeText={(text) => setEquivalents({ ...equivalents, tamil: text })}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>മലയാളം (Malayalam Translation)</Text>
+              <Text style={styles.label}>{isEnglish ? "Malayalam (Malayalam Translation)" : "മലയാളം (Malayalam Translation)"}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="മലയാള വിവർത്തനം"
+                placeholder={isEnglish ? "Malayalam translation" : "മലയാള വിവർത്തനം"}
                 value={equivalents.malayalam}
                 onChangeText={(text) => setEquivalents({ ...equivalents, malayalam: text })}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>ഇംഗ്ലീഷ് (English)</Text>
+              <Text style={styles.label}>{isEnglish ? "English (English)" : "ഇംഗ്ലീഷ് (English)"}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="English Translation"
+                placeholder={isEnglish ? "English translation" : "English Translation"}
                 value={equivalents.english}
                 onChangeText={(text) => setEquivalents({ ...equivalents, english: text })}
               />
@@ -948,20 +978,20 @@ export default function SuggestWordScreen() {
                 onPress={() => setShowCustomLangForm(true)}
               >
                 <Ionicons name="add-circle-outline" size={18} color="#2563EB" style={{ marginRight: 6 }} />
-                <Text style={styles.addCustomLangText}>മറ്റ് ഭാഷകൾ ചേർക്കുക (Add custom language)</Text>
+                <Text style={styles.addCustomLangText}>{isEnglish ? "Add custom language" : "മറ്റ് ഭാഷകൾ ചേർക്കുക (Add custom language)"}</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.customLangForm}>
-                <Text style={styles.customFormHeading}>മറ്റ് ഭാഷ നിർദ്ദേശം</Text>
+                <Text style={styles.customFormHeading}>{isEnglish ? "Add Custom Language" : "മറ്റ് ഭാഷ നിർദ്ദേശം"}</Text>
                 <TextInput
                   style={[styles.input, { marginBottom: 10 }]}
-                  placeholder="ഭാഷയുടെ പേര് (ഉദാ. French)"
+                  placeholder={isEnglish ? "Language name (e.g., French)" : "ഭാഷയുടെ പേര് (ഉദാ. French)"}
                   value={customLanguageName}
                   onChangeText={setCustomLanguageName}
                 />
                 <TextInput
                   style={[styles.input, { marginBottom: 10 }]}
-                  placeholder="ഭാഷയിലെ അർത്ഥം (ഉദാ. Bonjour)"
+                  placeholder={isEnglish ? "Translation (e.g., Bonjour)" : "ഭാഷയിലെ അർത്ഥം (ഉദാ. Bonjour)"}
                   value={customLanguageValue}
                   onChangeText={setCustomLanguageValue}
                 />
@@ -970,13 +1000,13 @@ export default function SuggestWordScreen() {
                     style={[styles.customFormBtn, styles.cancelBtn]}
                     onPress={() => setShowCustomLangForm(false)}
                   >
-                    <Text style={styles.cancelText}>അല്ല</Text>
+                    <Text style={styles.cancelText}>{isEnglish ? "Cancel" : "അല്ല"}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.customFormBtn, styles.confirmBtn]}
                     onPress={handleAddCustomLanguage}
                   >
-                    <Text style={styles.confirmText}>ചേർക്കുക</Text>
+                    <Text style={styles.confirmText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -987,7 +1017,7 @@ export default function SuggestWordScreen() {
           <View style={[styles.card, styles.uploadCard]}>
             <View style={styles.sectionHeaderContainer}>
               <Ionicons name="cloud-upload-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionHeading}>വിഭാഗം 3: ഫയൽ അപ്‌ലോഡ് & ഉച്ചാരണം (Media)</Text>
+              <Text style={styles.sectionHeading}>{isEnglish ? "Section 3: Media Upload & Pronunciation" : "വിഭാഗം 3: ഫയൽ അപ്‌ലോഡ് & ഉച്ചാരണം (Media)"}</Text>
             </View>
 
             {/* Disclaimer */}
@@ -995,22 +1025,24 @@ export default function SuggestWordScreen() {
               <Ionicons name="information-circle-outline" size={20} color="#1E40AF" style={{ marginRight: 8, marginTop: 2 }} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.disclaimerText, { color: "#1E40AF" }]}>
-                  ഇവിടെ നൽകുന്ന വിവരങ്ങൾ നിർബന്ധമല്ല. വാക്കുമായി ബന്ധപ്പെട്ട ചിത്രങ്ങളും ഉച്ചാരണങ്ങളും അപ്‌ലോഡ് ചെയ്യാം.
+                  {isEnglish 
+                    ? "Adding details here is optional. You can upload images or recorded pronunciations of the word."
+                    : "ഇവിടെ നൽകുന്ന വിവരങ്ങൾ നിർബന്ധമല്ല. വാക്കുമായി ബന്ധപ്പെട്ട ചിത്രങ്ങളും ഉച്ചാരണങ്ങളും അപ്‌ലോഡ് ചെയ്യാം."}
                 </Text>
               </View>
             </View>
 
             {/* Images */}
-            <Text style={styles.subSectionTitle}>ചിത്രങ്ങൾ ചേർക്കുക (Upload Images)</Text>
+            <Text style={styles.subSectionTitle}>{isEnglish ? "Upload Images" : "ചിത്രങ്ങൾ ചേർക്കുക (Upload Images)"}</Text>
             <TouchableOpacity style={styles.mediaButton} onPress={handleSelectImage}>
               <Ionicons name="image-outline" size={24} color="#2B2C51" />
-              <Text style={styles.mediaButtonText}>ചിത്രങ്ങൾ തിരഞ്ഞെടുക്കുക</Text>
+              <Text style={styles.mediaButtonText}>{isEnglish ? "Select Images" : "ചിത്രങ്ങൾ തിരഞ്ഞെടുക്കുക"}</Text>
             </TouchableOpacity>
             {selectedImages.length > 0 && (
               <View style={styles.imageGrid}>
                 {selectedImages.map((uri, idx) => (
                   <View key={idx} style={styles.imageThumbWrapper}>
-                    <Text style={styles.imageThumbText}>ചിത്രം {idx + 1}</Text>
+                    <Text style={styles.imageThumbText}>{isEnglish ? "Image" : "ചിത്രം"} {idx + 1}</Text>
                     <TouchableOpacity
                       style={styles.deleteImageBtn}
                       onPress={() => setSelectedImages(selectedImages.filter((_, i) => i !== idx))}
@@ -1023,7 +1055,7 @@ export default function SuggestWordScreen() {
             )}
 
             {/* Audio Recording */}
-            <Text style={[styles.subSectionTitle, { marginTop: 18 }]}>ഉച്ചാരണം റെക്കോർഡ് ചെയ്യുക (Record Audio)</Text>
+            <Text style={[styles.subSectionTitle, { marginTop: 18 }]}>{isEnglish ? "Record Pronunciation" : "ഉച്ചാരണം റെക്കോർഡ് ചെയ്യുക (Record Audio)"}</Text>
             
             {/* Voice animated bars */}
             {(isRecording || isPlaying) && (
@@ -1034,12 +1066,12 @@ export default function SuggestWordScreen() {
               {!isRecording ? (
                 <TouchableOpacity style={styles.recordStartBtn} onPress={handleStartRecording}>
                   <Ionicons name="mic" size={20} color="#FFFFFF" />
-                  <Text style={styles.recordStartBtnText}>റിക്കോർഡിങ് തുടങ്ങുക</Text>
+                  <Text style={styles.recordStartBtnText}>{isEnglish ? "Start Recording" : "റിക്കോർഡിങ് തുടങ്ങുക"}</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity style={styles.recordStopBtn} onPress={handleStopRecording}>
                   <Ionicons name="stop" size={20} color="#FFFFFF" />
-                  <Text style={styles.recordStopBtnText}>നിർത്തുക ({recordingDuration}s)</Text>
+                  <Text style={styles.recordStopBtnText}>{isEnglish ? "Stop" : "നിർത്തുക"} ({recordingDuration}s)</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -1047,7 +1079,9 @@ export default function SuggestWordScreen() {
               <View style={styles.audioPlayWrapper}>
                 <View style={styles.mediaSuccessBadge}>
                   <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-                  <Text style={styles.mediaSuccessText}>റെക്കോർഡിംഗ് സൂക്ഷിച്ചു ({recordedUri.split("/").pop()})</Text>
+                  <Text style={styles.mediaSuccessText}>
+                    {isEnglish ? "Recording saved" : "റെക്കോർഡിംഗ് സൂക്ഷിച്ചു"} ({recordedUri.split("/").pop()})
+                  </Text>
                   <TouchableOpacity onPress={() => { setRecordedUri(null); setIsPlaying(false); if (sound) { sound.unloadAsync(); setSound(null); } }}>
                     <Ionicons name="trash" size={18} color="#EF4444" style={{ marginLeft: 8 }} />
                   </TouchableOpacity>
@@ -1064,7 +1098,9 @@ export default function SuggestWordScreen() {
                       color="#FFFFFF"
                     />
                     <Text style={styles.playbackBtnText}>
-                      {isPlaying ? "നിർത്തുക (Pause)" : "കേൾക്കുക (Play Recording)"}
+                      {isPlaying 
+                        ? (isEnglish ? "Pause" : "നിർത്തുക (Pause)") 
+                        : (isEnglish ? "Play Recording" : "കേൾക്കുക (Play Recording)")}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1072,15 +1108,15 @@ export default function SuggestWordScreen() {
             )}
 
             {/* Audio File Import */}
-            <Text style={[styles.subSectionTitle, { marginTop: 18 }]}>ഓഡിയോ ഫയൽ ഇറക്കുമതി (Import Audio File)</Text>
+            <Text style={[styles.subSectionTitle, { marginTop: 18 }]}>{isEnglish ? "Import Audio File" : "ഓഡിയോ ഫയൽ ഇറക്കുമതി (Import Audio File)"}</Text>
             <TouchableOpacity style={styles.mediaButton} onPress={handleImportAudio}>
               <Ionicons name="document-attach-outline" size={24} color="#2B2C51" />
-              <Text style={styles.mediaButtonText}>ഓഡിയോ ഫയൽ തിരഞ്ഞെടുക്കുക (mp3/wav/m4a)</Text>
+              <Text style={styles.mediaButtonText}>{isEnglish ? "Select Audio File (mp3/wav/m4a)" : "ഓഡിയോ ഫയൽ തിരഞ്ഞെടുക്കുക (mp3/wav/m4a)"}</Text>
             </TouchableOpacity>
             {importedAudioUri && (
               <View style={styles.mediaSuccessBadge}>
                 <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-                <Text style={styles.mediaSuccessText}>ഫയൽ തയ്യാറാണ്: {importedAudioName}</Text>
+                <Text style={styles.mediaSuccessText}>{isEnglish ? "File ready: " : "ഫയൽ തയ്യാറാണ്: "}{importedAudioName}</Text>
                 <TouchableOpacity onPress={() => { setImportedAudioUri(null); setImportedAudioName(null); }}>
                   <Ionicons name="trash" size={18} color="#EF4444" style={{ marginLeft: 8 }} />
                 </TouchableOpacity>
@@ -1092,24 +1128,24 @@ export default function SuggestWordScreen() {
           <View style={styles.card}>
             <View style={styles.sectionHeaderContainer}>
               <Ionicons name="person-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionHeading}>വിഭാഗം 4: കോൺട്രിബ്യൂട്ടർ വിവരങ്ങളും സമർപ്പണവും</Text>
+              <Text style={styles.sectionHeading}>{isEnglish ? "Section 4: Contributor Details & Submission" : "വിഭാഗം 4: കോൺട്രിബ്യൂട്ടർ വിവരങ്ങളും സമർപ്പണവും"}</Text>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>പേര് (Name) <Text style={styles.required}>*</Text></Text>
+              <Text style={styles.label}>{isEnglish ? "Name" : "പേര് (Name)"} <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={styles.input}
-                placeholder="നിങ്ങളുടെ പേര് നൽകുക"
+                placeholder={isEnglish ? "Enter your name" : "നിങ്ങളുടെ പേര് നൽകുക"}
                 value={contributorName}
                 onChangeText={setContributorName}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>ഇമെയിൽ (Email) <Text style={styles.required}>*</Text></Text>
+              <Text style={styles.label}>{isEnglish ? "Email" : "ഇമെയിൽ (Email)"} <Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={styles.input}
-                placeholder="നിങ്ങളുടെ ഇമെയിൽ വിലാസം"
+                placeholder={isEnglish ? "Enter your email address" : "നിങ്ങളുടെ ഇമെയിൽ വിലാസം"}
                 value={contributorEmail}
                 onChangeText={setContributorEmail}
                 keyboardType="email-address"
@@ -1130,7 +1166,9 @@ export default function SuggestWordScreen() {
                 />
               </TouchableOpacity>
               <Text style={styles.checkboxText}>
-                ഞാൻ സമർപ്പിച്ച ഈ വിവരങ്ങൾ പൂർണ്ണമായും കൃത്യവും വസ്തുതാപരവുമാണെന്ന് സാക്ഷ്യപ്പെടുത്തുന്നു.
+                {isEnglish 
+                  ? "I certify that the information submitted by me is completely accurate and factual."
+                  : "ഞാൻ സമർപ്പിച്ച ഈ വിവരങ്ങൾ പൂർണ്ണമായും കൃത്യവും വസ്തുതാപരവുമാണെന്ന് സാക്ഷ്യപ്പെടുത്തുന്നു."}
               </Text>
             </View>
 
@@ -1146,7 +1184,9 @@ export default function SuggestWordScreen() {
                 />
               </TouchableOpacity>
               <Text style={styles.checkboxText}>
-                നിഘണ്ടുവിലേക്ക് പദങ്ങൾ ചേർക്കുന്നതിനുള്ള C-DIT നിബന്ധനകൾ ഞാൻ അംഗീകരിക്കുന്നു.
+                {isEnglish 
+                  ? "I accept C-DIT terms and conditions for suggesting words to the dictionary."
+                  : "നിഘണ്ടുവിലേക്ക് പദങ്ങൾ ചേർക്കുന്നതിനുള്ള C-DIT നിബന്ധനകൾ ഞാൻ അംഗീകരിക്കുന്നു."}
               </Text>
             </View>
 
@@ -1162,7 +1202,9 @@ export default function SuggestWordScreen() {
                 />
               </TouchableOpacity>
               <Text style={styles.checkboxText}>
-                R&D C-DIT-ൽ നിന്നുള്ള ഇമെയിലുകൾ ലഭിക്കുന്നതിനും ആശയവിനിമയം നടത്തുന്നതിനും ഞാൻ സമ്മതിക്കുന്നു (Receive updates/mails from R&D C-DIT).
+                {isEnglish 
+                  ? "I agree to receive emails/updates from R&D C-DIT."
+                  : "R&D C-DIT-ൽ നിന്നുള്ള ഇമെയിലുകൾ ലഭിക്കുന്നതിനും ആശയവിനിമയം നടത്തുന്നതിനും ഞാൻ സമ്മതിക്കുന്നു (Receive updates/mails from R&D C-DIT)."}
               </Text>
             </View>
 
@@ -1178,7 +1220,7 @@ export default function SuggestWordScreen() {
               ) : (
                 <>
                   <Ionicons name="checkmark-done" size={22} color="#FFFFFF" style={{ marginRight: 8 }} />
-                  <Text style={styles.submitBtnText}>സമർപ്പിക്കുക (Submit)</Text>
+                  <Text style={styles.submitBtnText}>{isEnglish ? "Submit" : "സമർപ്പിക്കുക (Submit)"}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -1743,5 +1785,35 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginLeft: 8,
     fontFamily: "NotoSansMalayalam",
+  },
+  genderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  genderButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 4,
+    backgroundColor: "#F9FAFB",
+  },
+  genderButtonSelected: {
+    borderColor: "#2B2C51",
+    backgroundColor: "#EFF6FF",
+  },
+  genderButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#4B5563",
+    fontFamily: "NotoSansMalayalam",
+  },
+  genderButtonTextSelected: {
+    color: "#2B2C51",
+    fontWeight: "700",
   },
 });

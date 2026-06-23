@@ -11,6 +11,11 @@ const suggestedWordSchema = new mongoose.Schema({
     trim: true,
     index: true
   },
+  language_type: {
+    type: String,
+    trim: true,
+    default: "malayalam"
+  },
   root: { type: String, trim: true },
   etymology: { type: String, trim: true },
   cultural_note: { type: String, trim: true },
