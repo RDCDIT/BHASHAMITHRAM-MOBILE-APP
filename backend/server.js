@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
+const connectDB = require('./config/db');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,23 +19,30 @@ app.use((req, res, next) => {
 
 // Import routes
 const wordRoutes = require('./routes/wordroute');
-const malRoutes = require('./routes/malayalamwordroutes');
+const malayalamMalayalamRoutes = require('./routes/malayalam-malayalam');
+const englishEnglishRoutes = require('./routes/english_english');
+const englishMalayalamRoutes = require('./routes/english_malayalam');
+const malayalamEnglishRoutes = require('./routes/malayalam_english');
+const malayalamSynonymRoutes = require('./routes/malayalam_synonym');
+const audioRoutes = require('./routes/audioRoutes');
+const speechRoutes = require('./routes/speechRoutes');
 
 // Mount routes
 app.use('/api/words', wordRoutes);
-app.use('/api', malRoutes); // routes in file begin with /words/..., so mounting at /api yields /api/words/...
+app.use('/api/malayalam-malayalam', malayalamMalayalamRoutes);
+app.use('/api/english-english', englishEnglishRoutes);
+app.use('/api/english-malayalam', englishMalayalamRoutes);
+app.use('/api/malayalam-english', malayalamEnglishRoutes);
+app.use('/api/synonyms', malayalamSynonymRoutes);
+app.use('/api/pronounce', audioRoutes);
+app.use('/api/speech-to-text', speechRoutes);
 
 // ------------------------------------------------------------
 // 1. DATABASE CONNECTIVITY LOGS
 // ------------------------------------------------------------
 console.log('🔄 [System] Initializing database connection sequence...');
 
-const MONGO_URI = process.env.MONGO_URI;
-
-mongoose.connect(MONGO_URI, { dbName: 'Dictionary' })
-  .then(() => {
-    console.log('✅ [Database] Connection established successfully with MongoDB Atlas (db: Dictionary).');
-  })
+connectDB()
   .catch((err) => {
     console.error('❌ [Database] Connection failure during startup sequence!');
     console.error(`Reason: ${err.message}`);

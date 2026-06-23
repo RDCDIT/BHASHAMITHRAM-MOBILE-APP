@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const dictionarySchema = new mongoose.Schema({
+const englishDictionarySchema = new mongoose.Schema({
   _id: { 
     type: Number, 
     required: true 
@@ -29,8 +29,7 @@ const dictionarySchema = new mongoose.Schema({
     kannada: { type: String, trim: true },
     tamil: { type: String, trim: true },
     telugu: { type: String, trim: true },
-    tulu: { type: String, trim: true },
-    english: { type: String, trim: true, index: true }
+    malayalam: { type: String, trim: true, index: true }
   },
   
   status: {
@@ -54,11 +53,11 @@ const dictionarySchema = new mongoose.Schema({
     context_usage: String
   }]
 }, {
-  collection: 'dictionary',
+  collection: 'English_English_Dictionary',
   timestamps: true
 });
 
-// Compound Index: Accelerates browsing English characters alphabetically for approved entries
-dictionarySchema.index({ 'equivalents.english': 1, 'status.approved': 1 });
+// Compound Index: Accelerates browsing English words alphabetically for approved entries
+englishDictionarySchema.index({ 'word': 1, 'status.approved': 1 });
 
-module.exports = mongoose.model('Dictionary', dictionarySchema);
+module.exports = mongoose.models.English_English_Dictionary || mongoose.model('English_English_Dictionary', englishDictionarySchema);

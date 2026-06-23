@@ -19,36 +19,30 @@ import VoiceSearchOverlay from "../components/VoiceSearchOverlay";
 import AnimatedCard from "../components/AnimatedCard";
 import SkeletonLoader from "../components/SkeletonLoader";
 import { saveRecentSearch } from "../utils/recentActivity";
+import SpeakButton from "../components/SpeakButton";
 
-// ബാക്കെൻഡ് റെസ്പോൺസ് ഘടനയ്ക്ക് അനുയോജ്യമായ ടൈപ്പ് ഡെഫനിഷൻ
+// Updated type mapping to align directly with your MongoDB query projections
 type DictionaryEntry = {
   id: number;
-  word: string; // മലയാളം വാക്ക്
   english_equivalent: string;
+  word: string; // Malayalam Word
   primary_malayalam_meaning: string;
+  _id: string;
 };
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.3:5000" : "http://localhost:5000",
-  "http://192.168.1.3:5000",
+  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
+  "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
-// മലയാളം സ്വരാക്ഷരങ്ങളും പ്രധാന വ്യഞ്ജനാക്ഷരങ്ങളും അടങ്ങിയ ലിസ്റ്റ് (Browsing എളുപ്പമാക്കാൻ)
-const MALAYALAM_ALPHABET = Object.freeze([
-  // Vowels
-  "അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "എ", "ഏ", "ഐ", "ഒ", "ഓ", "ഔ","അം",
-  // Consonants
-  "ക", "ഖ", "ഗ", "ഘ", "ങ", "ച", "ഛ", "ജ", "ഝ", "ഞ",
-  "ട", "ഠ", "ഡ", "ഢ", "ണ", "ത", "ഥ", "ദ", "ധ", "ന",
-  "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര", "ല", "വ", "ശ",
-  "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
-]);
+// Alphabet list for the browser menu layout
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-export default function MalayalamEnglishScreen() {
+export default function EnglishMalayalamScreen() {
   const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
-  const [entries, setEntries] = useState<DictionaryEntry[]>([]);
+  const [allEntries, setAllEntries] = useState<DictionaryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -60,10 +54,9 @@ export default function MalayalamEnglishScreen() {
     partialTranscript,
     startListening,
     stopListening,
-  } = useVoiceSearch((text) => setSearchText(text), "ml-IN");
+  } = useVoiceSearch((text) => setSearchText(text), "en-US");
 
-  // ബാക്കെൻഡിൽ നിന്നും മലയാളം വാക്കുകൾ ഫെച്ച് ചെയ്യാനുള്ള ഫങ്ഷൻ
-  const loadEntries = async (searchQuery: string) => {
+  const loadEntries = async () => {
     try {
       if (!isRefreshing) setIsLoading(true);
       setErrorMessage("");
@@ -71,9 +64,8 @@ export default function MalayalamEnglishScreen() {
 
       for (const apiBaseUrl of API_BASE_URLS) {
         try {
-          const response = await fetch(
-            `${apiBaseUrl}/api/words/browse-malayalam?query=${encodeURIComponent(searchQuery)}`
-          );
+          console.log(`[Dictionary Browse] Fetching all entries from ${apiBaseUrl}`);
+          const response = await fetch(`${apiBaseUrl}/api/english-english?query=`);
 
           if (!response.ok) {
             const responseText = await response.text();
@@ -81,13 +73,8 @@ export default function MalayalamEnglishScreen() {
           }
 
           const data = await response.json();
-          setEntries(Array.isArray(data) ? data : []);
-          
-          const isLetter = searchQuery.length === 1 && MALAYALAM_ALPHABET.includes(searchQuery);
-          if (searchQuery.trim().length > 1 && !isLetter && Array.isArray(data) && data.length > 0) {
-            void saveRecentSearch(searchQuery, "character");
-          }
-          return; // Success, exit function
+          setAllEntries(Array.isArray(data) ? data : []);
+          return;
         } catch (error) {
           lastError = error;
         }
@@ -96,32 +83,51 @@ export default function MalayalamEnglishScreen() {
       throw lastError instanceof Error ? lastError : new Error("Could not reach the dictionary backend.");
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "വാക്കുകൾ ലോഡ് ചെയ്യാൻ സാധിച്ചില്ല."
+        error instanceof Error ? error.message : "Could not load dictionary entries right now."
       );
-      setEntries([]);
+      setAllEntries([]);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   };
 
-  // സെർച്ച് ഇൻപുട്ടും അക്ഷര ഫിൽട്ടറും മാറുമ്പോൾ ഡാറ്റ ലോഡ് ചെയ്യുന്നു (ഡബിൾ ലോഡിംഗ് ഒഴിവാക്കാൻ)
+  // Load entries once on mount
   useEffect(() => {
-    const isSearchActive = Boolean(searchText.trim());
-    const delay = isSearchActive ? 400 : 0;
+    void loadEntries();
+  }, []);
 
-    const delayDebounceFn = setTimeout(() => {
-      const query = isSearchActive ? searchText.trim() : selectedLetter;
-      void loadEntries(query);
-    }, delay);
+  // Save search queries with a debounce
+  useEffect(() => {
+    if (searchText.trim().length > 1) {
+      const delayDebounceFn = setTimeout(() => {
+        void saveRecentSearch(searchText.trim(), "english");
+      }, 1000);
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [searchText]);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchText, selectedLetter]);
+  // Client-side real-time filtering
+  const filteredEntries = useMemo(() => {
+    if (searchText.trim()) {
+      const query = searchText.trim().toLowerCase();
+      return allEntries.filter((entry) =>
+        (entry.english_equivalent || "").toLowerCase().includes(query)
+      );
+    }
+    if (selectedLetter) {
+      const letter = selectedLetter.toUpperCase();
+      return allEntries.filter((entry) =>
+        (entry.english_equivalent || "").toUpperCase().startsWith(letter)
+      );
+    }
+    return allEntries;
+  }, [allEntries, searchText, selectedLetter]);
 
   const handleCardPress = (id: number) => {
     router.push({
-      pathname: "/details",
-      params: { dictionaryId: id },
+      pathname: "/english_details",
+      params: { dictionaryId: id, type: "english" },
     });
   };
 
@@ -129,7 +135,7 @@ export default function MalayalamEnglishScreen() {
     <TouchableOpacity
       style={[styles.letterTab, selectedLetter === item && !searchText.trim() && styles.activeLetterTab]}
       onPress={() => {
-        setSearchText(""); // അക്ഷരം ക്ലിക്ക് ചെയ്യുമ്പോൾ സെർച്ച് ക്ലിയർ ചെയ്യുക
+        setSearchText(""); // Clear search when alphabet is clicked
         setSelectedLetter(item);
       }}
     >
@@ -153,9 +159,10 @@ export default function MalayalamEnglishScreen() {
         >
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderText}>
-              <Text style={styles.malayalamWord}>{item.word}</Text>
-              <Text style={styles.cardSubtext}>English: {item.english_equivalent}</Text>
+              <Text style={styles.englishWord}>{item.english_equivalent}</Text>
+              <Text style={styles.cardSubtext}>{item.word}</Text>
             </View>
+            <SpeakButton word={item.english_equivalent} lang="en" />
           </View>
 
           <View style={styles.definitionBox}>
@@ -177,18 +184,18 @@ export default function MalayalamEnglishScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
+      {/* Header Layout */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={27} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>മലയാളം - മലയാളം നിഘണ്ടു</Text>
+          <Text style={styles.headerTitle}>ഇംഗ്ലീഷ് - ഇംഗ്ലീഷ് നിഘണ്ടു</Text>
           <View style={{ width: 27 }} />
         </View>
       </View>
 
-      {/* മലയാളം അക്ഷരങ്ങളുടെ തിരശ്ചീന ലിസ്റ്റ് (Horizontal Alphabet Strip) */}
+      {/* Dynamic Alphabet Filter Strip Menu */}
       <View style={styles.alphabetContainer}>
         <TouchableOpacity
           style={[
@@ -207,7 +214,7 @@ export default function MalayalamEnglishScreen() {
         </TouchableOpacity>
         <FlatList
           horizontal
-          data={MALAYALAM_ALPHABET}
+          data={ALPHABET}
           keyExtractor={(item) => item}
           renderItem={renderAlphabetItem}
           showsHorizontalScrollIndicator={false}
@@ -216,7 +223,7 @@ export default function MalayalamEnglishScreen() {
         />
       </View>
 
-      {/* Search Input */}
+      {/* Input Search Container */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -228,26 +235,26 @@ export default function MalayalamEnglishScreen() {
         <TouchableOpacity onPress={startListening} style={styles.micButton}>
           <Ionicons name="mic-outline" size={20} color="#2B2C51" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => void loadEntries(searchText)} style={styles.searchButton}>
+        <TouchableOpacity onPress={() => void loadEntries()} style={styles.searchButton}>
           <Ionicons name="search" size={18} color="white" />
         </TouchableOpacity>
       </View>
 
-      {/* UI State Logic */}
+      {/* Core Component State Engine Rendering */}
       {isLoading ? (
         <SkeletonLoader />
       ) : errorMessage ? (
         <View style={styles.stateContainer}>
-          <Text style={styles.stateTitle}>കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല</Text>
+          <Text style={styles.stateTitle}>Unable to load entries</Text>
           <Text style={styles.stateText}>{errorMessage}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => void loadEntries(selectedLetter)}>
-            <Text style={styles.retryButtonText}>വീണ്ടും ശ്രമിക്കുക</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => void loadEntries()}>
+            <Text style={styles.retryButtonText}>Try again</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <Animated.FlatList
-          data={entries}
-          keyExtractor={(item) => item.id.toString()}
+          data={filteredEntries}
+          keyExtractor={(item, index) => (item.id || item._id || index).toString()}
           renderItem={renderEntry}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
@@ -258,11 +265,11 @@ export default function MalayalamEnglishScreen() {
           )}
           ListEmptyComponent={
             <View style={styles.stateContainer}>
-              <Text style={styles.stateTitle}>വാക്കുകൾ കണ്ടെത്തിയില്ല</Text>
+              <Text style={styles.stateTitle}>No matches found</Text>
               <Text style={styles.stateText}>
                 {searchText.trim()
-                  ? `"${searchText}" എന്ന വാക്ക് നിഘണ്ടുവിൽ കണ്ടെത്താൻ സാധിച്ചില്ല.`
-                  : `"${selectedLetter}" എന്ന അക്ഷരത്തിൽ തുടങ്ങുന്ന അംഗീകരിക്കപ്പെട്ട വാക്കുകൾ നിലവിലില്ല.`}
+                  ? "Try a different English word or local keyword variation."
+                  : `No records initialized under alphabet group category '${selectedLetter}' yet.`}
               </Text>
             </View>
           }
@@ -271,7 +278,7 @@ export default function MalayalamEnglishScreen() {
       <VoiceSearchOverlay
         visible={isListening}
         partialTranscript={partialTranscript}
-        lang="ml-IN"
+        lang="en-US"
         onClose={stopListening}
       />
     </View>
@@ -428,14 +435,14 @@ const styles = StyleSheet.create({
   cardHeaderText: {
     flex: 1,
   },
-  malayalamWord: {
-    color: "#1F2330",
+  englishWord: {
+    color: "#2B2C51",
     fontSize: 20,
     fontWeight: "800",
-    fontFamily: "NotoSansMalayalam",
+    fontFamily: "Roboto"
   },
   cardSubtext: {
-    color: "#4E473E",
+    color: "#2B2C51",
     fontSize: 16,
     fontWeight: "700",
     marginTop: 4,

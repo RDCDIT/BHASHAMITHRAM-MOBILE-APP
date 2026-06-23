@@ -55,6 +55,7 @@ const suggestWord = async (req, res) => {
     const newSuggestion = new SuggestedWord({
       _id: nextId,
       word: word.trim(),
+      language_type: language_type ? language_type.trim() : 'malayalam',
       root: root ? root.trim() : '',
       etymology: etymology ? etymology.trim() : '',
       cultural_note: cultural_note ? cultural_note.trim() : '',

@@ -34,12 +34,13 @@ type DictionaryEntry = {
   word: string; // മലയാളം വാക്ക്
   english_equivalent: string;
   primary_malayalam_meaning: string;
+  _id?: string | number;
 };
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.3:5000" : "http://localhost:5000",
-  "http://192.168.1.3:5000",
+  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
+  "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
 export default function SavisheshaThirayalScreen() {
@@ -204,14 +205,14 @@ export default function SavisheshaThirayalScreen() {
 
   const handleRecentOpeningPress = (wordId: number) => {
     router.push({
-      pathname: "/details",
+      pathname: "/malayalam_details",
       params: { dictionaryId: wordId },
     });
   };
 
   const handleSearchResultPress = (id: number) => {
     router.push({
-      pathname: "/details",
+      pathname: "/malayalam_details",
       params: { dictionaryId: id },
     });
   };
@@ -361,7 +362,7 @@ export default function SavisheshaThirayalScreen() {
         ) : (
           <Animated.FlatList
             data={searchResults}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item, index) => (item.id || item._id || index).toString()}
             renderItem={renderSearchResult}
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"

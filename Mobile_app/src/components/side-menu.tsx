@@ -88,7 +88,7 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
                 showChevron
                 onPress={() => {
                   onClose();
-                  router.push("/english-malayalm");
+                  router.push("/english_malayalam");
                 }}
               />
               <MenuRow
@@ -97,7 +97,7 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
                 showChevron
                 onPress={() => {
                   onClose();
-                  router.push("/malayalam-english");
+                  router.push("/malayalam_english");
                 }}
               />
               <MenuRow
@@ -106,7 +106,7 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
                 showChevron
                 onPress={() => {
                   onClose();
-                  router.push("/nanaarth");
+                  router.push("/malayalam_synonym");
                 }}
               />
             </View>

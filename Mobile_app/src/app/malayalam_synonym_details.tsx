@@ -17,11 +17,10 @@ import SkeletonLoader from "../components/SkeletonLoader";
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
-type WordDetails = {
-  id: number;
+type SynonymDetails = {
+  _id: string | number;
   word: string;
-  synonyms?: string;
-  category_names?: string[];
+  synonyms: string[];
 };
 
 const API_BASE_URLS = [
@@ -30,9 +29,9 @@ const API_BASE_URLS = [
   "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
-export default function NanaarthDetailsScreen() {
+export default function MalayalamSynonymDetailsScreen() {
   const { dictionaryId } = useLocalSearchParams();
-  const [details, setDetails] = useState<WordDetails | null>(null);
+  const [details, setDetails] = useState<SynonymDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [highlightedCard, _setHighlightedCard] = useState<string | null>(null);
@@ -102,8 +101,8 @@ export default function NanaarthDetailsScreen() {
 
       for (const apiBaseUrl of API_BASE_URLS) {
         try {
-          console.log(`[Nanaarth Details] Fetching details for ID: ${dictionaryId} from ${apiBaseUrl}`);
-          const response = await fetch(`${apiBaseUrl}/api/words/details/${dictionaryId}?type=malayalam`);
+          console.log(`[Synonym Details] Fetching details for ID: ${dictionaryId} from ${apiBaseUrl}`);
+          const response = await fetch(`${apiBaseUrl}/api/synonyms/${dictionaryId}`);
 
           if (!response.ok) {
             const responseText = await response.text();
@@ -112,7 +111,7 @@ export default function NanaarthDetailsScreen() {
 
           const data = await response.json();
           setDetails(data);
-          return; // Success, exit function
+          return;
         } catch (error) {
           lastError = error;
         }
@@ -133,12 +132,11 @@ export default function NanaarthDetailsScreen() {
     void loadDetails();
   }, [dictionaryId]);
 
-  const renderBulletedList = (text?: string) => {
-    if (!text) return null;
-    const items = text.split(/[,;\n]+/).map(item => item.trim()).filter(Boolean);
+  const renderSynonyms = (syns?: string[]) => {
+    if (!syns || !Array.isArray(syns) || syns.length === 0) return null;
     return (
       <View style={styles.bulletList}>
-        {items.map((item, idx) => (
+        {syns.map((item, idx) => (
           <View key={idx} style={styles.bulletItem}>
             <Text style={styles.bulletIcon}>•</Text>
             <Text style={styles.bulletText}>{item}</Text>
@@ -152,7 +150,6 @@ export default function NanaarthDetailsScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()}>
@@ -186,7 +183,7 @@ export default function NanaarthDetailsScreen() {
             { useNativeDriver: true }
           )}
         >
-          {/* 1. Malayalam Word Card */}
+          {/* Malayalam Word Card */}
           <AnimatedCard index={cardIndex++} scrollY={scrollY}>
             <AnimatedTouchableOpacity
               activeOpacity={0.95}
@@ -203,29 +200,8 @@ export default function NanaarthDetailsScreen() {
             </AnimatedTouchableOpacity>
           </AnimatedCard>
 
-          {/* 2. Category Card */}
-          {details.category_names && details.category_names.length > 0 && (
-            <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-              <AnimatedTouchableOpacity
-                activeOpacity={0.95}
-                onPressIn={() => toggleHighlight("category_names")}
-                delayPressIn={0}
-                style={getAnimatedCardStyle("category_names")}
-              >
-                <Text style={styles.sectionTitle}>വ്യാകരണവിഭാഗം / Category</Text>
-                <View style={styles.categoriesContainer}>
-                  {details.category_names.map((catName, idx) => (
-                    <View key={idx} style={styles.categoryBadge}>
-                      <Text style={styles.categoryBadgeText}>{catName}</Text>
-                    </View>
-                  ))}
-                </View>
-              </AnimatedTouchableOpacity>
-            </AnimatedCard>
-          )}
-
-          {/* 3. Synonyms Card */}
-          {!!details.synonyms && (
+          {/* Synonyms Card rendered under Meanings */}
+          {details.synonyms && details.synonyms.length > 0 && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -233,8 +209,8 @@ export default function NanaarthDetailsScreen() {
                 delayPressIn={0}
                 style={getAnimatedCardStyle("synonyms")}
               >
-                <Text style={styles.sectionTitle}>പര്യായപദങ്ങൾ / Synonyms</Text>
-                {renderBulletedList(details.synonyms)}
+                <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ / Meanings</Text>
+                {renderSynonyms(details.synonyms)}
               </AnimatedTouchableOpacity>
             </AnimatedCard>
           )}
@@ -357,26 +333,6 @@ const styles = StyleSheet.create({
     fontFamily: "NotoSansMalayalam",
     lineHeight: 20,
     flex: 1,
-  },
-  categoriesContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 4,
-    gap: 6,
-  },
-  categoryBadge: {
-    backgroundColor: "#F4EEE7",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E2D7CB",
-  },
-  categoryBadgeText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#2B2C51",
-    fontFamily: "NotoSansMalayalam",
   },
   stateContainer: {
     flex: 1,
