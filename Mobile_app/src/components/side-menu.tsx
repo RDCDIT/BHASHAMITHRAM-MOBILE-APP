@@ -84,7 +84,7 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
               <Text style={styles.sectionHeader}>നിഘണ്ടുക്കൾ (Dictionaries)</Text>
               <MenuRow
                 icon="swap-horizontal"
-                title="ഇംഗ്ലീഷ് - മലയാളം നിഘണ്ടു"
+                title="ഇംഗ്ലീഷ് - ഇംഗ്ലീഷ് നിഘണ്ടു"
                 showChevron
                 onPress={() => {
                   onClose();

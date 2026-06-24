@@ -160,7 +160,6 @@ export default function EnglishMalayalamScreen() {
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderText}>
               <Text style={styles.englishWord}>{item.english_equivalent}</Text>
-              <Text style={styles.cardSubtext}>{item.word}</Text>
             </View>
             <SpeakButton word={item.english_equivalent} lang="en" />
           </View>
