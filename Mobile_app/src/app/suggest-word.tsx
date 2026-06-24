@@ -16,6 +16,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -178,6 +179,7 @@ export default function SuggestWordScreen() {
 
   // Form Submission Status
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAcknowledgement, setShowAcknowledgement] = useState(false);
 
   // Unload audio on unmount
   useEffect(() => {
@@ -539,15 +541,7 @@ export default function SuggestWordScreen() {
       }
 
       if (submissionSuccess) {
-        Alert.alert(
-          selectedLanguage === "english" ? "Success" : "വിജയം",
-          selectedLanguage === "english"
-            ? "Word suggestion submitted successfully. It will be published after verification."
-            : "പദ നിർദ്ദേശം വിജയകരമായി സമർപ്പിച്ചു. പരിശോധനയ്ക്ക് ശേഷം പ്രസിദ്ധീകരിക്കുന്നതാണ്.",
-          [
-            { text: selectedLanguage === "english" ? "OK" : "ശരി", onPress: () => router.replace("/") },
-          ]
-        );
+        setShowAcknowledgement(true);
       } else {
         throw lastError || new Error(selectedLanguage === "english" ? "Failed to connect to network." : "നെറ്റ്‌വർക്ക് കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല.");
       }
@@ -1227,6 +1221,60 @@ export default function SuggestWordScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Acknowledgement Modal */}
+      <Modal
+        visible={showAcknowledgement}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setShowAcknowledgement(false);
+          router.replace("/");
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalSuccessIconBg}>
+              <Ionicons name="checkmark-circle" size={54} color="#10B981" />
+            </View>
+            
+            <Text style={styles.modalTitle}>
+              {isEnglish ? "Thank You!" : "നന്ദി!"}
+            </Text>
+            
+            <Text style={styles.modalDescription}>
+              {isEnglish 
+                ? "Your word suggestion has been successfully submitted. It will be added to the dictionary after verification by our administration panel."
+                : "നിങ്ങൾ നിർദ്ദേശിച്ച വാക്ക് വിജയകരമായി സമർപ്പിച്ചു. ഞങ്ങളുടെ അഡ്മിൻ പാനൽ ഇത് പരിശോധിച്ചതിനു ശേഷം നിഘണ്ടുവിൽ ചേർക്കുന്നതായിരിക്കും."}
+            </Text>
+
+            <View style={styles.modalDetailsContainer}>
+              <Text style={styles.modalDetailsLabel}>
+                {isEnglish ? "Submitted Word:" : "സമർപ്പിച്ച വാക്ക്:"}
+              </Text>
+              <Text style={styles.modalDetailsValue}>{word}</Text>
+
+              <Text style={[styles.modalDetailsLabel, { marginTop: 10 }]}>
+                {isEnglish ? "Contributor Name:" : "സംഭാവന ചെയ്തയാൾ:"}
+              </Text>
+              <Text style={styles.modalDetailsValue}>{contributorName}</Text>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.modalButton}
+              onPress={() => {
+                setShowAcknowledgement(false);
+                router.replace("/");
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalButtonText}>
+                {isEnglish ? "OK" : "ശരി"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1234,6 +1282,90 @@ export default function SuggestWordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(18, 18, 38, 0.75)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 24,
+    width: "100%",
+    maxWidth: 380,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: "rgba(229, 231, 235, 0.5)",
+  },
+  modalSuccessIconBg: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#ECFDF5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#1E1B4B",
+    marginBottom: 12,
+    textAlign: "center",
+    fontFamily: "NotoSansMalayalam",
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: "#4B5563",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 20,
+    fontFamily: "NotoSansMalayalam",
+  },
+  modalDetailsContainer: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 14,
+    padding: 16,
+    width: "100%",
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  modalDetailsLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    fontWeight: "600",
+    textTransform: "uppercase",
+    fontFamily: "NotoSansMalayalam",
+  },
+  modalDetailsValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginTop: 2,
+    fontFamily: "NotoSansMalayalam",
+  },
+  modalButton: {
+    backgroundColor: "#2B2C51",
+    borderRadius: 12,
+    paddingVertical: 14,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+    fontFamily: "NotoSansMalayalam",
   },
   header: {
     height: Platform.OS === "android" ? 65 : 75,

@@ -23,7 +23,7 @@ const getPronunciation = async (req, res) => {
   console.log(`🔊 [Pronunciation Request] Received lookup request for word: "${word}"`);
 
   try {
-    // Step 1: Find word in dictionary collections
+    // Find word in dictionary collections
     const wordEntry = await cacheService.findWordAndPronunciation(word);
     
     if (!wordEntry) {
@@ -39,76 +39,31 @@ const getPronunciation = async (req, res) => {
 
     const hostPrefix = `${req.protocol}://${req.get('host')}`;
 
-    // Fallback Step 1 & 2: Check if custom manual audio or cached google audio exists
-    if (existing.audioUrl) {
+    // If custom manual audio exists on server, serve it
+    if (existing.audioUrl && existing.source === 'manual') {
       const relativePath = existing.audioUrl;
       const absolutePath = path.join(__dirname, '..', relativePath);
 
-      // Check if file exists physically on server
       if (fs.existsSync(absolutePath)) {
         const responseData = {
           success: true,
           audioUrl: `${hostPrefix}${relativePath}`,
-          source: existing.source || 'google',
+          source: 'manual',
           ipa: existing.ipa || null
         };
-        console.log(`💾 [Pronunciation Response] Returning cached audio from database [Collection: ${collectionName}]. Source: ${existing.source || 'google'}. URL: ${responseData.audioUrl}`);
+        console.log(`💾 [Pronunciation Response] Returning manual audio URL for "${word}": ${responseData.audioUrl}`);
         return res.status(200).json(responseData);
-      } else {
-        console.log(`⚠️ [Pronunciation Cache] Audio record exists in DB but physical file was missing: ${absolutePath}`);
       }
     }
 
-    // Fallback Step 3: Trigger new Google TTS request
-    const filename = `${fileManager.sanitizeFilename(word)}.mp3`;
-    const outputPath = path.join(AUDIO_DIR, filename);
-    const relativeAudioUrl = `/public/audio/${filename}`;
-
-    console.log(`🌐 [Pronunciation TTS] Audio not cached. Triggering new Google TTS fetch for text: "${document.word}"`);
-
-    try {
-      await googleTTSService.generatePronunciation(document.word, outputPath);
-      
-      const newPronunciation = {
-        audioUrl: relativeAudioUrl,
-        source: 'google',
-        ipa: existing.ipa || null
-      };
-
-      // Save to database
-      await cacheService.updatePronunciation(collectionName, document._id, newPronunciation);
-
-      const responseData = {
-        success: true,
-        audioUrl: `${hostPrefix}${relativeAudioUrl}`,
-        source: 'google',
-        ipa: existing.ipa || null
-      };
-
-      console.log(`✅ [Pronunciation Response] Google TTS generation successful. Saved to: ${relativeAudioUrl}. Returning URL: ${responseData.audioUrl}`);
-      return res.status(200).json(responseData);
-
-    } catch (ttsErr) {
-      console.error(`❌ [Pronunciation TTS Failed] Google TTS generation failed for "${word}":`, ttsErr.message);
-      
-      // Fallback Step 4: If TTS failed, check if IPA notation exists
-      if (existing.ipa) {
-        console.log(`ℹ️ [Pronunciation Response] Falling back to IPA representation: "${existing.ipa}"`);
-        return res.status(200).json({
-          success: true,
-          audioUrl: null,
-          ipa: existing.ipa,
-          message: 'Audio pronunciation unavailable. Displaying IPA.'
-        });
-      }
-
-      // Fallback Step 5: Pronunciation unavailable
-      console.log(`❌ [Pronunciation Response] Neither audio nor IPA is available for word: "${word}"`);
-      return res.status(502).json({
-        success: false,
-        message: 'Pronunciation audio and IPA notation are currently unavailable.'
-      });
-    }
+    // Otherwise, direct the client to use local device synthesis (expo-speech)
+    console.log(`📢 [Pronunciation Response] No manual audio found for "${word}". Directing client to use local device synthesis (expo-speech).`);
+    return res.status(200).json({
+      success: true,
+      audioUrl: null,
+      source: null,
+      ipa: existing.ipa || null
+    });
 
   } catch (error) {
     console.error(`🚨 [Pronunciation Error] Exception during request handler for "${word}":`, error);

@@ -2,16 +2,41 @@ import React, { useState, useEffect, useRef } from 'react';
 import { TouchableOpacity, ActivityIndicator, StyleSheet, Alert, Animated, Platform, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
+import * as Speech from 'expo-speech';
 
 interface PronunciationButtonProps {
   word: string;
 }
 
-export default function PronunciationButton({ word }: PronunciationButtonProps) {
+export default function PronunciationButton(props: PronunciationButtonProps) {
+  const isSupported = typeof useAudioPlayer === 'function';
+
+  if (!isSupported) {
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity 
+          style={styles.playCircle} 
+          onPress={() => Alert.alert(
+            "Native Audio Module Missing", 
+            "Audio features require a fresh development build. Please run 'npm run android' or 'npx expo run:android' to rebuild the native client with expo-audio compiled."
+          )}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="volume-mute" size={18} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return <PronunciationButtonInner {...props} />;
+}
+
+function PronunciationButtonInner({ word }: PronunciationButtonProps) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [ipa, setIpa] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isSpeakingLocally, setIsSpeakingLocally] = useState<boolean>(false);
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
@@ -19,31 +44,36 @@ export default function PronunciationButton({ word }: PronunciationButtonProps) 
   const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || 
     (Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000");
 
-  // Load audio player hook from expo-audio
+  // Load audio player hook from expo-audio safely inside inner component
   const player = useAudioPlayer(audioUrl || '');
 
   // Track playback status updates from expo-audio player
   useEffect(() => {
     if (!player) return;
     const subscription = player.addListener('playbackStatusUpdate', (status) => {
-      setIsPlaying(status.playing);
+      if (audioUrl) {
+        setIsPlaying(status.playing);
+      }
     });
     return () => {
       subscription.remove();
     };
-  }, [player]);
+  }, [player, audioUrl]);
+
+  const isCurrentlyPlaying = isPlaying || isSpeakingLocally;
 
   useEffect(() => {
     return () => {
       if (pulseLoop.current) {
         pulseLoop.current.stop();
       }
+      Speech.stop();
     };
   }, []);
 
   // Pulse animation while audio is loading or playing
   useEffect(() => {
-    if (isPlaying || isLoading) {
+    if (isCurrentlyPlaying || isLoading) {
       pulseLoop.current = Animated.loop(
         Animated.sequence([
           Animated.timing(scaleAnim, {
@@ -69,14 +99,30 @@ export default function PronunciationButton({ word }: PronunciationButtonProps) 
         useNativeDriver: true,
       }).start();
     }
-  }, [isPlaying, isLoading]);
+  }, [isCurrentlyPlaying, isLoading]);
 
   const handlePress = async () => {
+    // Stop local speech if running
+    if (isSpeakingLocally) {
+      Speech.stop();
+      setIsSpeakingLocally(false);
+      return;
+    }
+    // Stop audio player if running
+    if (isPlaying) {
+      player.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    const targetUrl = `${BACKEND_URL}/api/pronunciation/${encodeURIComponent(word)}`;
+    console.log(`📱 [Pronunciation Fetch] Initiating request to URL: "${targetUrl}"`);
+
     try {
       setIsLoading(true);
       
       // Request pronunciation URL from the backend
-      const response = await fetch(`${BACKEND_URL}/api/pronunciation/${encodeURIComponent(word)}`);
+      const response = await fetch(targetUrl);
       const result = await response.json();
 
       if (!response.ok) {
@@ -87,15 +133,31 @@ export default function PronunciationButton({ word }: PronunciationButtonProps) 
         setIpa(result.ipa);
       }
 
-      if (result.audioUrl) {
+      if (result.audioUrl && result.source === 'manual') {
         setAudioUrl(result.audioUrl);
-        // Play the audio stream via player
+        // Play the manual audio file via player
         player.replace({ uri: result.audioUrl });
         player.play();
-      } else if (result.ipa) {
-        Alert.alert("IPA Transcription", `Pronunciation: ${result.ipa}`);
       } else {
-        Alert.alert("Unavailable", "Pronunciation audio is currently unavailable.");
+        // Fallback to local on-device speech synthesis (expo-speech)
+        const isMalayalam = (text: string) => /[\u0d00-\u0d7f]/.test(text);
+        const lang = isMalayalam(word) ? 'ml-IN' : 'en-US';
+
+        setIsSpeakingLocally(true);
+        Speech.speak(word, {
+          language: lang,
+          onStart: () => {
+            setIsSpeakingLocally(true);
+            setIsLoading(false);
+          },
+          onDone: () => setIsSpeakingLocally(false),
+          onStopped: () => setIsSpeakingLocally(false),
+          onError: (err) => {
+            console.error("Local Speech synthesis failed:", err);
+            setIsSpeakingLocally(false);
+            Alert.alert("Speech Error", "Local text-to-speech failed to speak this word.");
+          }
+        });
       }
     } catch (error: any) {
       console.error("Pronunciation streaming error:", error);
@@ -111,7 +173,7 @@ export default function PronunciationButton({ word }: PronunciationButtonProps) 
         <TouchableOpacity 
           style={[
             styles.playCircle, 
-            isPlaying && styles.playCircleActive,
+            isCurrentlyPlaying && styles.playCircleActive,
             isLoading && styles.playCircleLoading
           ]} 
           onPress={handlePress} 
@@ -122,14 +184,14 @@ export default function PronunciationButton({ word }: PronunciationButtonProps) 
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Ionicons 
-              name={isPlaying ? "volume-high" : "volume-medium"} 
+              name={isCurrentlyPlaying ? "volume-high" : "volume-medium"} 
               size={18} 
               color="#FFFFFF" 
             />
           )}
         </TouchableOpacity>
       </Animated.View>
-      {ipa && !isPlaying && (
+      {ipa && !isCurrentlyPlaying && (
         <Text style={styles.ipaText}>{ipa}</Text>
       )}
     </View>
