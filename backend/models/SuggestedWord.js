@@ -48,7 +48,8 @@ const suggestedWordSchema = new mongoose.Schema({
   status: {
     approved: { type: Boolean, default: false },
     superuser_approved: { type: Boolean, default: false },
-    done_by_user: { type: Boolean, default: false }
+    done_by_user: { type: Boolean, default: false },
+    rejected: { type: Boolean, default: false }
   },
   categories: { type: [Number], default: [] },
   images: { type: [String], default: [] },
@@ -66,5 +67,7 @@ const suggestedWordSchema = new mongoose.Schema({
   collection: 'Suggested_words',
   timestamps: true
 });
+
+
 
 module.exports = mongoose.model('SuggestedWord', suggestedWordSchema);

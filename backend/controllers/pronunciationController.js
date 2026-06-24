@@ -1,0 +1,200 @@
+const path = require('path');
+const fs = require('fs');
+const fileManager = require('../utils/fileManager');
+const googleTTSService = require('../services/googleTTSService');
+const cacheService = require('../services/pronunciationCacheService');
+
+// Static audio directory paths
+const AUDIO_DIR = path.join(__dirname, '../public/audio');
+fileManager.ensureDirectoryExists(AUDIO_DIR);
+
+/**
+ * GET /api/pronunciation/:word
+ * Returns cached or newly generated pronunciation details.
+ */
+const getPronunciation = async (req, res) => {
+  const word = req.params.word;
+
+  if (!word || word.trim() === '') {
+    console.log(`⚠️ [Pronunciation Request] Bad request: empty word parameter.`);
+    return res.status(400).json({ success: false, message: 'Word parameter is required.' });
+  }
+
+  console.log(`🔊 [Pronunciation Request] Received lookup request for word: "${word}"`);
+
+  try {
+    // Step 1: Find word in dictionary collections
+    const wordEntry = await cacheService.findWordAndPronunciation(word);
+    
+    if (!wordEntry) {
+      console.log(`⚠️ [Pronunciation Response] Word not found in any dictionary collection: "${word}"`);
+      return res.status(404).json({ 
+        success: false, 
+        message: `Word "${word}" not found in dictionary.` 
+      });
+    }
+
+    const { document, collectionName } = wordEntry;
+    const existing = document.pronunciation || {};
+
+    const hostPrefix = `${req.protocol}://${req.get('host')}`;
+
+    // Fallback Step 1 & 2: Check if custom manual audio or cached google audio exists
+    if (existing.audioUrl) {
+      const relativePath = existing.audioUrl;
+      const absolutePath = path.join(__dirname, '..', relativePath);
+
+      // Check if file exists physically on server
+      if (fs.existsSync(absolutePath)) {
+        const responseData = {
+          success: true,
+          audioUrl: `${hostPrefix}${relativePath}`,
+          source: existing.source || 'google',
+          ipa: existing.ipa || null
+        };
+        console.log(`💾 [Pronunciation Response] Returning cached audio from database [Collection: ${collectionName}]. Source: ${existing.source || 'google'}. URL: ${responseData.audioUrl}`);
+        return res.status(200).json(responseData);
+      } else {
+        console.log(`⚠️ [Pronunciation Cache] Audio record exists in DB but physical file was missing: ${absolutePath}`);
+      }
+    }
+
+    // Fallback Step 3: Trigger new Google TTS request
+    const filename = `${fileManager.sanitizeFilename(word)}.mp3`;
+    const outputPath = path.join(AUDIO_DIR, filename);
+    const relativeAudioUrl = `/public/audio/${filename}`;
+
+    console.log(`🌐 [Pronunciation TTS] Audio not cached. Triggering new Google TTS fetch for text: "${document.word}"`);
+
+    try {
+      await googleTTSService.generatePronunciation(document.word, outputPath);
+      
+      const newPronunciation = {
+        audioUrl: relativeAudioUrl,
+        source: 'google',
+        ipa: existing.ipa || null
+      };
+
+      // Save to database
+      await cacheService.updatePronunciation(collectionName, document._id, newPronunciation);
+
+      const responseData = {
+        success: true,
+        audioUrl: `${hostPrefix}${relativeAudioUrl}`,
+        source: 'google',
+        ipa: existing.ipa || null
+      };
+
+      console.log(`✅ [Pronunciation Response] Google TTS generation successful. Saved to: ${relativeAudioUrl}. Returning URL: ${responseData.audioUrl}`);
+      return res.status(200).json(responseData);
+
+    } catch (ttsErr) {
+      console.error(`❌ [Pronunciation TTS Failed] Google TTS generation failed for "${word}":`, ttsErr.message);
+      
+      // Fallback Step 4: If TTS failed, check if IPA notation exists
+      if (existing.ipa) {
+        console.log(`ℹ️ [Pronunciation Response] Falling back to IPA representation: "${existing.ipa}"`);
+        return res.status(200).json({
+          success: true,
+          audioUrl: null,
+          ipa: existing.ipa,
+          message: 'Audio pronunciation unavailable. Displaying IPA.'
+        });
+      }
+
+      // Fallback Step 5: Pronunciation unavailable
+      console.log(`❌ [Pronunciation Response] Neither audio nor IPA is available for word: "${word}"`);
+      return res.status(502).json({
+        success: false,
+        message: 'Pronunciation audio and IPA notation are currently unavailable.'
+      });
+    }
+
+  } catch (error) {
+    console.error(`🚨 [Pronunciation Error] Exception during request handler for "${word}":`, error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error during pronunciation lookup.' 
+    });
+  }
+};
+
+/**
+ * POST /api/pronunciation/upload
+ * Admin tool to upload custom MP3 audio manually for a dictionary word.
+ */
+const uploadPronunciation = async (req, res) => {
+  const { word, ipa } = req.body;
+
+  if (!word || !word.trim()) {
+    // Delete uploaded temp file to avoid cluttering if validation fails
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    return res.status(400).json({ success: false, message: 'Word is required.' });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'MP3 file upload is required.' });
+  }
+
+  try {
+    // Find word in dictionary collections
+    const wordEntry = await cacheService.findWordAndPronunciation(word);
+    
+    if (!wordEntry) {
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(404).json({ 
+        success: false, 
+        message: `Word "${word}" not found in dictionary.` 
+      });
+    }
+
+    const { document, collectionName } = wordEntry;
+    
+    // Move uploaded file to public/audio with sanitized name
+    const sanitizedFilename = `manual-${fileManager.sanitizeFilename(word)}-${Date.now()}.mp3`;
+    const finalPath = path.join(AUDIO_DIR, sanitizedFilename);
+    const relativeAudioUrl = `/public/audio/${sanitizedFilename}`;
+
+    fs.renameSync(req.file.path, finalPath);
+
+    const pronunciationData = {
+      audioUrl: relativeAudioUrl,
+      source: 'manual',
+      ipa: ipa || document.pronunciation?.ipa || null
+    };
+
+    // Save update in DB
+    await cacheService.updatePronunciation(collectionName, document._id, pronunciationData);
+
+    const hostPrefix = `${req.protocol}://${req.get('host')}`;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Pronunciation uploaded and bound successfully.',
+      pronunciation: {
+        audioUrl: `${hostPrefix}${relativeAudioUrl}`,
+        source: 'manual',
+        ipa: pronunciationData.ipa
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in uploadPronunciation:', error);
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error during pronunciation upload.' 
+    });
+  }
+};
+
+module.exports = {
+  getPronunciation,
+  uploadPronunciation
+};

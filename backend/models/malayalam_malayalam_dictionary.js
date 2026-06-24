@@ -73,33 +73,6 @@ const MalayalamMalayalamDictionarySchema = new mongoose.Schema(
     },
 
     images: [String],
-
-    status: {
-      approved: {
-        type: Boolean,
-        default: false,
-      },
-      superuser_approved: {
-        type: Boolean,
-        default: false,
-      },
-      done_by_user: {
-        type: Boolean,
-        default: false,
-      },
-    },
-
-    metadata: {
-      submitted_by_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-      last_edited_by_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-      last_edited_at: Date,
-    },
   },
   {
     timestamps: true,

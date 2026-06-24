@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 const connectDB = require('./config/db');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -10,6 +11,7 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // Request logger middleware
 app.use((req, res, next) => {
@@ -26,6 +28,9 @@ const malayalamEnglishRoutes = require('./routes/malayalam_english');
 const malayalamSynonymRoutes = require('./routes/malayalam_synonym');
 const audioRoutes = require('./routes/audioRoutes');
 const speechRoutes = require('./routes/speechRoutes');
+const suggestedWordRoute = require('./routes/adminRoutes/suggestedWordRoute');
+const migrationRoute = require('./routes/adminRoutes/migrationRoute');
+const pronunciationRoutes = require('./routes/pronunciationRoutes');
 
 // Mount routes
 app.use('/api/words', wordRoutes);
@@ -36,6 +41,10 @@ app.use('/api/malayalam-english', malayalamEnglishRoutes);
 app.use('/api/synonyms', malayalamSynonymRoutes);
 app.use('/api/pronounce', audioRoutes);
 app.use('/api/speech-to-text', speechRoutes);
+app.use('/api/admin/suggestions', suggestedWordRoute);
+app.use('/api/admin/migrate', migrationRoute);
+app.use('/api/pronunciation', pronunciationRoutes);
+
 
 // ------------------------------------------------------------
 // 1. DATABASE CONNECTIVITY LOGS

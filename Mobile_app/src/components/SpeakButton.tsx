@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TouchableOpacity, ActivityIndicator, StyleSheet, Alert, Animated, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAudioPlayer } from 'expo-audio';
 
 interface SpeakButtonProps {
   word: string;
@@ -8,7 +9,7 @@ interface SpeakButtonProps {
 }
 
 export default function SpeakButton({ word, lang }: SpeakButtonProps) {
-  const [soundInstance, setSoundInstance] = useState<any>(null);
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
@@ -18,16 +19,30 @@ export default function SpeakButton({ word, lang }: SpeakButtonProps) {
   const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || 
     (Platform.OS === "android" ? "http://192.168.1.2:5000/api/pronounce" : "http://localhost:5000/api/pronounce");
 
+  // Load expo-audio player
+  const player = useAudioPlayer(streamUrl || '');
+
+  // Track playback status updates from expo-audio player
+  useEffect(() => {
+    if (!player) return;
+    const subscription = player.addListener('playbackStatusUpdate', (status) => {
+      setIsPlaying(status.playing);
+      if (status.isLoaded) {
+        setIsLoading(false);
+      }
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, [player]);
+
   useEffect(() => {
     return () => {
-      if (soundInstance) {
-        soundInstance.unloadAsync();
-      }
       if (pulseLoop.current) {
         pulseLoop.current.stop();
       }
     };
-  }, [soundInstance]);
+  }, []);
 
   // Handle animation triggers when state changes
   useEffect(() => {
@@ -62,33 +77,10 @@ export default function SpeakButton({ word, lang }: SpeakButtonProps) {
   const handlePlayback = async () => {
     try {
       setIsLoading(true);
-
-      if (soundInstance) {
-        await soundInstance.unloadAsync();
-      }
-
-      const streamUrl = `${BACKEND_URL}?word=${encodeURIComponent(word)}&lang=${lang}`;
-
-      const { Audio } = require('expo-av');
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: streamUrl },
-        { shouldPlay: true }
-      );
-
-      setSoundInstance(sound);
-      setIsLoading(false);
-      setIsPlaying(true);
-
-      sound.setOnPlaybackStatusUpdate((status: any) => {
-        if (!status.isLoaded) return;
-
-        if (status.didJustFinish) {
-          setIsPlaying(false);
-          sound.unloadAsync();
-          setSoundInstance(null);
-        }
-      });
-
+      const url = `${BACKEND_URL}?word=${encodeURIComponent(word)}&lang=${lang}`;
+      setStreamUrl(url);
+      player.replace({ uri: url });
+      player.play();
     } catch (error) {
       setIsLoading(false);
       setIsPlaying(false);
