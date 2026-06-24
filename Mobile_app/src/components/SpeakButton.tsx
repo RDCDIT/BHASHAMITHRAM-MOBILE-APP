@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TouchableOpacity, ActivityIndicator, StyleSheet, Alert, Animated, Platform } from 'react-native';
+import { TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Speech from 'expo-speech';
 
 interface SpeakButtonProps {
   word: string;
@@ -8,30 +9,23 @@ interface SpeakButtonProps {
 }
 
 export default function SpeakButton({ word, lang }: SpeakButtonProps) {
-  const [soundInstance, setSoundInstance] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
-  const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || 
-    (Platform.OS === "android" ? "http://192.168.1.2:5000/api/pronounce" : "http://localhost:5000/api/pronounce");
-
   useEffect(() => {
     return () => {
-      if (soundInstance) {
-        soundInstance.unloadAsync();
-      }
       if (pulseLoop.current) {
         pulseLoop.current.stop();
       }
+      Speech.stop();
     };
-  }, [soundInstance]);
+  }, []);
 
   // Handle animation triggers when state changes
   useEffect(() => {
-    if (isPlaying || isLoading) {
+    if (isPlaying) {
       pulseLoop.current = Animated.loop(
         Animated.sequence([
           Animated.timing(scaleAnim, {
@@ -57,43 +51,33 @@ export default function SpeakButton({ word, lang }: SpeakButtonProps) {
         useNativeDriver: true,
       }).start();
     }
-  }, [isPlaying, isLoading]);
+  }, [isPlaying]);
 
   const handlePlayback = async () => {
+    if (isPlaying) {
+      Speech.stop();
+      setIsPlaying(false);
+      return;
+    }
+
     try {
-      setIsLoading(true);
-
-      if (soundInstance) {
-        await soundInstance.unloadAsync();
-      }
-
-      const streamUrl = `${BACKEND_URL}?word=${encodeURIComponent(word)}&lang=${lang}`;
-
-      const { Audio } = require('expo-av');
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: streamUrl },
-        { shouldPlay: true }
-      );
-
-      setSoundInstance(sound);
-      setIsLoading(false);
+      const speechLang = lang === 'ml' ? 'ml-IN' : 'en-US';
       setIsPlaying(true);
-
-      sound.setOnPlaybackStatusUpdate((status: any) => {
-        if (!status.isLoaded) return;
-
-        if (status.didJustFinish) {
+      
+      Speech.speak(word, {
+        language: speechLang,
+        onStart: () => setIsPlaying(true),
+        onDone: () => setIsPlaying(false),
+        onStopped: () => setIsPlaying(false),
+        onError: (err) => {
+          console.error("Local Speech synthesis failed:", err);
           setIsPlaying(false);
-          sound.unloadAsync();
-          setSoundInstance(null);
+          Alert.alert("Speech Error", "Local text-to-speech failed to speak this word.");
         }
       });
-
     } catch (error) {
-      setIsLoading(false);
       setIsPlaying(false);
-      console.error("Audio streaming error:", error);
-      Alert.alert("കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല", "ഉച്ചാരണം ലഭ്യമാക്കുന്നതിൽ തടസ്സം നേരിട്ടു.");
+      console.error("Audio speaking error:", error);
     }
   };
 
@@ -102,23 +86,17 @@ export default function SpeakButton({ word, lang }: SpeakButtonProps) {
       <TouchableOpacity 
         style={[
           styles.playCircle, 
-          isPlaying && styles.playCircleActive,
-          isLoading && styles.playCircleLoading
+          isPlaying && styles.playCircleActive
         ]} 
         onPress={handlePlayback} 
-        disabled={isLoading}
         activeOpacity={0.8}
       >
-        {isLoading ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <Ionicons 
-            name={isPlaying ? "volume-high" : "play"} 
-            size={16} 
-            color="#FFFFFF" 
-            style={!isPlaying ? { marginLeft: 2 } : {}}
-          />
-        )}
+        <Ionicons 
+          name={isPlaying ? "volume-high" : "play"} 
+          size={16} 
+          color="#FFFFFF" 
+          style={!isPlaying ? { marginLeft: 2 } : {}}
+        />
       </TouchableOpacity>
     </Animated.View>
   );
@@ -140,8 +118,5 @@ const styles = StyleSheet.create({
   },
   playCircleActive: {
     backgroundColor: "#10B981", // Beautiful Emerald Green when playing
-  },
-  playCircleLoading: {
-    backgroundColor: "#9CA3AF", // Gray while fetching
   },
 });

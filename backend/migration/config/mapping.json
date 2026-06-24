@@ -1,0 +1,24 @@
+{
+  "mappings": {
+    "english_english": {
+      "modelPath": "../../models/english-english-dictionary.js",
+      "transformer": "englishEnglish.js"
+    },
+    "english_malayalam": {
+      "modelPath": "../../models/english_malayalam_dictionary.js",
+      "transformer": "englishMalayalam.js"
+    },
+    "malayalam_english": {
+      "modelPath": "../../models/malayalam_english_dictionary.js",
+      "transformer": "malayalamEnglish.js"
+    },
+    "malayalam_malayalam": {
+      "modelPath": "../../models/malayalam_malayalam_dictionary.js",
+      "transformer": "malayalamMalayalam.js"
+    },
+    "malayalam_synonyms": {
+      "modelPath": "../../models/malayalam_synonyms.js",
+      "transformer": "malayalamSynonyms.js"
+    }
+  }
+}

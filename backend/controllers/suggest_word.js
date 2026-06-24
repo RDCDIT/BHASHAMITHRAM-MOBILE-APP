@@ -117,6 +117,20 @@ const suggestWord = async (req, res) => {
 
     const savedDataview = await newDataviewSuggestion.save();
 
+    // Send the acknowledgment email using the newly designed Malayalam HTML layout
+    if (contributor?.email) {
+      try {
+        await sendSuggestionReceivedMail(
+          contributor.email.trim(),
+          contributor.name ? contributor.name.trim() : "",
+          word.trim()
+        );
+        console.log(`✉️ [Mail Success] Suggestion acknowledgment email sent to ${contributor.email}`);
+      } catch (mailErr) {
+        console.error("⚠️ [Mail Error] Failed to send acknowledgment email:", mailErr.message);
+      }
+    }
+
     const duration = Date.now() - startTime;
     console.log(`✅ [Database Success] Word suggestion saved (ID: ${savedWord._id}) and contributor details logged to DataviewSuggestions (ID: ${savedDataview._id}).`);
     console.log(`⚡ [Performance] Request lifecycle resolved in ${duration}ms.`);
@@ -194,6 +208,33 @@ const getDataviewCollection = async (req, res) => {
     return res.status(200).json(data);
   } catch (error) {
     return res.status(500).json({ error: error.message });
+  }
+};
+
+
+const {
+  sendSuggestionReceivedMail,
+} = require("../services/mailService");
+
+exports.createSuggestion = async (req, res) => {
+  try {
+    const suggestion = await SuggestedWord.create(req.body);
+
+    // Call mail handler
+    await sendSuggestionReceivedMail({
+      email: suggestion.email,
+      word: suggestion.word,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: suggestion,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 

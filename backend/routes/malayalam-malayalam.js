@@ -18,7 +18,12 @@ router.get("/", getAllWords);
 router.get("/browse-malayalam", async (req, res) => {
   const { query } = req.query;
   try {
-    const searchCriteria = { "status.approved": true };
+    const searchCriteria = {
+      $or: [
+        { "status.approved": true },
+        { "status": { $exists: false } }
+      ]
+    };
     if (query && query.trim() !== "") {
       const trimmedQuery = query.trim();
       const searchRegex = trimmedQuery === "അ"

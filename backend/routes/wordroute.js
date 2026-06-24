@@ -28,7 +28,12 @@ router.get("/browse-malayalam", async (req, res) => {
   console.log(`\n📥 [Incoming Request] GET /api/words/browse-malayalam | Query: "${query || 'undefined'}"`);
 
   try {
-    const searchCriteria = { 'status.approved': true };
+    const searchCriteria = {
+      $or: [
+        { 'status.approved': true },
+        { 'status': { $exists: false } }
+      ]
+    };
     if (query && query.trim() !== '') {
       const trimmedQuery = query.trim();
       const searchRegex = trimmedQuery === 'അ' 
@@ -70,7 +75,10 @@ router.get("/browse-synonyms", async (req, res) => {
 
   try {
     const searchCriteria = { 
-      'status.approved': true, 
+      $or: [
+        { 'status.approved': true },
+        { 'status': { $exists: false } }
+      ],
       synonyms: { $exists: true, $ne: [] } 
     };
     if (query && query.trim() !== '') {
@@ -113,7 +121,10 @@ router.get("/browse-nanaarth", async (req, res) => {
 
   try {
     const searchCriteria = {
-      'status.approved': true,
+      $or: [
+        { 'status.approved': true },
+        { 'status': { $exists: false } }
+      ],
       'meanings.1': { $exists: true } // word has multiple meanings
     };
 
@@ -163,7 +174,13 @@ router.get("/details/:id", async (req, res) => {
     let categoryNames = [];
 
     if (type === 'english') {
-      wordDetails = await EnglishDictionary.findOne({ _id: Number(id), 'status.approved': true });
+      wordDetails = await EnglishDictionary.findOne({ 
+        _id: Number(id), 
+        $or: [
+          { 'status.approved': true },
+          { 'status': { $exists: false } }
+        ]
+      });
       if (wordDetails) {
         const categoryIds = wordDetails.categories || [];
         if (categoryIds.length > 0) {
@@ -179,7 +196,13 @@ router.get("/details/:id", async (req, res) => {
       }
     } else {
       const queryId = mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id;
-      wordDetails = await MalayalamMalayalamDictionary.findOne({ _id: queryId, 'status.approved': true });
+      wordDetails = await MalayalamMalayalamDictionary.findOne({ 
+        _id: queryId, 
+        $or: [
+          { 'status.approved': true },
+          { 'status': { $exists: false } }
+        ]
+      });
       if (wordDetails && wordDetails.category) {
         categoryNames = [wordDetails.category];
       }
