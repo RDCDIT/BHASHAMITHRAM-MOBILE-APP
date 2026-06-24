@@ -1,5 +1,6 @@
 import SideMenu from "@/components/side-menu";
 import AnimatedCard from "@/components/AnimatedCard";
+import FloatingLettersBackground from "@/components/FloatingLettersBackground";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -131,6 +132,7 @@ export default function HomeScreen() {
       </View>
 
       <View style={{ flex: 1, backgroundColor: colors.containerBg }}>
+        <FloatingLettersBackground />
         <Animated.ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -238,7 +240,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
     height: 125,
     marginTop: 8,
     borderRadius: 16,
