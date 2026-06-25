@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Platform } from "react-native";
+import { Platform, Alert } from "react-native";
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
@@ -30,14 +30,23 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
         };
 
         recognizer.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript || "";
+          let transcript = "";
+          for (let i = 0; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
           setPartialTranscript(transcript);
           onTranscript(transcript);
         };
 
         recognizer.onerror = (event: any) => {
-          console.error("Web Speech error:", event.error);
+          console.warn("Web Speech error:", event.error);
           setIsListening(false);
+          if (event.error === "network") {
+            Alert.alert(
+              "Voice Search Offline",
+              "Web speech recognition requires an active internet connection. Please verify your connection and try again."
+            );
+          }
         };
 
         recognizer.onend = () => {
@@ -55,7 +64,7 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
       try {
         webRecognizerRef.current.start();
       } catch (e) {
-        console.error("Web Speech start failed:", e);
+        console.warn("Web Speech start failed:", e);
       }
       return;
     }
