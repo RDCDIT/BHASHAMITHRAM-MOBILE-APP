@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   },
   letter: {
     position: "absolute",
-    fontSize: 50,
+    fontSize: 28,
     fontWeight: "bold",
     color: "rgba(94, 97, 99, 0.18)",
     fontFamily: "Chilanka",

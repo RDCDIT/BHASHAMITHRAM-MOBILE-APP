@@ -51,7 +51,7 @@ const API_BASE_URLS = [
 // മലയാളം സ്വരാക്ഷരങ്ങളും പ്രധാന വ്യഞ്ജനാക്ഷരങ്ങളും അടങ്ങിയ ലിസ്റ്റ് (Browsing എളുപ്പമാക്കാൻ)
 const MALAYALAM_ALPHABET = Object.freeze([
   // Vowels
-  "അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "എ", "ഏ", "ഐ", "ഒ", "ഓ", "ഔ","അം",
+  "അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "എ", "ഏ", "ഐ", "ഒ", "ഓ", "ഔ", "അം",
   // Consonants
   "ക", "ഖ", "ഗ", "ഘ", "ങ", "ച", "ഛ", "ജ", "ഝ", "ഞ",
   "ട", "ഠ", "ഡ", "ഢ", "ണ", "ത", "ഥ", "ദ", "ധ", "ന",
@@ -146,12 +146,12 @@ export default function MalayalamEnglishScreen() {
     return allEntries;
   }, [allEntries, searchText, selectedLetter]);
 
-const handleCardPress = (wordId: string) => {
-  router.push({
-    pathname: "/malayalam_details",
-    params: { dictionaryId: wordId },
-  });
-};
+  const handleCardPress = (wordId: string) => {
+    router.push({
+      pathname: "/malayalam_details",
+      params: { dictionaryId: wordId },
+    });
+  };
 
 
   const renderAlphabetItem = ({ item }: { item: string }) => (
@@ -168,56 +168,56 @@ const handleCardPress = (wordId: string) => {
     </TouchableOpacity>
   );
 
-const renderEntry = ({
-  item,
-  index,
-}: {
-  item: DictionaryEntry;
-  index: number;
-}) => {
-  const meanings =
-    item.meanings?.map((m) => m.meaning).filter(Boolean) || [];
+  const renderEntry = ({
+    item,
+    index,
+  }: {
+    item: DictionaryEntry;
+    index: number;
+  }) => {
+    const meanings =
+      item.meanings?.map((m) => m.meaning).filter(Boolean) || [];
 
-  return (
-    <AnimatedCard index={index} scrollY={scrollY}>
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => handleCardPress(item._id)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderText}>
-            <Text style={styles.malayalamWord}>
-              {item.word}
-            </Text>
-          </View>
-          <SpeakButton word={item.word} lang="ml" />
-        </View>
-
-        <View style={styles.definitionBox}>
-          <Text style={styles.definitionHeader}>
-            Definition
-          </Text>
-
-          {meanings.length > 0 ? (
-            meanings.slice(0, 3).map((meaning, idx) => (
-              <Text
-                key={idx}
-                style={styles.definitionText}
-              >
-                • {meaning}
+    return (
+      <AnimatedCard index={index} scrollY={scrollY}>
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => handleCardPress(item._id)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderText}>
+              <Text style={styles.malayalamWord}>
+                {item.word}
               </Text>
-            ))
-          ) : (
-            <Text style={styles.definitionText}>
-              No meaning available
+            </View>
+            <SpeakButton word={item.word} lang="ml" />
+          </View>
+
+          <View style={styles.definitionBox}>
+            <Text style={styles.definitionHeader}>
+              Definition
             </Text>
-          )}
-        </View>
-      </TouchableOpacity>
-    </AnimatedCard>
-  );
-};
+
+            {meanings.length > 0 ? (
+              meanings.slice(0, 3).map((meaning, idx) => (
+                <Text
+                  key={idx}
+                  style={styles.definitionText}
+                >
+                  • {meaning}
+                </Text>
+              ))
+            ) : (
+              <Text style={styles.definitionText}>
+                No meaning available
+              </Text>
+            )}
+          </View>
+        </TouchableOpacity>
+      </AnimatedCard>
+    );
+  };
 
 
   return (
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,

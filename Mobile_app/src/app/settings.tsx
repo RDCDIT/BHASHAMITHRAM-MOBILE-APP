@@ -22,8 +22,8 @@ export default function SettingsScreen() {
 
   const colors = {
     headerBg: "#2B2C51",
-    containerBg: "#F9F6F1",
-    cardBg: "#FFFFFF",
+    containerBg: "transparent",
+    cardBg: "rgba(255, 255, 255, 0.6)",
     textPrimary: "#1F2937",
     textSecondary: "#6B7280",
     danger: "#EF4444",

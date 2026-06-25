@@ -157,8 +157,8 @@ export default function MalayalamSynonymScreen() {
 
     return (
       <AnimatedCard index={index} scrollY={scrollY}>
-        <TouchableOpacity 
-          style={styles.card} 
+        <TouchableOpacity
+          style={styles.card}
           onPress={() => handleCardPress(item._id)}
           activeOpacity={0.7}
         >
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,

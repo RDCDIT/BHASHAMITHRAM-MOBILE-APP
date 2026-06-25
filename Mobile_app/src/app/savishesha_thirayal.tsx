@@ -20,9 +20,9 @@ import VoiceSearchOverlay from "../components/VoiceSearchOverlay";
 import AnimatedCard from "../components/AnimatedCard";
 import SkeletonLoader from "../components/SkeletonLoader";
 
-import { 
-  getRecentActivity, 
-  clearRecentActivity, 
+import {
+  getRecentActivity,
+  clearRecentActivity,
   saveRecentSearch,
   RecentSearch,
   RecentOpening
@@ -82,7 +82,7 @@ export default function SavisheshaThirayalScreen() {
     try {
       if (showLoadingIndicator) setIsLoadingActivity(true);
       setActivityErrorMessage("");
-      
+
       const { recentSearches: searches, recentOpenings: openings } = await getRecentActivity();
       setRecentSearches(searches);
       setRecentOpenings(openings);
@@ -118,7 +118,7 @@ export default function SavisheshaThirayalScreen() {
 
           const data = await response.json();
           setSearchResults(Array.isArray(data) ? data : []);
-          
+
           if (Array.isArray(data) && data.length > 0) {
             void saveRecentSearch(queryText, "character");
           }
@@ -268,9 +268,9 @@ export default function SavisheshaThirayalScreen() {
           <Text style={styles.headerTitle}>സമീപകാല തിരയൽ</Text>
 
           {/* Clear history button inside header */}
-          {!searchText.trim() && 
-          ((activeTab === "searches" && recentSearches.length > 0) || 
-           (activeTab === "openings" && recentOpenings.length > 0)) ? (
+          {!searchText.trim() &&
+            ((activeTab === "searches" && recentSearches.length > 0) ||
+              (activeTab === "openings" && recentOpenings.length > 0)) ? (
             <TouchableOpacity onPress={confirmClearHistory}>
               <Ionicons name="trash-outline" size={24} color="white" />
             </TouchableOpacity>
@@ -304,7 +304,7 @@ export default function SavisheshaThirayalScreen() {
 
       {/* Tab Selector */}
       {!searchText.trim() && (
-        <View 
+        <View
           style={styles.tabContainer}
           onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
         >
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   openingCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
     borderRadius: 20,
     padding: 18,
     marginBottom: 12,
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,
