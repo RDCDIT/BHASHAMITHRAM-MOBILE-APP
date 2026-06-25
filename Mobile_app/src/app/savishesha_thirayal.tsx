@@ -52,11 +52,11 @@ export default function SavisheshaThirayalScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activityErrorMessage, setActivityErrorMessage] = useState("");
 
-  const searchScrollY = useRef(new Animated.Value(0)).current;
-  const recentScrollY = useRef(new Animated.Value(0)).current;
+  const [searchScrollY] = React.useState(() => new Animated.Value(0));
+  const [recentScrollY] = React.useState(() => new Animated.Value(0));
 
   const [containerWidth, setContainerWidth] = useState(0);
-  const tabTranslateX = useRef(new Animated.Value(0)).current;
+  const [tabTranslateX] = React.useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.timing(tabTranslateX, {
@@ -375,7 +375,7 @@ export default function SavisheshaThirayalScreen() {
               <View style={styles.stateContainer}>
                 <Text style={styles.stateTitle}>ഫലങ്ങൾ ഒന്നും കണ്ടെത്തിയില്ല</Text>
                 <Text style={styles.stateText}>
-                  `"${searchText}" എന്ന വാക്ക് നിഘണ്ടുവിൽ കണ്ടെത്താൻ സാധിച്ചില്ല.`
+                  &quot;{searchText}&quot; എന്ന വാക്ക് നിഘണ്ടുവിൽ കണ്ടെത്താൻ സാധിച്ചില്ല.
                 </Text>
               </View>
             }

@@ -11,7 +11,7 @@ interface SpeakButtonProps {
 export default function SpeakButton({ word, lang }: SpeakButtonProps) {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const [scaleAnim] = React.useState(() => new Animated.Value(1));
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {

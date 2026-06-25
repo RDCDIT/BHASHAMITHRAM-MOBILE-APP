@@ -35,7 +35,7 @@ export default function MalayalamSynonymDetailsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [highlightedCard, _setHighlightedCard] = useState<string | null>(null);
-  const highlightAnim = useRef(new Animated.Value(0)).current;
+  const [highlightAnim] = React.useState(() => new Animated.Value(0));
 
   const toggleHighlight = (key: string) => {
     if (highlightedCard === key) {
@@ -85,7 +85,7 @@ export default function MalayalamSynonymDetailsScreen() {
     ];
   };
 
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrollY] = React.useState(() => new Animated.Value(0));
 
   const loadDetails = async () => {
     if (!dictionaryId) {

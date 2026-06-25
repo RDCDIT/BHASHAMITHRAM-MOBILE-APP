@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { View, StyleSheet, Animated } from "react-native";
 
 export default function SkeletonLoader() {
-  const opacity = useRef(new Animated.Value(0.3)).current;
+  const [opacity] = React.useState(() => new Animated.Value(0.3));
 
   useEffect(() => {
     Animated.loop(

@@ -31,10 +31,6 @@ const SuggestedWordsScreen: React.FC = () => {
     "pending" | "approved" | "rejected"
   >("pending");
 
-  useEffect(() => {
-    fetchSuggestions();
-  }, []);
-
   const fetchSuggestions = async () => {
     try {
       setLoading(true);
@@ -50,6 +46,10 @@ const SuggestedWordsScreen: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSuggestions();
+  }, []);
 
   const updateStatus = async (
     id: string,

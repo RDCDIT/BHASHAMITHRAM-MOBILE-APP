@@ -22,7 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 // Voice Visualizer Component with modern animated bars
 function VoiceVisualizer({ animating }: { animating: boolean }) {
-  const anims = useRef([
+  const [anims] = useState(() => [
     new Animated.Value(5),
     new Animated.Value(15),
     new Animated.Value(8),
@@ -33,7 +33,7 @@ function VoiceVisualizer({ animating }: { animating: boolean }) {
     new Animated.Value(10),
     new Animated.Value(15),
     new Animated.Value(5),
-  ]).current;
+  ]);
 
   useEffect(() => {
     let active = true;
@@ -198,7 +198,9 @@ export default function SuggestWordScreen() {
         setRecordingDuration((prev) => prev + 1);
       }, 1000);
     } else {
-      setRecordingDuration(0);
+      requestAnimationFrame(() => {
+        setRecordingDuration(0);
+      });
     }
     return () => clearInterval(interval);
   }, [isRecording]);
