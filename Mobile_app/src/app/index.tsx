@@ -31,7 +31,7 @@ interface MenuItem {
 export default function HomeScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const router = useRouter();
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrollY] = useState(() => new Animated.Value(0));
 
   const menuItems: MenuItem[] = [
     {

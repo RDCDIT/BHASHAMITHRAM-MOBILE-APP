@@ -38,7 +38,7 @@ function PronunciationButtonInner({ word }: PronunciationButtonProps) {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isSpeakingLocally, setIsSpeakingLocally] = useState<boolean>(false);
 
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const [scaleAnim] = React.useState(() => new Animated.Value(1));
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
   const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || 

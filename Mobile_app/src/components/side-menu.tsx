@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Linking,
@@ -24,7 +24,7 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const drawerWidth = Math.min(320, Math.round(screenWidth * 0.78));
-  const slideAnim = useRef(new Animated.Value(-drawerWidth)).current;
+  const [slideAnim] = useState(() => new Animated.Value(-drawerWidth));
 
   useEffect(() => {
     Animated.timing(slideAnim, {

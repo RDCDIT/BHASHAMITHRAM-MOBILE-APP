@@ -74,12 +74,6 @@ export default function SuggestionDetailScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [updating, setUpdating] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (id) {
-      fetchDetails();
-    }
-  }, [id]);
-
   const fetchDetails = async () => {
     try {
       setLoading(true);
@@ -96,6 +90,12 @@ export default function SuggestionDetailScreen() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (id) {
+      fetchDetails();
+    }
+  }, [id]);
 
   const updateStatus = async (action: "approve" | "reject") => {
     try {
@@ -322,7 +322,7 @@ export default function SuggestionDetailScreen() {
             <Text style={styles.sectionTitle}>Proverbs & Sayings</Text>
             {details.proverbs.map((p, idx) => (
               <View key={p.id || idx} style={styles.proverbContainer}>
-                <Text style={styles.proverbText}>"{p.proverb}"</Text>
+                <Text style={styles.proverbText}>&quot;{p.proverb}&quot;</Text>
                 {!!p.context_usage && (
                   <Text style={styles.proverbContext}>Context: {p.context_usage}</Text>
                 )}

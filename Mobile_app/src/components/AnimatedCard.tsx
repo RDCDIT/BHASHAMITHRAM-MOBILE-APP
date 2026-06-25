@@ -8,12 +8,12 @@ interface AnimatedCardProps {
 }
 
 export default function AnimatedCard({ children, index, scrollY }: AnimatedCardProps) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const [fadeAnim] = React.useState(() => new Animated.Value(0));
+  const [slideAnim] = React.useState(() => new Animated.Value(30));
 
   // Animated values for the drag-to-resize/flexibility effect
-  const dragScaleX = useRef(new Animated.Value(1)).current;
-  const dragScaleY = useRef(new Animated.Value(1)).current;
+  const [dragScaleX] = React.useState(() => new Animated.Value(1));
+  const [dragScaleY] = React.useState(() => new Animated.Value(1));
 
   useEffect(() => {
     // Stagger the first few cards to create a beautiful sequential reveal effect.
@@ -35,7 +35,7 @@ export default function AnimatedCard({ children, index, scrollY }: AnimatedCardP
     ]).start();
   }, [fadeAnim, slideAnim, index]);
 
-  const panResponder = useRef(
+  const [panResponder] = React.useState(() =>
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
@@ -50,7 +50,7 @@ export default function AnimatedCard({ children, index, scrollY }: AnimatedCardP
         const targetScaleX = 1 + gestureState.dx * 0.0008;
         const targetScaleY = 1 + gestureState.dy * 0.0008;
 
-        // Use Animated.spring for a smooth, organic feel
+        // Use Animated.spring for a organic feel
         Animated.spring(dragScaleX, {
           toValue: Math.max(0.8, Math.min(1.2, targetScaleX)),
           useNativeDriver: true,
@@ -100,7 +100,7 @@ export default function AnimatedCard({ children, index, scrollY }: AnimatedCardP
         ]).start();
       },
     })
-  ).current;
+  );
 
   // If scrollY is provided, calculate a dynamic offset based on scroll position.
   let combinedTranslateY: Animated.AnimatedAddition<number> | Animated.Value = slideAnim;

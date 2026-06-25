@@ -59,7 +59,7 @@ export default function MalayalamEnglishScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrollY] = React.useState(() => new Animated.Value(0));
 
   const {
     isListening,
