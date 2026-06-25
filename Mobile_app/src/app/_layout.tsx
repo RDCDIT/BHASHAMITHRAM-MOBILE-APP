@@ -7,7 +7,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    NotoSansMalayalam: require("@/assets/fonts/NotoSansMalayalam-VariableFont_wdth,wght.ttf"),
+    NotoSansMalayalam: require("../../assets/fonts/NotoSansMalayalam-VariableFont_wdth,wght.ttf"),
   });
 
   useEffect(() => {

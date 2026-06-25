@@ -73,9 +73,9 @@ export default function MalayalamSynonymDetailsScreen() {
     const isHighlighted = highlightedCard === key;
     const scale = isHighlighted
       ? highlightAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [1, 1.03],
-        })
+        inputRange: [0, 1],
+        outputRange: [1, 1.03],
+      })
       : 1;
 
     return [
@@ -174,8 +174,8 @@ export default function MalayalamSynonymDetailsScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <Animated.ScrollView 
-          contentContainerStyle={styles.scrollContainer} 
+        <Animated.ScrollView
+          contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           onScroll={Animated.event(
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   wordCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
     borderRadius: 20,
     padding: 24,
     alignItems: "center",
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   section: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,

@@ -37,7 +37,7 @@ type DictionaryEntryDetails = {
   inflections?: string;
   gender?: string;
   metadata?: any;
-  
+
   equivalents?: {
     kannada?: string;
     tamil?: string;
@@ -46,7 +46,7 @@ type DictionaryEntryDetails = {
     english?: string;
     malayalam?: string;
   };
-  
+
   images?: string[];
   category_names?: string[];
   meanings?: Array<{
@@ -112,9 +112,9 @@ export default function MalayalamWordDetailsScreen() {
     const isHighlighted = highlightedCard === key;
     const scale = isHighlighted
       ? highlightAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [1, 1.03],
-        })
+        inputRange: [0, 1],
+        outputRange: [1, 1.03],
+      })
       : 1;
 
     return [
@@ -225,8 +225,8 @@ export default function MalayalamWordDetailsScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <Animated.ScrollView 
-          contentContainerStyle={styles.scrollContainer} 
+        <Animated.ScrollView
+          contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           onScroll={Animated.event(
@@ -352,7 +352,7 @@ export default function MalayalamWordDetailsScreen() {
                 style={getAnimatedCardStyle("proverbs")}
               >
                 <Text style={styles.sectionTitle}>പഴഞ്ചൊല്ലുകൾ & സന്ദർഭം / Proverbs & Context</Text>
-                
+
                 {!!details.proverb && (
                   <View style={styles.proverbItem}>
                     <Ionicons name="bookmark-outline" size={20} color="#2B2C51" style={{ marginRight: 8, marginTop: 2 }} />
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   wordCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
     borderRadius: 20,
     padding: 24,
     alignItems: "center",
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto",
   },
   section: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,

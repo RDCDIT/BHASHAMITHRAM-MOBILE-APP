@@ -69,7 +69,7 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
             <View style={styles.header}>
               <View style={styles.logoContainer}>
                 <Image
-                  source={require("@/assets/images/cdit_logo.png")}
+                  source={require("../../assets/images/cdit_logo.png")}
                   style={styles.logoImage}
                   contentFit="contain"
                 />

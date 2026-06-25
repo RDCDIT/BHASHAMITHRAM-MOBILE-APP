@@ -110,7 +110,7 @@ interface EquivalentLanguage {
 
 export default function SuggestWordScreen() {
   const router = useRouter();
-  
+
   // App Setup Selection state
   const [selectedLanguage, setSelectedLanguage] = useState<"malayalam" | "english" | null>(null);
   const isEnglish = selectedLanguage === "english";
@@ -185,8 +185,8 @@ export default function SuggestWordScreen() {
   useEffect(() => {
     return sound
       ? () => {
-          sound.unloadAsync();
-        }
+        sound.unloadAsync();
+      }
       : undefined;
   }, [sound]);
 
@@ -511,7 +511,7 @@ export default function SuggestWordScreen() {
 
           if (response.ok) {
             submissionSuccess = true;
-            
+
             // Send another request to the Dataview_collection endpoint
             try {
               console.log(`[Suggest] Submitting dataview to ${apiBaseUrl}/api/words/dataview`);
@@ -529,7 +529,7 @@ export default function SuggestWordScreen() {
             } catch (dvErr) {
               console.error("Failed to save to Dataview_collection:", dvErr);
             }
-            
+
             break;
           } else {
             const errText = await response.text();
@@ -643,7 +643,7 @@ export default function SuggestWordScreen() {
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          
+
           {/* SECTION 1: Disclaimer & Basic Details */}
           <View style={styles.card}>
             <View style={styles.sectionHeaderContainer}>
@@ -657,8 +657,8 @@ export default function SuggestWordScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.disclaimerTitle}>{isEnglish ? "Instructions:" : "നിർദ്ദേശങ്ങൾ (Instructions):"}</Text>
                 <Text style={styles.disclaimerText}>
-                  {isEnglish 
-                    ? "* Marked fields are mandatory. Others are optional." 
+                  {isEnglish
+                    ? "* Marked fields are mandatory. Others are optional."
                     : "* അടയാളപ്പെടുത്തിയവ പൂരിപ്പിക്കൽ നിർബന്ധമാണ് (Mandatory fields). മറ്റുള്ളവ നിങ്ങൾക്ക് ആവശ്യമെങ്കിൽ നൽകാവുന്നതാണ് (Optional fields)."}
                 </Text>
               </View>
@@ -720,17 +720,17 @@ export default function SuggestWordScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{isEnglish ? "Gender" : "ലിംഗം (Gender)"}</Text>
               <View style={styles.genderRow}>
-                {(isEnglish 
+                {(isEnglish
                   ? [
-                      { label: "Masculine", value: "പുല്ലിംഗം" },
-                      { label: "Feminine", value: "സ്ത്രീലിംഗം" },
-                      { label: "Neuter", value: "നപുംസകലിംഗം" }
-                    ]
+                    { label: "Masculine", value: "പുല്ലിംഗം" },
+                    { label: "Feminine", value: "സ്ത്രീലിംഗം" },
+                    { label: "Neuter", value: "നപുംസകലിംഗം" }
+                  ]
                   : [
-                      { label: "പുല്ലിംഗം", value: "പുല്ലിംഗം" },
-                      { label: "സ്ത്രീലിംഗം", value: "സ്ത്രീലിംഗം" },
-                      { label: "നപുംസകലിംഗം", value: "നപുംസകലിംഗം" }
-                    ]
+                    { label: "പുല്ലിംഗം", value: "പുല്ലിംഗം" },
+                    { label: "സ്ത്രീലിംഗം", value: "സ്ത്രീലിംഗം" },
+                    { label: "നപുംസകലിംഗം", value: "നപുംസകലിംഗം" }
+                  ]
                 ).map((g) => (
                   <TouchableOpacity
                     key={g.value}
@@ -1007,122 +1007,13 @@ export default function SuggestWordScreen() {
             )}
           </View>
 
-          {/* SECTION 3: Uploads & Pronunciation */}
-          <View style={[styles.card, styles.uploadCard]}>
-            <View style={styles.sectionHeaderContainer}>
-              <Ionicons name="cloud-upload-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionHeading}>{isEnglish ? "Section 3: Media Upload & Pronunciation" : "വിഭാഗം 3: ഫയൽ അപ്‌ലോഡ് & ഉച്ചാരണം (Media)"}</Text>
-            </View>
 
-            {/* Disclaimer */}
-            <View style={[styles.disclaimerContainer, { backgroundColor: "#EFF6FF" }]}>
-              <Ionicons name="information-circle-outline" size={20} color="#1E40AF" style={{ marginRight: 8, marginTop: 2 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.disclaimerText, { color: "#1E40AF" }]}>
-                  {isEnglish 
-                    ? "Adding details here is optional. You can upload images or recorded pronunciations of the word."
-                    : "ഇവിടെ നൽകുന്ന വിവരങ്ങൾ നിർബന്ധമല്ല. വാക്കുമായി ബന്ധപ്പെട്ട ചിത്രങ്ങളും ഉച്ചാരണങ്ങളും അപ്‌ലോഡ് ചെയ്യാം."}
-                </Text>
-              </View>
-            </View>
 
-            {/* Images */}
-            <Text style={styles.subSectionTitle}>{isEnglish ? "Upload Images" : "ചിത്രങ്ങൾ ചേർക്കുക (Upload Images)"}</Text>
-            <TouchableOpacity style={styles.mediaButton} onPress={handleSelectImage}>
-              <Ionicons name="image-outline" size={24} color="#2B2C51" />
-              <Text style={styles.mediaButtonText}>{isEnglish ? "Select Images" : "ചിത്രങ്ങൾ തിരഞ്ഞെടുക്കുക"}</Text>
-            </TouchableOpacity>
-            {selectedImages.length > 0 && (
-              <View style={styles.imageGrid}>
-                {selectedImages.map((uri, idx) => (
-                  <View key={idx} style={styles.imageThumbWrapper}>
-                    <Text style={styles.imageThumbText}>{isEnglish ? "Image" : "ചിത്രം"} {idx + 1}</Text>
-                    <TouchableOpacity
-                      style={styles.deleteImageBtn}
-                      onPress={() => setSelectedImages(selectedImages.filter((_, i) => i !== idx))}
-                    >
-                      <Ionicons name="close-circle" size={18} color="#EF4444" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Audio Recording */}
-            <Text style={[styles.subSectionTitle, { marginTop: 18 }]}>{isEnglish ? "Record Pronunciation" : "ഉച്ചാരണം റെക്കോർഡ് ചെയ്യുക (Record Audio)"}</Text>
-            
-            {/* Voice animated bars */}
-            {(isRecording || isPlaying) && (
-              <VoiceVisualizer animating={isRecording || isPlaying} />
-            )}
-
-            <View style={styles.audioControlsRow}>
-              {!isRecording ? (
-                <TouchableOpacity style={styles.recordStartBtn} onPress={handleStartRecording}>
-                  <Ionicons name="mic" size={20} color="#FFFFFF" />
-                  <Text style={styles.recordStartBtnText}>{isEnglish ? "Start Recording" : "റിക്കോർഡിങ് തുടങ്ങുക"}</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.recordStopBtn} onPress={handleStopRecording}>
-                  <Ionicons name="stop" size={20} color="#FFFFFF" />
-                  <Text style={styles.recordStopBtnText}>{isEnglish ? "Stop" : "നിർത്തുക"} ({recordingDuration}s)</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            {recordedUri && (
-              <View style={styles.audioPlayWrapper}>
-                <View style={styles.mediaSuccessBadge}>
-                  <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-                  <Text style={styles.mediaSuccessText}>
-                    {isEnglish ? "Recording saved" : "റെക്കോർഡിംഗ് സൂക്ഷിച്ചു"} ({recordedUri.split("/").pop()})
-                  </Text>
-                  <TouchableOpacity onPress={() => { setRecordedUri(null); setIsPlaying(false); if (sound) { sound.unloadAsync(); setSound(null); } }}>
-                    <Ionicons name="trash" size={18} color="#EF4444" style={{ marginLeft: 8 }} />
-                  </TouchableOpacity>
-                </View>
-                
-                <View style={styles.playbackRow}>
-                  <TouchableOpacity
-                    style={[styles.playbackBtn, isPlaying && styles.playbackBtnActive]}
-                    onPress={handlePlayRecording}
-                  >
-                    <Ionicons
-                      name={isPlaying ? "pause" : "play"}
-                      size={20}
-                      color="#FFFFFF"
-                    />
-                    <Text style={styles.playbackBtnText}>
-                      {isPlaying 
-                        ? (isEnglish ? "Pause" : "നിർത്തുക (Pause)") 
-                        : (isEnglish ? "Play Recording" : "കേൾക്കുക (Play Recording)")}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {/* Audio File Import */}
-            <Text style={[styles.subSectionTitle, { marginTop: 18 }]}>{isEnglish ? "Import Audio File" : "ഓഡിയോ ഫയൽ ഇറക്കുമതി (Import Audio File)"}</Text>
-            <TouchableOpacity style={styles.mediaButton} onPress={handleImportAudio}>
-              <Ionicons name="document-attach-outline" size={24} color="#2B2C51" />
-              <Text style={styles.mediaButtonText}>{isEnglish ? "Select Audio File (mp3/wav/m4a)" : "ഓഡിയോ ഫയൽ തിരഞ്ഞെടുക്കുക (mp3/wav/m4a)"}</Text>
-            </TouchableOpacity>
-            {importedAudioUri && (
-              <View style={styles.mediaSuccessBadge}>
-                <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-                <Text style={styles.mediaSuccessText}>{isEnglish ? "File ready: " : "ഫയൽ തയ്യാറാണ്: "}{importedAudioName}</Text>
-                <TouchableOpacity onPress={() => { setImportedAudioUri(null); setImportedAudioName(null); }}>
-                  <Ionicons name="trash" size={18} color="#EF4444" style={{ marginLeft: 8 }} />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-
-          {/* SECTION 4: Contributor Details & Finish */}
+          {/* SECTION 3: Contributor Details & Finish */}
           <View style={styles.card}>
             <View style={styles.sectionHeaderContainer}>
               <Ionicons name="person-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionHeading}>{isEnglish ? "Section 4: Contributor Details & Submission" : "വിഭാഗം 4: കോൺട്രിബ്യൂട്ടർ വിവരങ്ങളും സമർപ്പണവും"}</Text>
+              <Text style={styles.sectionHeading}>{isEnglish ? "Section 3: Contributor Details & Submission" : "വിഭാഗം 3: കോൺട്രിബ്യൂട്ടർ വിവരങ്ങളും സമർപ്പണവും"}</Text>
             </View>
 
             <View style={styles.inputGroup}>
@@ -1160,7 +1051,7 @@ export default function SuggestWordScreen() {
                 />
               </TouchableOpacity>
               <Text style={styles.checkboxText}>
-                {isEnglish 
+                {isEnglish
                   ? "I certify that the information submitted by me is completely accurate and factual."
                   : "ഞാൻ സമർപ്പിച്ച ഈ വിവരങ്ങൾ പൂർണ്ണമായും കൃത്യവും വസ്തുതാപരവുമാണെന്ന് സാക്ഷ്യപ്പെടുത്തുന്നു."}
               </Text>
@@ -1178,7 +1069,7 @@ export default function SuggestWordScreen() {
                 />
               </TouchableOpacity>
               <Text style={styles.checkboxText}>
-                {isEnglish 
+                {isEnglish
                   ? "I accept C-DIT terms and conditions for suggesting words to the dictionary."
                   : "നിഘണ്ടുവിലേക്ക് പദങ്ങൾ ചേർക്കുന്നതിനുള്ള C-DIT നിബന്ധനകൾ ഞാൻ അംഗീകരിക്കുന്നു."}
               </Text>
@@ -1196,7 +1087,7 @@ export default function SuggestWordScreen() {
                 />
               </TouchableOpacity>
               <Text style={styles.checkboxText}>
-                {isEnglish 
+                {isEnglish
                   ? "I agree to receive emails/updates from R&D C-DIT."
                   : "R&D C-DIT-ൽ നിന്നുള്ള ഇമെയിലുകൾ ലഭിക്കുന്നതിനും ആശയവിനിമയം നടത്തുന്നതിനും ഞാൻ സമ്മതിക്കുന്നു (Receive updates/mails from R&D C-DIT)."}
               </Text>
@@ -1237,13 +1128,13 @@ export default function SuggestWordScreen() {
             <View style={styles.modalSuccessIconBg}>
               <Ionicons name="checkmark-circle" size={54} color="#10B981" />
             </View>
-            
+
             <Text style={styles.modalTitle}>
               {isEnglish ? "Thank You!" : "നന്ദി!"}
             </Text>
-            
+
             <Text style={styles.modalDescription}>
-              {isEnglish 
+              {isEnglish
                 ? "Your word suggestion has been successfully submitted. It will be added to the dictionary after verification by our administration panel."
                 : "നിങ്ങൾ നിർദ്ദേശിച്ച വാക്ക് വിജയകരമായി സമർപ്പിച്ചു. ഞങ്ങളുടെ അഡ്മിൻ പാനൽ ഇത് പരിശോധിച്ചതിനു ശേഷം നിഘണ്ടുവിൽ ചേർക്കുന്നതായിരിക്കും."}
             </Text>
@@ -1260,7 +1151,7 @@ export default function SuggestWordScreen() {
               <Text style={styles.modalDetailsValue}>{contributorName}</Text>
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.modalButton}
               onPress={() => {
                 setShowAcknowledgement(false);
@@ -1392,14 +1283,14 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "transparent",
     padding: 16,
   },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 40,
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "transparent",
   },
   selectionContainer: {
     flex: 1,
@@ -1499,7 +1390,7 @@ const styles = StyleSheet.create({
     fontFamily: "NotoSansMalayalam",
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
