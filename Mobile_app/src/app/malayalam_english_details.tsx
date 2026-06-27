@@ -50,8 +50,6 @@ type DictionaryEntryDetails = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
-  "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
 export default function MalayalamEnglishDetailsScreen() {
@@ -425,7 +423,7 @@ export default function MalayalamEnglishDetailsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "transparent",
   },
   header: {
     height: Platform.OS === "android" ? 75 : 95,
@@ -452,7 +450,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   wordCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 24,
     alignItems: "center",
@@ -485,7 +483,7 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto",
   },
   section: {
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,

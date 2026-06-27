@@ -25,8 +25,6 @@ type SynonymDetails = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
-  "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
 export default function MalayalamSynonymDetailsScreen() {
@@ -134,11 +132,14 @@ export default function MalayalamSynonymDetailsScreen() {
 
   const renderSynonyms = (syns?: string[]) => {
     if (!syns || !Array.isArray(syns) || syns.length === 0) return null;
+    const flatSyns = syns.flat(Infinity)
+      .map(s => typeof s === 'string' ? s.trim() : String(s).trim())
+      .filter(s => s.length > 0);
     return (
       <View style={styles.bulletList}>
-        {syns.map((item, idx) => (
+        {flatSyns.map((item, idx) => (
           <View key={idx} style={styles.bulletItem}>
-            <Text style={styles.bulletIcon}>•</Text>
+            <Text style={styles.bulletIcon}>{idx + 1}.</Text>
             <Text style={styles.bulletText}>{item}</Text>
           </View>
         ))}
@@ -223,15 +224,13 @@ export default function MalayalamSynonymDetailsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "transparent",
   },
   header: {
     height: Platform.OS === "android" ? 75 : 95,
     backgroundColor: "#2B2C51",
     justifyContent: "flex-end",
     paddingBottom: 12,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
   },
   headerContent: {
     flexDirection: "row",
@@ -252,7 +251,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   wordCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 24,
     alignItems: "center",
@@ -288,7 +287,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   section: {
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,

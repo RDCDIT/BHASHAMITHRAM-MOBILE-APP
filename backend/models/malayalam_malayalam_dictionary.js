@@ -54,7 +54,7 @@ const MalayalamMalayalamDictionarySchema = new mongoose.Schema(
 
     novel_words: [String],
 
-    synonyms: [String],
+    synonyms: { type: Array },
 
     antonyms: [String],
 

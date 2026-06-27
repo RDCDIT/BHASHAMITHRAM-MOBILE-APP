@@ -1,17 +1,24 @@
 import { useState, useEffect, useRef } from "react";
 import { Platform } from "react-native";
+import { 
+  useAudioRecorder, 
+  RecordingPresets, 
+  getRecordingPermissionsAsync, 
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync 
+} from "expo-audio";
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
-  "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
 export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-US" | "ml-IN" = "ml-IN") {
   const [isListening, setIsListening] = useState(false);
   const [partialTranscript, setPartialTranscript] = useState("");
   const webRecognizerRef = useRef<any>(null);
-  const recordingRef = useRef<any>(null);
+
+  // Initialize the expo-audio recorder hook (always called, unconditionally)
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   // 1. Setup Web Speech API Fallback for Web browser environments
   useEffect(() => {
@@ -36,8 +43,15 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
         };
 
         recognizer.onerror = (event: any) => {
-          console.error("Web Speech error:", event.error);
+          console.warn("Web Speech error:", event.error);
           setIsListening(false);
+          if (event.error === "network") {
+            alert("Network error: Speech recognition requires an active internet connection. Some browsers may block recognition requests or require a secure context (HTTPS).");
+          } else if (event.error === "not-allowed") {
+            alert("Microphone permission was denied.");
+          } else if (event.error !== "no-speech") {
+            alert(`Voice search error: ${event.error}`);
+          }
         };
 
         recognizer.onend = () => {
@@ -55,34 +69,35 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
       try {
         webRecognizerRef.current.start();
       } catch (e) {
-        console.error("Web Speech start failed:", e);
+        console.warn("Web Speech start failed:", e);
       }
       return;
     }
 
-    // Expo Go / Mobile native fallback: Record audio using expo-av and send to backend
+    // Expo Go / Mobile native: Record audio using expo-audio and send to backend
     try {
-      // Dynamically require expo-av to prevent SSR/Metro compilation issues
-      const { Audio } = require("expo-av");
-
-      const permission = await Audio.requestPermissionsAsync();
-      if (!permission.granted) {
+      const permission = await getRecordingPermissionsAsync();
+      let granted = permission.granted;
+      if (!granted) {
+        const request = await requestRecordingPermissionsAsync();
+        granted = request.granted;
+      }
+      if (!granted) {
         alert("Microphone permission is required for voice search.");
         return;
       }
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
 
       setPartialTranscript("Recording...");
       setIsListening(true);
 
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      recordingRef.current = recording;
+      console.log("🎙️ [VoiceSearch] Audio recording starting...");
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
       console.log("🎙️ [VoiceSearch] Audio recording started.");
 
     } catch (error) {
@@ -99,27 +114,25 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
       try {
         webRecognizerRef.current.stop();
       } catch (e) {
-        console.error("Web Speech stop failed:", e);
+        console.warn("Web Speech stop failed:", e);
       }
       setIsListening(false);
       return;
     }
 
     // Mobile Speech API via backend
-    if (!recordingRef.current) {
+    const status = audioRecorder.getStatus();
+    if (!status.isRecording) {
       setIsListening(false);
       return;
     }
 
     try {
-      const recording = recordingRef.current;
-      recordingRef.current = null;
-
       console.log("🎙️ [VoiceSearch] Stopping recording...");
       setPartialTranscript("Processing speech...");
 
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
       
       if (!uri) {
         throw new Error("No recording URI found.");

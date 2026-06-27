@@ -72,10 +72,7 @@ export default function SQLImportScreen() {
       setLoading(true);
       setMigrationReport(null);
 
-      const API_URL =
-        Platform.OS === "android"
-          ? "http://192.168.1.2:5000/api/admin/migrate"
-          : "http://localhost:5000/api/admin/migrate";
+      const API_URL = `${process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/migrate`;
 
       let response;
 

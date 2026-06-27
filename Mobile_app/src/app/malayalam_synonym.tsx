@@ -29,8 +29,6 @@ type SynonymEntry = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
-  "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
 const MALAYALAM_ALPHABET = [
@@ -152,7 +150,7 @@ export default function MalayalamSynonymScreen() {
 
   const renderEntry = ({ item, index }: { item: SynonymEntry; index: number }) => {
     const synonymsList = Array.isArray(item.synonyms)
-      ? item.synonyms
+      ? item.synonyms.flat(Infinity).map((s) => typeof s === "string" ? s.trim() : String(s).trim()).filter(Boolean)
       : (item.synonyms ? String(item.synonyms).split(",").map((s) => s.trim()).filter(Boolean) : []);
 
     return (
@@ -288,7 +286,7 @@ export default function MalayalamSynonymScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "transparent",
   },
   header: {
     height: Platform.OS === "android" ? 75 : 95,
@@ -414,7 +412,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   card: {
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,

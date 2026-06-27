@@ -54,25 +54,41 @@ export default function SpeakButton({ word, lang }: SpeakButtonProps) {
   }, [isPlaying]);
 
   const handlePlayback = async () => {
+    if (!word || typeof word !== 'string' || word.trim() === '') {
+      return;
+    }
+
     if (isPlaying) {
-      Speech.stop();
+      try {
+        await Speech.stop();
+      } catch (error) {
+        console.warn("Error stopping speech:", error);
+      }
       setIsPlaying(false);
       return;
     }
 
     try {
+      if (!Speech || typeof Speech.speak !== 'function') {
+        console.warn("Speech module is not available on this device.");
+        return;
+      }
+
       const speechLang = lang === 'ml' ? 'ml-IN' : 'en-US';
       setIsPlaying(true);
       
+      try {
+        await Speech.stop();
+      } catch (e) {}
+
       Speech.speak(word, {
         language: speechLang,
         onStart: () => setIsPlaying(true),
         onDone: () => setIsPlaying(false),
         onStopped: () => setIsPlaying(false),
         onError: (err) => {
-          console.error("Local Speech synthesis failed:", err);
+          console.warn("Local Speech synthesis failed:", err);
           setIsPlaying(false);
-          Alert.alert("Speech Error", "Local text-to-speech failed to speak this word.");
         }
       });
     } catch (error) {

@@ -2,7 +2,11 @@ const Synonym = require('../models/malayalam_synonyms');
 
 // Utility helper to clean and convert comma-separated string inputs into clean string arrays
 const parseSynonyms = (input) => {
-  if (Array.isArray(input)) return input.map(s => s.trim());
+  if (Array.isArray(input)) {
+    return input.flat(Infinity)
+                .map(s => typeof s === 'string' ? s.trim() : String(s).trim())
+                .filter(s => s.length > 0);
+  }
   if (typeof input === 'string') {
     return input.split(/,|\n|\r/)
                 .map(s => s.trim())
@@ -49,8 +53,14 @@ const getSynonyms = async (req, res) => {
 
     const count = await Synonym.countDocuments(query);
 
+    const cleanedRecords = records.map(record => {
+      const doc = record.toObject();
+      doc.synonyms = parseSynonyms(doc.synonyms);
+      return doc;
+    });
+
     res.status(200).json({
-      records,
+      records: cleanedRecords,
       totalPages: Math.ceil(count / limit),
       currentPage: Number(page),
       totalEntries: count
@@ -69,7 +79,9 @@ const getSynonymById = async (req, res) => {
     if (!record) {
       return res.status(404).json({ message: 'Synonym entry not found' });
     }
-    res.status(200).json(record);
+    const doc = record.toObject();
+    doc.synonyms = parseSynonyms(doc.synonyms);
+    res.status(200).json(doc);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }

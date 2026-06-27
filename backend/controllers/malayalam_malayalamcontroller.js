@@ -3,6 +3,20 @@ const MalayalamMalayalamDictionary = require(
   "../models/malayalam_malayalam_dictionary"
 );
 
+const parseStringArray = (input) => {
+  if (Array.isArray(input)) {
+    return input.flat(Infinity)
+                .map(s => typeof s === 'string' ? s.trim() : String(s).trim())
+                .filter(s => s.length > 0);
+  }
+  if (typeof input === 'string') {
+    return input.split(/,|\n|\r/)
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+  }
+  return [];
+};
+
 // Get all words
 exports.getAllWords = async (req, res) => {
   try {
@@ -42,6 +56,13 @@ exports.getWordById = async (req, res) => {
       id: word._id,
       gender: genderVal || '',
       category_names: categoryNames,
+      synonyms: parseStringArray(word.synonyms),
+      antonyms: parseStringArray(word.antonyms),
+      similar_word: parseStringArray(word.similar_word),
+      novel_words: parseStringArray(word.novel_words),
+      dialects: parseStringArray(word.dialects),
+      cross_reference: parseStringArray(word.cross_reference),
+      inflections: parseStringArray(word.inflections),
       meanings: (word.meanings || []).map((m, idx) => ({
         id: idx + 1,
         meaning: m.meaning,

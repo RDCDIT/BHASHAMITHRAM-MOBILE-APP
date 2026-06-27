@@ -64,8 +64,6 @@ type DictionaryEntryDetails = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
-  "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
 export default function MalayalamWordDetailsScreen() {
@@ -197,6 +195,27 @@ export default function MalayalamWordDetailsScreen() {
       </View>
     );
   };
+  const renderOrderedList = (text?: string | string[]) => {
+    if (!text) return null;
+    let items: string[] = [];
+    if (Array.isArray(text)) {
+      items = text.flat(Infinity).map(item => String(item).trim()).filter(Boolean);
+    } else if (typeof text === "string") {
+      items = text.split(/[,;\n]+/).map(item => item.trim()).filter(Boolean);
+    } else {
+      items = [String(text).trim()];
+    }
+    return (
+      <View style={styles.bulletList}>
+        {items.map((item, idx) => (
+          <View key={idx} style={styles.bulletItem}>
+            <Text style={styles.bulletIcon}>{idx + 1}.</Text>
+            <Text style={styles.bulletText}>{item}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.screen}>
@@ -306,7 +325,7 @@ export default function MalayalamWordDetailsScreen() {
                 delayPressIn={0}
                 style={getAnimatedCardStyle("phonetic")}
               >
-                <Text style={styles.sectionTitle}>Phonetic transcription</Text>
+                <Text style={styles.sectionTitle}>സ്വരസൂചിക / Phonetic Transcription</Text>
                 <Text style={styles.phonetic}>[{details.phonetic_transcription}]</Text>
               </AnimatedTouchableOpacity>
             </AnimatedCard>
@@ -321,7 +340,7 @@ export default function MalayalamWordDetailsScreen() {
                 delayPressIn={0}
                 style={getAnimatedCardStyle("meanings")}
               >
-                <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ & സന്ദർഭം / Meanings & Context</Text>
+                <Text style={styles.sectionTitle}>അർത്ഥവും സന്ദർഭവും / Meanings & Context</Text>
                 {details.meanings.map((m, idx) => (
                   <View key={m.id || idx} style={styles.meaningItem}>
                     <View style={styles.meaningNumberBox}>
@@ -351,7 +370,7 @@ export default function MalayalamWordDetailsScreen() {
                 delayPressIn={0}
                 style={getAnimatedCardStyle("proverbs")}
               >
-                <Text style={styles.sectionTitle}>പഴഞ്ചൊല്ലുകൾ & സന്ദർഭം / Proverbs & Context</Text>
+                <Text style={styles.sectionTitle}>പഴഞ്ചൊല്ലുകളും സന്ദർഭവും / Proverbs & Context</Text>
 
                 {!!details.proverb && (
                   <View style={styles.proverbItem}>
@@ -421,7 +440,7 @@ export default function MalayalamWordDetailsScreen() {
                 delayPressIn={0}
                 style={getAnimatedCardStyle("similar_word")}
               >
-                <Text style={styles.sectionTitle}>സമാന പദങ്ങൾ / Similar Words</Text>
+                <Text style={styles.sectionTitle}>സമാനപദങ്ങൾ / Similar Words</Text>
                 {renderBulletedList(details.similar_word)}
               </AnimatedTouchableOpacity>
             </AnimatedCard>
@@ -436,7 +455,7 @@ export default function MalayalamWordDetailsScreen() {
                 delayPressIn={0}
                 style={getAnimatedCardStyle("novel_words")}
               >
-                <Text style={styles.sectionTitle}>നവീന പ്രയോഗങ്ങൾ / Novel Words</Text>
+                <Text style={styles.sectionTitle}>പുതിയ പദങ്ങൾ / Novel Words</Text>
                 {renderBulletedList(details.novel_words)}
               </AnimatedTouchableOpacity>
             </AnimatedCard>
@@ -452,7 +471,7 @@ export default function MalayalamWordDetailsScreen() {
                 style={getAnimatedCardStyle("synonyms")}
               >
                 <Text style={styles.sectionTitle}>പര്യായപദങ്ങൾ / Synonyms</Text>
-                {renderBulletedList(details.synonyms)}
+                {renderOrderedList(details.synonyms)}
               </AnimatedTouchableOpacity>
             </AnimatedCard>
           )}
@@ -597,7 +616,7 @@ export default function MalayalamWordDetailsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "transparent",
   },
   header: {
     height: Platform.OS === "android" ? 75 : 95,
@@ -624,7 +643,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   wordCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 24,
     alignItems: "center",
@@ -657,7 +676,7 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto",
   },
   section: {
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,

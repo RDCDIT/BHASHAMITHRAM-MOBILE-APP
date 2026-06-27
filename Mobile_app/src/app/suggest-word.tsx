@@ -1,12 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import * as DocumentPicker from "expo-document-picker";
-import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   ActivityIndicator,
-  Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -20,87 +17,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Voice Visualizer Component with modern animated bars
-function VoiceVisualizer({ animating }: { animating: boolean }) {
-  const [anims] = useState(() => [
-    new Animated.Value(5),
-    new Animated.Value(15),
-    new Animated.Value(8),
-    new Animated.Value(22),
-    new Animated.Value(12),
-    new Animated.Value(6),
-    new Animated.Value(18),
-    new Animated.Value(10),
-    new Animated.Value(15),
-    new Animated.Value(5),
-  ]);
-
-  useEffect(() => {
-    let active = true;
-    const runAnimation = () => {
-      if (!animating || !active) return;
-      const animations = anims.map((anim) => {
-        const targetHeight = Math.floor(Math.random() * 32) + 6;
-        return Animated.timing(anim, {
-          toValue: targetHeight,
-          duration: 150 + Math.random() * 80,
-          useNativeDriver: false,
-        });
-      });
-      Animated.parallel(animations).start(() => {
-        if (active && animating) {
-          runAnimation();
-        }
-      });
-    };
-
-    if (animating) {
-      runAnimation();
-    } else {
-      anims.forEach((anim, idx) => {
-        Animated.timing(anim, {
-          toValue: [5, 10, 5, 10, 5, 10, 5, 10, 5, 5][idx],
-          duration: 200,
-          useNativeDriver: false,
-        }).start();
-      });
-    }
-
-    return () => {
-      active = false;
-    };
-  }, [animating]);
-
-  return (
-    <View style={styles.voiceBarContainer}>
-      {anims.map((anim, index) => (
-        <Animated.View
-          key={index}
-          style={[
-            styles.voiceBar,
-            {
-              height: anim,
-              backgroundColor: animating ? "#EF4444" : "#9CA3AF",
-            },
-          ]}
-        />
-      ))}
-    </View>
-  );
-}
-
-// Dynamic audio recording imports (handles environment compatibility)
-let Audio: any = null;
-try {
-  Audio = require("expo-av").Audio;
-} catch (e) {
-  console.log("expo-av Audio not loaded in this environment.");
-}
-
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
-  Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000",
-  "http://192.168.1.2:5000",
 ].filter((value): value is string => Boolean(value));
 
 interface EquivalentLanguage {
@@ -157,15 +75,6 @@ export default function SuggestWordScreen() {
   const [customLanguageValue, setCustomLanguageValue] = useState("");
   const [showCustomLangForm, setShowCustomLangForm] = useState(false);
 
-  // Form Section 3 State (Media & Pronunciation)
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
-  const [recording, setRecording] = useState<any>(null);
-  const [recordedUri, setRecordedUri] = useState<string | null>(null);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
-  const [importedAudioUri, setImportedAudioUri] = useState<string | null>(null);
-  const [importedAudioName, setImportedAudioName] = useState<string | null>(null);
-
   // Form Section 4 State (Contributor & Declarations)
   const [contributorName, setContributorName] = useState("");
   const [contributorEmail, setContributorEmail] = useState("");
@@ -173,37 +82,9 @@ export default function SuggestWordScreen() {
   const [declaration2, setDeclaration2] = useState(false);
   const [receiveEmails, setReceiveEmails] = useState(false);
 
-  // Playback sound state
-  const [sound, setSound] = useState<any>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
   // Form Submission Status
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAcknowledgement, setShowAcknowledgement] = useState(false);
-
-  // Unload audio on unmount
-  useEffect(() => {
-    return sound
-      ? () => {
-        sound.unloadAsync();
-      }
-      : undefined;
-  }, [sound]);
-
-  // Timer for audio recording
-  useEffect(() => {
-    let interval: any;
-    if (isRecording) {
-      interval = setInterval(() => {
-        setRecordingDuration((prev) => prev + 1);
-      }, 1000);
-    } else {
-      requestAnimationFrame(() => {
-        setRecordingDuration(0);
-      });
-    }
-    return () => clearInterval(interval);
-  }, [isRecording]);
 
   // Helpers for tag inputs
   const addTag = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, input: string, setInput: React.Dispatch<React.SetStateAction<string>>) => {
@@ -241,158 +122,7 @@ export default function SuggestWordScreen() {
     setShowCustomLangForm(false);
   };
 
-  // Image Selection using Expo ImagePicker
-  const handleSelectImage = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
-        Alert.alert("അനുമതി ആവശ്യമാണ്", "ചിത്രങ്ങൾ തിരഞ്ഞെടുക്കാൻ ഗാലറി അനുമതി നൽകേണ്ടതുണ്ട്.");
-        return;
-      }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsMultipleSelection: true,
-        quality: 0.6,
-        base64: true,
-      });
-
-      if (!result.canceled) {
-        const uris = result.assets.map((asset: any) => asset.uri);
-        setSelectedImages([...selectedImages, ...uris]);
-      }
-    } catch (error) {
-      console.error("Image pick error:", error);
-      // Fallback dummy image path for demo if failed/not supported
-      setSelectedImages([...selectedImages, "https://picsum.photos/200/200"]);
-    }
-  };
-
-  // Audio Recording (Expo AV)
-  const handleStartRecording = async () => {
-    if (!Audio) {
-      // Simulation for web testing or missing package
-      setIsRecording(true);
-      return;
-    }
-    try {
-      const permission = await Audio.requestPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert("അനുമതി ആവശ്യമാണ്", "റെക്കോർഡ് ചെയ്യുന്നതിനായി മൈക്രോഫോൺ അനുമതി നൽകുക.");
-        return;
-      }
-
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        shouldRouteAudioToSpeakerIfSupported: true,
-        staysActiveInBackground: true,
-      });
-
-      let newRecording;
-      try {
-        console.log("Attempting high quality recording preset...");
-        const result = await Audio.Recording.createAsync(
-          Audio.RecordingOptionsPresets.HIGH_QUALITY
-        );
-        newRecording = result.recording;
-      } catch (err) {
-        console.log("High quality preset failed, falling back to low quality preset...", err);
-        const result = await Audio.Recording.createAsync(
-          Audio.RecordingOptionsPresets.LOW_QUALITY
-        );
-        newRecording = result.recording;
-      }
-
-      setRecording(newRecording);
-      setIsRecording(true);
-      setRecordedUri(null);
-    } catch (err) {
-      console.error("Failed to start recording", err);
-      Alert.alert("പിശക്", "റെക്കോർഡിംഗ് ആരംഭിക്കാൻ സാധിച്ചില്ല. മൈക്രോഫോൺ പ്രവർത്തനക്ഷമമാണെന്ന് ഉറപ്പുവരുത്തുക.");
-    }
-  };
-
-  const handleStopRecording = async () => {
-    setIsRecording(false);
-    if (!Audio) {
-      setRecordedUri("simulated-audio-recording.wav");
-      return;
-    }
-    try {
-      if (!recording) return;
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      setRecordedUri(uri);
-      setRecording(null);
-    } catch (err) {
-      console.error("Failed to stop recording", err);
-    }
-  };
-
-  // Play Recorded Audio
-  const handlePlayRecording = async () => {
-    if (!recordedUri) return;
-    if (!Audio) {
-      // Simulation for web testing or missing package
-      setIsPlaying(true);
-      setTimeout(() => setIsPlaying(false), 3000);
-      return;
-    }
-    try {
-      // Configure audio session to allow playback through speaker
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        shouldRouteAudioToSpeakerIfSupported: true,
-        staysActiveInBackground: true,
-      });
-
-      if (sound) {
-        if (isPlaying) {
-          await sound.pauseAsync();
-          setIsPlaying(false);
-        } else {
-          await sound.playAsync();
-          setIsPlaying(true);
-        }
-      } else {
-        const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri: recordedUri },
-          { shouldPlay: true }
-        );
-        setSound(newSound);
-        setIsPlaying(true);
-        newSound.setOnPlaybackStatusUpdate((status: any) => {
-          if (status.didJustFinish) {
-            setIsPlaying(false);
-          }
-        });
-      }
-    } catch (err) {
-      console.error("Error playing sound", err);
-      Alert.alert("പിശക്", "ഓഡിയോ പ്ലേ ചെയ്യാൻ സാധിച്ചില്ല.");
-    }
-  };
-
-  // File Import for audio file (using expo-document-picker)
-  const handleImportAudio = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "audio/*",
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        setImportedAudioUri(asset.uri);
-        setImportedAudioName(asset.name || "imported_audio.mp3");
-      }
-    } catch (error) {
-      console.error("Audio import error:", error);
-      Alert.alert("പിശക്", "ഓഡിയോ ഫയൽ ഇമ്പോർട്ട് ചെയ്യാൻ സാധിച്ചില്ല.");
-    }
-  };
 
   // Form submission handler
   const handleSubmit = async () => {
@@ -420,46 +150,8 @@ export default function SuggestWordScreen() {
 
     setIsSubmitting(true);
 
-    // Convert audio file/recording to base64 if present
-    let base64Audio = "";
-    if (recordedUri || importedAudioUri) {
-      try {
-        const audioUri = recordedUri || importedAudioUri;
-        const response = await fetch(audioUri!);
-        const blob = await response.blob();
-        base64Audio = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      } catch (err) {
-        console.error("Error converting audio to base64:", err);
-      }
-    }
-
-    // Convert any local image URIs (not already in base64 format) to base64
+    const base64Audio = "";
     const base64Images: string[] = [];
-    for (const imgUri of selectedImages) {
-      if (imgUri.startsWith("data:")) {
-        base64Images.push(imgUri);
-      } else {
-        try {
-          const response = await fetch(imgUri);
-          const blob = await response.blob();
-          const base64Str = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-          base64Images.push(base64Str);
-        } catch (err) {
-          console.error("Error converting image to base64:", err);
-          base64Images.push(imgUri); // fallback
-        }
-      }
-    }
 
     // Prepare payload
     const payload = {
@@ -572,7 +264,7 @@ export default function SuggestWordScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        <View style={[styles.body, styles.selectionContainer]}>
+        <View style={[styles.body, styles.selectionContainer, { backgroundColor: "#F9F6F1" }]}>
           <Text style={styles.selectionPrompt}>പദ നിർദ്ദേശത്തിലേക്ക് സ്വാഗതം</Text>
           <Text style={styles.selectionSubPrompt}>നിങ്ങൾ ചേർക്കാൻ ആഗ്രഹിക്കുന്ന വാക്കിന്റെ ഭാഷ തിരഞ്ഞെടുക്കുക:</Text>
 
@@ -643,7 +335,7 @@ export default function SuggestWordScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: "#F9F6F1" }}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
           {/* SECTION 1: Disclaimer & Basic Details */}
@@ -1299,6 +991,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
+    backgroundColor: "#F9F6F1",
   },
   selectionPrompt: {
     fontSize: 22,
@@ -1392,7 +1085,7 @@ const styles = StyleSheet.create({
     fontFamily: "NotoSansMalayalam",
   },
   card: {
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,

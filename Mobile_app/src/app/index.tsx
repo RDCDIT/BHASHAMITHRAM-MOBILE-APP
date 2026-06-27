@@ -1,6 +1,5 @@
 import SideMenu from "@/components/side-menu";
 import AnimatedCard from "@/components/AnimatedCard";
-import FloatingLettersBackground from "@/components/FloatingLettersBackground";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -132,7 +131,6 @@ export default function HomeScreen() {
       </View>
 
       <View style={{ flex: 1, backgroundColor: colors.containerBg }}>
-        <FloatingLettersBackground />
         <Animated.ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -145,55 +143,57 @@ export default function HomeScreen() {
           {/* Menu Items */}
           {menuItems.map((item, index) => (
             <AnimatedCard key={item.id} index={index} scrollY={scrollY}>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={item.onPress}
-                style={styles.card}
-              >
-                {/* Badge Indicator */}
-                <View
-                  style={[
-                    styles.badgeContainer,
-                    { borderColor: item.color + "30", backgroundColor: item.bgColor },
-                  ]}
+              <View style={styles.card}>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={item.onPress}
+                  style={styles.cardTouchTarget}
                 >
-                  {item.badgeType === "text" ? (
-                    <Text style={[styles.badgeText, { color: item.color }]}>
-                      {item.badgeText}
+                  {/* Badge Indicator */}
+                  <View
+                    style={[
+                      styles.badgeContainer,
+                      { borderColor: item.color + "30", backgroundColor: item.bgColor },
+                    ]}
+                  >
+                    {item.badgeType === "text" ? (
+                      <Text style={[styles.badgeText, { color: item.color }]}>
+                        {item.badgeText}
+                      </Text>
+                    ) : (
+                      <Ionicons
+                        name={item.badgeIcon as any}
+                        size={26}
+                        color={item.color}
+                      />
+                    )}
+                  </View>
+
+                  {/* Label and Info */}
+                  <View style={styles.textContainer}>
+                    <Text style={[styles.cardTitle, { color: colors.cardText }]}>
+                      {item.title}
                     </Text>
-                  ) : (
+                    <Text style={[styles.cardSubtitle, { color: colors.subtitleText }]}>
+                      {item.subtitle}
+                    </Text>
+                  </View>
+
+                  {/* Right Action Chevron */}
+                  <View
+                    style={[
+                      styles.chevronContainer,
+                      { backgroundColor: item.bgColor },
+                    ]}
+                  >
                     <Ionicons
-                      name={item.badgeIcon as any}
-                      size={26}
+                      name="chevron-forward"
+                      size={16}
                       color={item.color}
                     />
-                  )}
-                </View>
-
-                {/* Label and Info */}
-                <View style={styles.textContainer}>
-                  <Text style={[styles.cardTitle, { color: colors.cardText }]}>
-                    {item.title}
-                  </Text>
-                  <Text style={[styles.cardSubtitle, { color: colors.subtitleText }]}>
-                    {item.subtitle}
-                  </Text>
-                </View>
-
-                {/* Right Action Chevron */}
-                <View
-                  style={[
-                    styles.chevronContainer,
-                    { backgroundColor: item.bgColor },
-                  ]}
-                >
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={item.color}
-                  />
-                </View>
-              </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              </View>
             </AnimatedCard>
           ))}
         </Animated.ScrollView>
@@ -240,26 +240,39 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   card: {
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "#FFFFFF",
     height: 125,
     marginTop: 8,
     borderRadius: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
     marginBottom: 16,
     ...Platform.select({
       web: {
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+      },
+      ios: {
+        shadowColor: "#000000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.12,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 3,
+        shadowColor: "#000000",
       },
       default: {
         shadowColor: "#000000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.12,
+        shadowRadius: 6,
       },
     }),
+  },
+  cardTouchTarget: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    height: "100%",
+    width: "100%",
   },
   badgeContainer: {
     width: 58,

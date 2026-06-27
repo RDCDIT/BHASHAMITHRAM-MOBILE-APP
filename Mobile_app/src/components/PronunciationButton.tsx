@@ -41,8 +41,7 @@ function PronunciationButtonInner({ word }: PronunciationButtonProps) {
   const [scaleAnim] = React.useState(() => new Animated.Value(1));
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
-  const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || 
-    (Platform.OS === "android" ? "http://192.168.1.2:5000" : "http://localhost:5000");
+  const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || "";
 
   // Load audio player hook from expo-audio safely inside inner component
   const player = useAudioPlayer(audioUrl || '');
@@ -143,21 +142,37 @@ function PronunciationButtonInner({ word }: PronunciationButtonProps) {
         const isMalayalam = (text: string) => /[\u0d00-\u0d7f]/.test(text);
         const lang = isMalayalam(word) ? 'ml-IN' : 'en-US';
 
-        setIsSpeakingLocally(true);
-        Speech.speak(word, {
-          language: lang,
-          onStart: () => {
-            setIsSpeakingLocally(true);
-            setIsLoading(false);
-          },
-          onDone: () => setIsSpeakingLocally(false),
-          onStopped: () => setIsSpeakingLocally(false),
-          onError: (err) => {
-            console.error("Local Speech synthesis failed:", err);
+        try {
+          if (!Speech || typeof Speech.speak !== 'function') {
+            console.warn("Speech module is not available on this device.");
             setIsSpeakingLocally(false);
-            Alert.alert("Speech Error", "Local text-to-speech failed to speak this word.");
+            setIsLoading(false);
+            return;
           }
-        });
+
+          setIsSpeakingLocally(true);
+          try {
+            await Speech.stop();
+          } catch (e) {}
+
+          Speech.speak(word, {
+            language: lang,
+            onStart: () => {
+              setIsSpeakingLocally(true);
+              setIsLoading(false);
+            },
+            onDone: () => setIsSpeakingLocally(false),
+            onStopped: () => setIsSpeakingLocally(false),
+            onError: (err) => {
+              console.warn("Local Speech synthesis failed:", err);
+              setIsSpeakingLocally(false);
+            }
+          });
+        } catch (speechError) {
+          console.error("Speech playback error:", speechError);
+          setIsSpeakingLocally(false);
+          setIsLoading(false);
+        }
       }
     } catch (error: any) {
       console.error("Pronunciation streaming error:", error);

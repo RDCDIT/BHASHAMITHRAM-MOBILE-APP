@@ -63,10 +63,7 @@ interface SuggestedWordDetails {
   createdAt?: string;
 }
 
-const API_URL =
-  Platform.OS === "android"
-    ? "http://192.168.1.2:5000/api/admin/suggestions"
-    : "http://localhost:5000/api/admin/suggestions";
+const API_URL = `${process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/suggestions`;
 
 export default function SuggestionDetailScreen() {
   const { id } = useLocalSearchParams();
