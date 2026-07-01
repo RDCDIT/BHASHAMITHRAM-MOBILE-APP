@@ -184,22 +184,6 @@ export default function MalayalamSynonymDetailsScreen() {
             { useNativeDriver: true }
           )}
         >
-          {/* Malayalam Word Card */}
-          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-            <AnimatedTouchableOpacity
-              activeOpacity={0.95}
-              onPressIn={() => toggleHighlight("word")}
-              delayPressIn={0}
-              style={getAnimatedCardStyle("word", false)}
-            >
-              <View style={styles.wordBadge}>
-                <Text style={styles.wordBadgeText}>
-                  {details.word?.[0] ?? "അ"}
-                </Text>
-              </View>
-              <Text style={styles.mainWord}>{details.word}</Text>
-            </AnimatedTouchableOpacity>
-          </AnimatedCard>
 
           {/* Synonyms Card rendered under Meanings */}
           {details.synonyms && details.synonyms.length > 0 && (
@@ -210,7 +194,7 @@ export default function MalayalamSynonymDetailsScreen() {
                 delayPressIn={0}
                 style={getAnimatedCardStyle("synonyms")}
               >
-                <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ / Meanings</Text>
+                <Text style={styles.sectionTitle}>പര്യായപദങ്ങൾ / Synounyms</Text>
                 {renderSynonyms(details.synonyms)}
               </AnimatedTouchableOpacity>
             </AnimatedCard>

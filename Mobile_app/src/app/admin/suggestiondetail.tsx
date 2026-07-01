@@ -65,6 +65,17 @@ interface SuggestedWordDetails {
 
 const API_URL = `${process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/suggestions`;
 
+const getImageUrl = (imgUrl: string) => {
+  if (!imgUrl) return "";
+  if (imgUrl.startsWith("http://") || imgUrl.startsWith("https://") || imgUrl.startsWith("data:")) {
+    return imgUrl;
+  }
+  const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000";
+  const relativePath = imgUrl.startsWith("/") ? imgUrl : `/${imgUrl}`;
+  const finalPath = relativePath.startsWith("/public") ? relativePath : `/public${relativePath}`;
+  return `${apiBaseUrl}${finalPath}`;
+};
+
 export default function SuggestionDetailScreen() {
   const { id } = useLocalSearchParams();
   const [details, setDetails] = useState<SuggestedWordDetails | null>(null);
@@ -224,7 +235,7 @@ export default function SuggestionDetailScreen() {
         {details.meanings && details.meanings.length > 0 && (
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Meanings & Context</Text>
-            {details.meanings.map((m, idx) => (
+            {details.meanings.filter(Boolean).map((m, idx) => (
               <View key={m.id || idx} style={styles.meaningItem}>
                 <Text style={styles.meaningIndex}>{idx + 1}.</Text>
                 <View style={{ flex: 1 }}>
@@ -336,7 +347,7 @@ export default function SuggestionDetailScreen() {
               {details.images.map((imgUrl, index) => (
                 <Image
                   key={index}
-                  source={{ uri: imgUrl }}
+                  source={{ uri: getImageUrl(imgUrl) }}
                   style={styles.attachedImage}
                   resizeMode="cover"
                 />

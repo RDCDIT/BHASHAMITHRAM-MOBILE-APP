@@ -31,6 +31,7 @@ const speechRoutes = require('./routes/speechRoutes');
 const suggestedWordRoute = require('./routes/adminRoutes/suggestedWordRoute');
 const migrationRoute = require('./routes/adminRoutes/migrationRoute');
 const pronunciationRoutes = require('./routes/pronunciationRoutes');
+const dictionaryAdminRoute = require('./routes/adminRoutes/dictionaryAdminRoute');
 
 // Mount routes
 app.use('/api/words', wordRoutes);
@@ -43,6 +44,7 @@ app.use('/api/pronounce', audioRoutes);
 app.use('/api/speech-to-text', speechRoutes);
 app.use('/api/admin/suggestions', suggestedWordRoute);
 app.use('/api/admin/migrate', migrationRoute);
+app.use('/api/admin/dictionary', dictionaryAdminRoute);
 app.use('/api/pronunciation', pronunciationRoutes);
 
 

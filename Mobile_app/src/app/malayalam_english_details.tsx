@@ -52,6 +52,17 @@ const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
 ].filter((value): value is string => Boolean(value));
 
+const getImageUrl = (imgUrl: string) => {
+  if (!imgUrl) return "";
+  if (imgUrl.startsWith("http://") || imgUrl.startsWith("https://") || imgUrl.startsWith("data:")) {
+    return imgUrl;
+  }
+  const apiBaseUrl = API_BASE_URLS[0] || "";
+  const relativePath = imgUrl.startsWith("/") ? imgUrl : `/${imgUrl}`;
+  const finalPath = relativePath.startsWith("/public") ? relativePath : `/public${relativePath}`;
+  return `${apiBaseUrl}${finalPath}`;
+};
+
 export default function MalayalamEnglishDetailsScreen() {
   const { dictionaryId } = useLocalSearchParams();
   const [details, setDetails] = useState<DictionaryEntryDetails | null>(null);
@@ -160,6 +171,17 @@ export default function MalayalamEnglishDetailsScreen() {
 
   let cardIndex = 0;
 
+  // Returns true only when a field has meaningful content
+  const hasValue = (val?: string | string[] | null): boolean => {
+    if (val === null || val === undefined) return false;
+    if (Array.isArray(val)) return val.filter(Boolean).length > 0;
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      return trimmed !== "" && trimmed.toLowerCase() !== "null" && trimmed.toLowerCase() !== "undefined" && trimmed !== "N/A";
+    }
+    return false;
+  };
+
   const renderBulletedList = (text?: string | string[]) => {
     if (!text) return null;
     let items: string[] = [];
@@ -170,11 +192,34 @@ export default function MalayalamEnglishDetailsScreen() {
     } else {
       items = [String(text).trim()];
     }
+    if (items.length === 0) return null;
     return (
       <View style={styles.bulletList}>
         {items.map((item, idx) => (
           <View key={idx} style={styles.bulletItem}>
             <Text style={styles.bulletIcon}>•</Text>
+            <Text style={styles.bulletText}>{item}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  const renderPlainList = (text?: string | string[]) => {
+    if (!text) return null;
+    let items: string[] = [];
+    if (Array.isArray(text)) {
+      items = text.map(item => String(item).trim()).filter(Boolean);
+    } else if (typeof text === "string") {
+      items = text.split(/[,;\n]+/).map(item => item.trim()).filter(Boolean);
+    } else {
+      items = [String(text).trim()];
+    }
+    if (items.length === 0) return null;
+    return (
+      <View style={styles.bulletList}>
+        {items.map((item, idx) => (
+          <View key={idx} style={styles.bulletItem}>
             <Text style={styles.bulletText}>{item}</Text>
           </View>
         ))}
@@ -217,17 +262,6 @@ export default function MalayalamEnglishDetailsScreen() {
             { useNativeDriver: true }
           )}
         >
-          {/* Word */}
-          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-            <AnimatedTouchableOpacity
-              activeOpacity={0.95}
-              onPressIn={() => toggleHighlight("word")}
-              delayPressIn={0}
-              style={getAnimatedCardStyle("word", false)}
-            >
-              <Text style={styles.mainWord}>{details.word}</Text>
-            </AnimatedTouchableOpacity>
-          </AnimatedCard>
 
           {/* Category */}
           {details.category_names && details.category_names.length > 0 && (
@@ -251,7 +285,7 @@ export default function MalayalamEnglishDetailsScreen() {
           )}
 
           {/* Gender */}
-          {!!details.gender && (
+          {hasValue(details.gender) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -260,13 +294,13 @@ export default function MalayalamEnglishDetailsScreen() {
                 style={getAnimatedCardStyle("gender")}
               >
                 <Text style={styles.sectionTitle}>Gender</Text>
-                {renderBulletedList(details.gender)}
+                {renderPlainList(details.gender)}
               </AnimatedTouchableOpacity>
             </AnimatedCard>
           )}
 
           {/* Root */}
-          {!!details.root && (
+          {hasValue(details.root) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -275,13 +309,13 @@ export default function MalayalamEnglishDetailsScreen() {
                 style={getAnimatedCardStyle("root")}
               >
                 <Text style={styles.sectionTitle}>Root</Text>
-                {renderBulletedList(details.root)}
+                {renderPlainList(details.root)}
               </AnimatedTouchableOpacity>
             </AnimatedCard>
           )}
 
           {/* Phonetic Transcription */}
-          {!!details.phonetic_transcription && (
+          {hasValue(details.phonetic_transcription) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -296,7 +330,7 @@ export default function MalayalamEnglishDetailsScreen() {
           )}
 
           {/* Meanings & Context */}
-          {details.meanings && details.meanings.length > 0 && (
+          {details.meanings && details.meanings.filter(Boolean).filter(m => hasValue(m?.meaning)).length > 0 && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -304,8 +338,8 @@ export default function MalayalamEnglishDetailsScreen() {
                 delayPressIn={0}
                 style={getAnimatedCardStyle("meanings")}
               >
-                <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ / Meanings & Context</Text>
-                {details.meanings.map((m, idx) => (
+                <Text style={styles.sectionTitle}>Meanings & Context</Text>
+                {details.meanings.filter(Boolean).map((m, idx) => (
                   <View key={m.id || idx} style={styles.meaningItem}>
                     <View style={styles.meaningNumberBox}>
                       <Text style={styles.meaningNumber}>{idx + 1}</Text>
@@ -314,7 +348,7 @@ export default function MalayalamEnglishDetailsScreen() {
                       <Text style={styles.meaningText}>{m.meaning}</Text>
                       {!!m.context_usage && (
                         <Text style={styles.contextUsage}>
-                          <Text style={{ fontWeight: "700" }}>സന്ദർഭം: </Text>
+                          <Text style={{ fontWeight: "700" }}>Context </Text>
                           {m.context_usage}
                         </Text>
                       )}
@@ -334,17 +368,17 @@ export default function MalayalamEnglishDetailsScreen() {
                 delayPressIn={0}
                 style={getAnimatedCardStyle("proverbs")}
               >
-                <Text style={styles.sectionTitle}>പഴഞ്ചൊല്ലുകൾ / Proverbs & Context</Text>
+                <Text style={styles.sectionTitle}>Proverbs & Context</Text>
                 {details.proverbs.map((p, idx) => (
                   <View key={p.id || idx} style={styles.proverbContainer}>
                     <View style={styles.proverbHeader}>
                       <Ionicons name="chatbubbles-outline" size={18} color="#2B2C51" style={{ marginRight: 6 }} />
-                      <Text style={styles.proverbTitle}>ശൈലി {idx + 1}</Text>
+                      <Text style={styles.proverbTitle}>Proverb : {idx + 1}</Text>
                     </View>
                     <Text style={styles.proverbText}>{p.proverb}</Text>
                     {!!p.context_usage && (
                       <Text style={styles.proverbContext}>
-                        <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
+                        <Text style={{ fontWeight: "700" }}>Context </Text>
                         {p.context_usage}
                       </Text>
                     )}
@@ -407,7 +441,7 @@ export default function MalayalamEnglishDetailsScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
                   {details.images.map((imgUrl, idx) => (
                     <View key={idx} style={styles.imageWrapper}>
-                      <Image source={{ uri: imgUrl }} style={styles.galleryImage} resizeMode="cover" />
+                      <Image source={{ uri: getImageUrl(imgUrl) }} style={styles.galleryImage} resizeMode="cover" />
                     </View>
                   ))}
                 </ScrollView>
@@ -535,13 +569,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   meaningText: {
-    fontSize: 16,
+    fontSize: 12,
     color: "#333333",
     lineHeight: 22,
     fontFamily: "NotoSansMalayalam",
   },
   contextUsage: {
-    fontSize: 13,
+    fontSize: 10,
     color: "#7C736B",
     fontFamily: "NotoSansMalayalam",
     marginTop: 6,
@@ -564,7 +598,7 @@ const styles = StyleSheet.create({
   },
   categoryBadgeText: {
     color: "#2B2C51",
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
   },
@@ -577,13 +611,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   bulletIcon: {
-    fontSize: 16,
+    fontSize: 12,
     color: "#43AC98",
     marginRight: 8,
     lineHeight: 20,
   },
   bulletText: {
-    fontSize: 15,
+    fontSize: 12,
     color: "#4E473E",
     flex: 1,
     lineHeight: 20,
@@ -658,7 +692,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   subCardValue: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "700",
     color: "#2B2C51",
   },
@@ -682,13 +716,13 @@ const styles = StyleSheet.create({
     fontFamily: "NotoSansMalayalam",
   },
   proverbText: {
-    fontSize: 15,
+    fontSize: 12,
     color: "#4E473E",
     lineHeight: 20,
     fontFamily: "NotoSansMalayalam",
   },
   proverbContext: {
-    fontSize: 13,
+    fontSize: 10,
     color: "#7C736B",
     fontFamily: "NotoSansMalayalam",
     marginTop: 6,

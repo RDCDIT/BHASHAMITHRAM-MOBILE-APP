@@ -66,6 +66,17 @@ const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
 ].filter((value): value is string => Boolean(value));
 
+const getImageUrl = (imgUrl: string) => {
+  if (!imgUrl) return "";
+  if (imgUrl.startsWith("http://") || imgUrl.startsWith("https://") || imgUrl.startsWith("data:")) {
+    return imgUrl;
+  }
+  const apiBaseUrl = API_BASE_URLS[0] || "";
+  const relativePath = imgUrl.startsWith("/") ? imgUrl : `/${imgUrl}`;
+  const finalPath = relativePath.startsWith("/public") ? relativePath : `/public${relativePath}`;
+  return `${apiBaseUrl}${finalPath}`;
+};
+
 export default function MalayalamWordDetailsScreen() {
   const { dictionaryId, type } = useLocalSearchParams();
   const [details, setDetails] = useState<DictionaryEntryDetails | null>(null);
@@ -174,6 +185,17 @@ export default function MalayalamWordDetailsScreen() {
 
   let cardIndex = 0;
 
+  // Returns true only when a field has meaningful content
+  const hasValue = (val?: string | string[] | null): boolean => {
+    if (val === null || val === undefined) return false;
+    if (Array.isArray(val)) return val.filter(Boolean).length > 0;
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      return trimmed !== "" && trimmed.toLowerCase() !== "null" && trimmed.toLowerCase() !== "undefined" && trimmed !== "N/A";
+    }
+    return false;
+  };
+
   const renderBulletedList = (text?: string | string[]) => {
     if (!text) return null;
     let items: string[] = [];
@@ -184,11 +206,34 @@ export default function MalayalamWordDetailsScreen() {
     } else {
       items = [String(text).trim()];
     }
+    if (items.length === 0) return null;
     return (
       <View style={styles.bulletList}>
         {items.map((item, idx) => (
           <View key={idx} style={styles.bulletItem}>
             <Text style={styles.bulletIcon}>•</Text>
+            <Text style={styles.bulletText}>{item}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  const renderPlainList = (text?: string | string[]) => {
+    if (!text) return null;
+    let items: string[] = [];
+    if (Array.isArray(text)) {
+      items = text.map(item => String(item).trim()).filter(Boolean);
+    } else if (typeof text === "string") {
+      items = text.split(/[,;\n]+/).map(item => item.trim()).filter(Boolean);
+    } else {
+      items = [String(text).trim()];
+    }
+    if (items.length === 0) return null;
+    return (
+      <View style={styles.bulletList}>
+        {items.map((item, idx) => (
+          <View key={idx} style={styles.bulletItem}>
             <Text style={styles.bulletText}>{item}</Text>
           </View>
         ))}
@@ -205,6 +250,7 @@ export default function MalayalamWordDetailsScreen() {
     } else {
       items = [String(text).trim()];
     }
+    if (items.length === 0) return null;
     return (
       <View style={styles.bulletList}>
         {items.map((item, idx) => (
@@ -216,6 +262,7 @@ export default function MalayalamWordDetailsScreen() {
       </View>
     );
   };
+
 
   return (
     <View style={styles.screen}>
@@ -253,17 +300,36 @@ export default function MalayalamWordDetailsScreen() {
             { useNativeDriver: true }
           )}
         >
-          {/* 1. Word */}
-          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-            <AnimatedTouchableOpacity
-              activeOpacity={0.95}
-              onPressIn={() => toggleHighlight("word")}
-              delayPressIn={0}
-              style={getAnimatedCardStyle("word", false)}
-            >
-              <Text style={styles.mainWord}>{details.word}</Text>
-            </AnimatedTouchableOpacity>
-          </AnimatedCard>
+
+          {/* 6. Meanings & Context */}
+          {details.meanings && details.meanings.filter(Boolean).filter(m => hasValue(m?.meaning)).length > 0 && (
+            <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+              <AnimatedTouchableOpacity
+                activeOpacity={0.95}
+                onPressIn={() => toggleHighlight("meanings")}
+                delayPressIn={0}
+                style={getAnimatedCardStyle("meanings")}
+              >
+                <Text style={styles.sectionTitle}>അർത്ഥവും സന്ദർഭവും / Meanings & Context</Text>
+                {details.meanings.filter(Boolean).map((m, idx) => (
+                  <View key={m.id || idx} style={styles.meaningItem}>
+                    <View style={styles.meaningNumberBox}>
+                      <Text style={styles.meaningNumber}>{idx + 1}</Text>
+                    </View>
+                    <View style={styles.meaningContent}>
+                      <Text style={styles.meaningText}>{m.meaning}</Text>
+                      {!!m.context_usage && (
+                        <Text style={styles.contextUsage}>
+                          <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
+                          {m.context_usage}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </AnimatedTouchableOpacity>
+            </AnimatedCard>
+          )}
 
           {/* 2. Category */}
           {details.category_names && details.category_names.length > 0 && (
@@ -287,7 +353,7 @@ export default function MalayalamWordDetailsScreen() {
           )}
 
           {/* 3. Gender */}
-          {!!(details.gender || details.metadata?.gender) && (
+          {(hasValue(details.gender) || hasValue(details.metadata?.gender)) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -296,13 +362,13 @@ export default function MalayalamWordDetailsScreen() {
                 style={getAnimatedCardStyle("gender")}
               >
                 <Text style={styles.sectionTitle}>ലിംഗം / Gender</Text>
-                {renderBulletedList(details.gender || details.metadata?.gender)}
+                {renderPlainList(details.gender || details.metadata?.gender)}
               </AnimatedTouchableOpacity>
             </AnimatedCard>
           )}
 
           {/* 4. Root */}
-          {!!details.root && (
+          {hasValue(details.root) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -311,13 +377,13 @@ export default function MalayalamWordDetailsScreen() {
                 style={getAnimatedCardStyle("root")}
               >
                 <Text style={styles.sectionTitle}>ധാതു / Root</Text>
-                {renderBulletedList(details.root)}
+                {renderPlainList(details.root)}
               </AnimatedTouchableOpacity>
             </AnimatedCard>
           )}
 
           {/* 5. Phonetic transcription */}
-          {!!details.phonetic_transcription && (
+          {hasValue(details.phonetic_transcription) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -331,38 +397,8 @@ export default function MalayalamWordDetailsScreen() {
             </AnimatedCard>
           )}
 
-          {/* 6. Meanings & Context */}
-          {details.meanings && details.meanings.length > 0 && (
-            <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-              <AnimatedTouchableOpacity
-                activeOpacity={0.95}
-                onPressIn={() => toggleHighlight("meanings")}
-                delayPressIn={0}
-                style={getAnimatedCardStyle("meanings")}
-              >
-                <Text style={styles.sectionTitle}>അർത്ഥവും സന്ദർഭവും / Meanings & Context</Text>
-                {details.meanings.map((m, idx) => (
-                  <View key={m.id || idx} style={styles.meaningItem}>
-                    <View style={styles.meaningNumberBox}>
-                      <Text style={styles.meaningNumber}>{idx + 1}</Text>
-                    </View>
-                    <View style={styles.meaningContent}>
-                      <Text style={styles.meaningText}>{m.meaning}</Text>
-                      {!!m.context_usage && (
-                        <Text style={styles.contextUsage}>
-                          <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
-                          {m.context_usage}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                ))}
-              </AnimatedTouchableOpacity>
-            </AnimatedCard>
-          )}
-
           {/* 7. Proverbs & Context */}
-          {((details.proverbs && details.proverbs.length > 0) || !!details.proverb) && (
+          {((details.proverbs && details.proverbs.filter(Boolean).length > 0) || hasValue(details.proverb)) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -372,7 +408,7 @@ export default function MalayalamWordDetailsScreen() {
               >
                 <Text style={styles.sectionTitle}>പഴഞ്ചൊല്ലുകളും സന്ദർഭവും / Proverbs & Context</Text>
 
-                {!!details.proverb && (
+                {hasValue(details.proverb) && (
                   <View style={styles.proverbItem}>
                     <Ionicons name="bookmark-outline" size={20} color="#2B2C51" style={{ marginRight: 8, marginTop: 2 }} />
                     <Text style={styles.proverbText}>{details.proverb}</Text>
@@ -399,7 +435,7 @@ export default function MalayalamWordDetailsScreen() {
           )}
 
           {/* 8. Etymology */}
-          {!!details.etymology && (
+          {hasValue(details.etymology) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -414,7 +450,7 @@ export default function MalayalamWordDetailsScreen() {
           )}
 
           {/* 9. Cultural Notes */}
-          {!!details.cultural_note && (
+          {hasValue(details.cultural_note) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -432,7 +468,7 @@ export default function MalayalamWordDetailsScreen() {
           )}
 
           {/* 10. Similar words */}
-          {!!details.similar_word && (
+          {hasValue(details.similar_word) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -447,7 +483,7 @@ export default function MalayalamWordDetailsScreen() {
           )}
 
           {/* 11. Novel Words */}
-          {!!details.novel_words && (
+          {hasValue(details.novel_words) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -462,7 +498,7 @@ export default function MalayalamWordDetailsScreen() {
           )}
 
           {/* 12. Synonyms */}
-          {!!details.synonyms && (
+          {hasValue(details.synonyms) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -477,7 +513,7 @@ export default function MalayalamWordDetailsScreen() {
           )}
 
           {/* 13. Antonyms */}
-          {!!details.antonyms && (
+          {hasValue(details.antonyms) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -492,7 +528,7 @@ export default function MalayalamWordDetailsScreen() {
           )}
 
           {/* 14. Dialects */}
-          {!!details.dialects && (
+          {hasValue(details.dialects) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -507,7 +543,7 @@ export default function MalayalamWordDetailsScreen() {
           )}
 
           {/* 15. Cross Reference */}
-          {!!details.cross_reference && (
+          {hasValue(details.cross_reference) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -522,7 +558,7 @@ export default function MalayalamWordDetailsScreen() {
           )}
 
           {/* 16. Inflections */}
-          {!!details.inflections && (
+          {hasValue(details.inflections) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -537,7 +573,7 @@ export default function MalayalamWordDetailsScreen() {
           )}
 
           {/* 17. Language Equivalents */}
-          {details.equivalents && (!!details.equivalents.english || !!details.equivalents.kannada || !!details.equivalents.tamil || !!details.equivalents.telugu || !!details.equivalents.tulu) && (
+          {details.equivalents && (hasValue(details.equivalents.english) || hasValue(details.equivalents.kannada) || hasValue(details.equivalents.tamil) || hasValue(details.equivalents.telugu) || hasValue(details.equivalents.tulu)) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -600,7 +636,7 @@ export default function MalayalamWordDetailsScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
                   {details.images.map((imgUrl, idx) => (
                     <View key={idx} style={styles.imageWrapper}>
-                      <Image source={{ uri: imgUrl }} style={styles.galleryImage} resizeMode="cover" />
+                      <Image source={{ uri: getImageUrl(imgUrl) }} style={styles.galleryImage} resizeMode="cover" />
                     </View>
                   ))}
                 </ScrollView>
@@ -695,7 +731,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "800",
     color: "#2B2C51",
     fontFamily: "NotoSansMalayalam",
@@ -728,13 +764,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   meaningText: {
-    fontSize: 16,
+    fontSize: 12,
     color: "#333333",
     lineHeight: 22,
     fontFamily: "NotoSansMalayalam",
   },
   contextUsage: {
-    fontSize: 13,
+    fontSize: 10,
     color: "#7C736B",
     fontFamily: "NotoSansMalayalam",
     marginTop: 6,
@@ -757,7 +793,7 @@ const styles = StyleSheet.create({
   },
   categoryBadgeText: {
     color: "#2B2C51",
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
   },
@@ -776,7 +812,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   bulletText: {
-    fontSize: 15,
+    fontSize: 12,
     color: "#4E473E",
     flex: 1,
     lineHeight: 20,
@@ -819,7 +855,7 @@ const styles = StyleSheet.create({
     fontFamily: "NotoSansMalayalam",
   },
   proverbText: {
-    fontSize: 15,
+    fontSize: 10,
     color: "#333",
     fontFamily: "NotoSansMalayalam",
     lineHeight: 20,

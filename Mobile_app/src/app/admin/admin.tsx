@@ -69,6 +69,25 @@ export default function AdminDashboardScreen() {
             </View>
           </TouchableOpacity>
 
+          {/* Card: Add Word Record */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.85}
+            onPress={() => router.push("/admin/manualinput")}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: "#FFF7ED" }]}>
+              <Ionicons name="add-circle" size={32} color="#EA580C" />
+            </View>
+            <Text style={styles.cardTitle}>Add Word Record</Text>
+            <Text style={styles.cardDescription}>
+              Manually enter a new vocabulary record and import it directly into a specific dictionary
+            </Text>
+            <View style={styles.actionRow}>
+              <Text style={[styles.actionText, { color: "#EA580C" }]}>Add record</Text>
+              <Ionicons name="arrow-forward" size={16} color="#EA580C" />
+            </View>
+          </TouchableOpacity>
+
           {/* Card Placeholder: Users List (Disabled/Inactive) */}
           <View style={[styles.card, styles.disabledCard]}>
             <View style={[styles.iconContainer, { backgroundColor: "#F3F4F6" }]}>

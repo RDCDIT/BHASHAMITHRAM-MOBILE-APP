@@ -159,7 +159,7 @@ export default function EnglishMalayalamScreen() {
     index: number;
   }) => {
     const meanings =
-      item.meanings?.map((m) => m.meaning).filter(Boolean) || [];
+      item.meanings?.filter(Boolean).map((m) => m.meaning) || [];
 
     return (
       <AnimatedCard index={index} scrollY={scrollY}>

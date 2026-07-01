@@ -12,6 +12,7 @@ const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
 ].filter((value): value is string => Boolean(value));
 
+
 export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-US" | "ml-IN" = "ml-IN") {
   const [isListening, setIsListening] = useState(false);
   const [partialTranscript, setPartialTranscript] = useState("");

@@ -52,6 +52,17 @@ const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
 ].filter((value): value is string => Boolean(value));
 
+const getImageUrl = (imgUrl: string) => {
+  if (!imgUrl) return "";
+  if (imgUrl.startsWith("http://") || imgUrl.startsWith("https://") || imgUrl.startsWith("data:")) {
+    return imgUrl;
+  }
+  const apiBaseUrl = API_BASE_URLS[0] || "";
+  const relativePath = imgUrl.startsWith("/") ? imgUrl : `/${imgUrl}`;
+  const finalPath = relativePath.startsWith("/public") ? relativePath : `/public${relativePath}`;
+  return `${apiBaseUrl}${finalPath}`;
+};
+
 export default function EnglishMalayalamDetailsScreen() {
   const { dictionaryId } = useLocalSearchParams();
   const [details, setDetails] = useState<DictionaryEntryDetails | null>(null);
@@ -160,6 +171,17 @@ export default function EnglishMalayalamDetailsScreen() {
 
   let cardIndex = 0;
 
+  // Returns true only when a field has meaningful content
+  const hasValue = (val?: string | string[] | null): boolean => {
+    if (val === null || val === undefined) return false;
+    if (Array.isArray(val)) return val.filter(Boolean).length > 0;
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      return trimmed !== "" && trimmed.toLowerCase() !== "null" && trimmed.toLowerCase() !== "undefined" && trimmed !== "N/A";
+    }
+    return false;
+  };
+
   const renderBulletedList = (text?: string | string[]) => {
     if (!text) return null;
     let items: string[] = [];
@@ -170,11 +192,34 @@ export default function EnglishMalayalamDetailsScreen() {
     } else {
       items = [String(text).trim()];
     }
+    if (items.length === 0) return null;
     return (
       <View style={styles.bulletList}>
         {items.map((item, idx) => (
           <View key={idx} style={styles.bulletItem}>
             <Text style={styles.bulletIcon}>•</Text>
+            <Text style={styles.bulletText}>{item}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  const renderPlainList = (text?: string | string[]) => {
+    if (!text) return null;
+    let items: string[] = [];
+    if (Array.isArray(text)) {
+      items = text.map(item => String(item).trim()).filter(Boolean);
+    } else if (typeof text === "string") {
+      items = text.split(/[,;\n]+/).map(item => item.trim()).filter(Boolean);
+    } else {
+      items = [String(text).trim()];
+    }
+    if (items.length === 0) return null;
+    return (
+      <View style={styles.bulletList}>
+        {items.map((item, idx) => (
+          <View key={idx} style={styles.bulletItem}>
             <Text style={styles.bulletText}>{item}</Text>
           </View>
         ))}
@@ -218,17 +263,49 @@ export default function EnglishMalayalamDetailsScreen() {
             { useNativeDriver: true }
           )}
         >
+          {/* 6. Meanings & Context */}
+          {details.meanings && details.meanings.filter(Boolean).filter(m => hasValue(m?.meaning)).length > 0 && (
+            <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+              <AnimatedTouchableOpacity
+                activeOpacity={0.95}
+                onPressIn={() => toggleHighlight("meanings")}
+                delayPressIn={0}
+                style={getAnimatedCardStyle("meanings")}
+              >
+                <Text style={styles.sectionTitle}>Meanings & Context</Text>
+                {details.meanings.filter(Boolean).map((m, idx) => (
+                  <View key={m.id || idx} style={styles.meaningItem}>
+                    <View style={styles.meaningNumberBox}>
+                      <Text style={styles.meaningNumber}>{idx + 1}</Text>
+                    </View>
+                    <View style={styles.meaningContent}>
+                      <Text style={styles.meaningText}>{m.meaning}</Text>
+                      {!!m.context_usage && (
+                        <Text style={styles.contextUsage}>
+                          <Text style={{ fontWeight: "700" }}>Context: </Text>
+                          {m.context_usage}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </AnimatedTouchableOpacity>
+            </AnimatedCard>
+          )}
+
           {/* 1. Word */}
-          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-            <AnimatedTouchableOpacity
-              activeOpacity={0.95}
-              onPressIn={() => toggleHighlight("word")}
-              delayPressIn={0}
-              style={getAnimatedCardStyle("word", false)}
-            >
-              <Text style={styles.mainWord}>{details.word}</Text>
-            </AnimatedTouchableOpacity>
-          </AnimatedCard>
+          {!!details.word && (
+            <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+              <AnimatedTouchableOpacity
+                activeOpacity={0.95}
+                onPressIn={() => toggleHighlight("word")}
+                delayPressIn={0}
+                style={getAnimatedCardStyle("word", false)}
+              >
+                <Text style={styles.mainWord}>{details.word}</Text>
+              </AnimatedTouchableOpacity>
+            </AnimatedCard>
+          )}
 
           {/* 2. Category */}
           {details.category_names && details.category_names.length > 0 && (
@@ -252,7 +329,7 @@ export default function EnglishMalayalamDetailsScreen() {
           )}
 
           {/* 3. Gender */}
-          {!!details.gender && (
+          {hasValue(details.gender) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -261,13 +338,13 @@ export default function EnglishMalayalamDetailsScreen() {
                 style={getAnimatedCardStyle("gender")}
               >
                 <Text style={styles.sectionTitle}>Gender</Text>
-                {renderBulletedList(details.gender)}
+                {renderPlainList(details.gender)}
               </AnimatedTouchableOpacity>
             </AnimatedCard>
           )}
 
           {/* 4. Root */}
-          {!!details.root && (
+          {hasValue(details.root) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -276,13 +353,13 @@ export default function EnglishMalayalamDetailsScreen() {
                 style={getAnimatedCardStyle("root")}
               >
                 <Text style={styles.sectionTitle}>Root</Text>
-                {renderBulletedList(details.root)}
+                {renderPlainList(details.root)}
               </AnimatedTouchableOpacity>
             </AnimatedCard>
           )}
 
           {/* 5. Phonetic Transcription */}
-          {!!details.phonetic_transcription && (
+          {hasValue(details.phonetic_transcription) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -296,38 +373,8 @@ export default function EnglishMalayalamDetailsScreen() {
             </AnimatedCard>
           )}
 
-          {/* 6. Meanings & Context */}
-          {details.meanings && details.meanings.length > 0 && (
-            <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-              <AnimatedTouchableOpacity
-                activeOpacity={0.95}
-                onPressIn={() => toggleHighlight("meanings")}
-                delayPressIn={0}
-                style={getAnimatedCardStyle("meanings")}
-              >
-                <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ / Meanings & Context</Text>
-                {details.meanings.map((m, idx) => (
-                  <View key={m.id || idx} style={styles.meaningItem}>
-                    <View style={styles.meaningNumberBox}>
-                      <Text style={styles.meaningNumber}>{idx + 1}</Text>
-                    </View>
-                    <View style={styles.meaningContent}>
-                      <Text style={styles.meaningText}>{m.meaning}</Text>
-                      {!!m.context_usage && (
-                        <Text style={styles.contextUsage}>
-                          <Text style={{ fontWeight: "700" }}>സന്ദർഭം: </Text>
-                          {m.context_usage}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                ))}
-              </AnimatedTouchableOpacity>
-            </AnimatedCard>
-          )}
-
           {/* 7. Language Equivalents */}
-          {details.equivalents && (!!details.equivalents.english || !!details.equivalents.kannada || !!details.equivalents.tamil || !!details.equivalents.telugu || !!details.equivalents.tulu) && (
+          {details.equivalents && (hasValue(details.equivalents.english) || hasValue(details.equivalents.kannada) || hasValue(details.equivalents.tamil) || hasValue(details.equivalents.telugu) || hasValue(details.equivalents.tulu)) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -379,7 +426,7 @@ export default function EnglishMalayalamDetailsScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
                   {details.images.map((imgUrl, idx) => (
                     <View key={idx} style={styles.imageWrapper}>
-                      <Image source={{ uri: imgUrl }} style={styles.galleryImage} resizeMode="cover" />
+                      <Image source={{ uri: getImageUrl(imgUrl) }} style={styles.galleryImage} resizeMode="cover" />
                     </View>
                   ))}
                 </ScrollView>
@@ -449,7 +496,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   phonetic: {
-    fontSize: 16,
+    fontSize: 12,
     color: "#7C736B",
     marginTop: 6,
     fontFamily: "Roboto",
@@ -507,13 +554,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   meaningText: {
-    fontSize: 16,
+    fontSize: 12,
     color: "#333333",
     lineHeight: 22,
     fontFamily: "NotoSansMalayalam",
   },
   contextUsage: {
-    fontSize: 13,
+    fontSize: 10,
     color: "#7C736B",
     fontFamily: "NotoSansMalayalam",
     marginTop: 6,
@@ -536,7 +583,7 @@ const styles = StyleSheet.create({
   },
   categoryBadgeText: {
     color: "#2B2C51",
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
   },
@@ -549,13 +596,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   bulletIcon: {
-    fontSize: 16,
+    fontSize: 12,
     color: "#43AC98",
     marginRight: 8,
     lineHeight: 20,
   },
   bulletText: {
-    fontSize: 15,
+    fontSize: 12,
     color: "#4E473E",
     flex: 1,
     lineHeight: 20,
@@ -630,7 +677,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   subCardValue: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "700",
     color: "#2B2C51",
   },

@@ -88,7 +88,16 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
                 showChevron
                 onPress={() => {
                   onClose();
-                  router.push("/english_malayalam");
+                  router.push("/english-english");
+                }}
+              />
+              <MenuRow
+                icon="swap-horizontal"
+                title="മലയാളം - മലയാളം നിഘണ്ടു"
+                showChevron
+                onPress={() => {
+                  onClose();
+                  router.push("/malayalam-malayalam");
                 }}
               />
               <MenuRow
@@ -98,6 +107,15 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
                 onPress={() => {
                   onClose();
                   router.push("/malayalam_english");
+                }}
+              />
+              <MenuRow
+                icon="swap-horizontal"
+                title="ഇംഗ്ലീഷ് - മലയാളം നിഘണ്ടു"
+                showChevron
+                onPress={() => {
+                  onClose();
+                  router.push("/english_malayalam");
                 }}
               />
               <MenuRow
