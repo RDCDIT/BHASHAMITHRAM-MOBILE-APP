@@ -2,22 +2,41 @@ const mongoose = require('mongoose');
 const EnglishDictionary = require("../models/english-english-dictionary");
 
 // Get all words (or browse with query)
+// Get all words
 exports.getAllWords = async (req, res) => {
   const { query } = req.query;
+
   try {
     let searchCriteria = {};
+
     if (query && query.trim() !== "") {
-      const searchRegex = new RegExp(`^${query.trim()}`, "i");
-      searchCriteria.word = searchRegex;
+      searchCriteria.word = {
+        $regex: `^${query.trim()}`,
+        $options: "i",
+      };
     }
 
     const words = await EnglishDictionary.find(searchCriteria).sort({ word: 1 });
 
-    const formattedList = words.map(item => ({
+    const formattedList = words.map((item) => ({
       id: item._id,
-      english_equivalent: item.word || '',
-      word: '', // Only English words, no Malayalam Words
-      primary_malayalam_meaning: item.meanings?.map(m => m.meaning).filter(Boolean).join(", ") || ''
+      english_equivalent: item.word || "",
+      word: "",
+      primary_malayalam_meaning:
+        item.Category?.flatMap((category) => {
+          if (Array.isArray(category.meanings)) {
+            return category.meanings.map((meaning) => meaning.meaning);
+          }
+          if (typeof category.meanings === "string") {
+            return [category.meanings];
+          }
+          if (typeof category.meaning === "string") {
+            return [category.meaning];
+          }
+          return [];
+        })
+          .filter(Boolean)
+          .join(", ") || "",
     }));
 
     res.status(200).json(formattedList);
@@ -39,37 +58,48 @@ exports.getWordById = async (req, res) => {
       });
     }
 
-    // Resolve category names from Category_english if needed
-    const categoryIds = word.categories || [];
-    let categoryNames = [];
-    try {
-      if (categoryIds.length > 0) {
-        const categoriesList = await mongoose.connection.db.collection('Category_english')
-          .find({ _id: { $in: categoryIds.map(Number) } })
-          .toArray();
-        categoryNames = categoriesList.map(c => c.category);
-      }
-    } catch (dbErr) {
-      console.error("Failed to fetch category names:", dbErr);
+    const categoryValue = word.Category || word.category || [];
+
+    const formattedCategories = Array.isArray(categoryValue)
+      ? categoryValue.map((cat, categoryIndex) => ({
+          id: categoryIndex + 1,
+          category: cat.category || "",
+          meanings: cat.meanings || cat.meaning || "",
+          context: cat.context || cat.context_usage || "",
+        }))
+      : [];
+
+    if (formattedCategories.length === 0 && word.meanings && word.meanings.length > 0) {
+      word.meanings.forEach((m, idx) => {
+        formattedCategories.push({
+          id: idx + 1,
+          category: "",
+          meanings: m.meaning || "",
+          context: m.context_usage || ""
+        });
+      });
     }
 
-    const detailsObj = word.toObject ? word.toObject() : word;
+    const detailsObj = word.toObject();
+
     const formattedDetails = {
       ...detailsObj,
+
       id: detailsObj._id,
-      root: detailsObj.root || '',
-      gender: detailsObj.gender || '',
-      category_names: categoryNames,
-      meanings: (detailsObj.meanings || []).map((m, idx) => ({
-        id: m.id || idx,
-        meaning: m.meaning || '',
-        context_usage: m.context_usage || ''
+
+      root: detailsObj.root || "",
+
+      gender: detailsObj.gender || detailsObj.Gender || "",
+
+      categories: formattedCategories,
+
+      proverbs: (detailsObj.proverbs || []).map((p, index) => ({
+        id: index + 1,
+        proverb: p.proverb || "",
+        context_usage: p.context_usage || "",
       })),
-      proverbs: (detailsObj.proverbs || []).map((p, idx) => ({
-        id: p.id || idx,
-        proverb: p.proverb || '',
-        context_usage: p.context_usage || ''
-      }))
+
+      images: detailsObj.images || [],
     };
 
     res.status(200).json(formattedDetails);

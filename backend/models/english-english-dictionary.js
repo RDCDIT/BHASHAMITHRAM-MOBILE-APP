@@ -1,5 +1,16 @@
 const mongoose = require('mongoose');
 
+const CategorySchema = new mongoose.Schema(
+  {
+    category: String,
+    meaning: String,
+    meanings: String,
+    context: String,
+    context_usage: String,
+  },
+  { _id: false }
+);
+
 const englishDictionarySchema = new mongoose.Schema({
   _id: { 
     type: Number, 
@@ -40,6 +51,8 @@ const englishDictionarySchema = new mongoose.Schema({
   
   metadata: mongoose.Schema.Types.Mixed,
   categories: [Number],
+  category: [CategorySchema],
+  Category: [CategorySchema],
   images: [String],
   meanings: [{
     id: Number,

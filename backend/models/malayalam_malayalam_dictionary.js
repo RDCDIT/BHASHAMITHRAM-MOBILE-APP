@@ -1,23 +1,67 @@
-
 const mongoose = require("mongoose");
+
+const CategorySchema = new mongoose.Schema(
+  {
+    category: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    meaning: String,
+    meanings: String,
+    context: String,
+    context_usage: String,
+  },
+  { _id: false }
+);
 
 const MeaningSchema = new mongoose.Schema(
   {
-    meaning: String,
-    context_usage: String,
+    meaning: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    context_usage: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   { _id: false }
 );
 
 const ProverbSchema = new mongoose.Schema(
   {
-    proverb: String,
-    context_usage: String,
+    proverb: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    context_usage: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   { _id: false }
 );
 
-const MalayalamMalayalamDictionarySchema = new mongoose.Schema(
+const EquivalentSchema = new mongoose.Schema(
+  {
+    tulu: {
+      type: String,
+      default: "",
+    },
+    english: {
+      type: String,
+      default: "",
+    },
+  },
+  { _id: false }
+);
+
+const MalayalamDictionarySchema = new mongoose.Schema(
   {
     _id: {
       type: Number,
@@ -28,59 +72,81 @@ const MalayalamMalayalamDictionarySchema = new mongoose.Schema(
       type: String,
       required: true,
       index: true,
+      trim: true,
     },
 
-    category: String,
-    Category: String,
+    Category: {
+      type: [CategorySchema],
+      default: [],
+    },
 
-    gender: {
+    Gender: {
       type: String,
+      default: "",
     },
-    Gender: String,
 
-    root: String,
+    root: {
+      type: String,
+      default: "",
+    },
 
-    phonetic_transcription: String,
+    phonetic_transcription: {
+      type: String,
+      default: "",
+    },
 
-    meanings: [MeaningSchema],
+    meanings: {
+      type: [MeaningSchema],
+      default: [],
+    },
 
-    proverbs: [ProverbSchema],
+    proverbs: {
+      type: [ProverbSchema],
+      default: [],
+    },
 
-    etymology: String,
+    etymology: {
+      type: String,
+      default: "",
+    },
 
-    cultural_note: String,
+    cultural_note: {
+      type: String,
+      default: "",
+    },
 
-    similar_word: [String],
+    synonyms: {
+      type: [String],
+      default: [],
+    },
 
-    novel_words: [String],
+    dialects: {
+      type: String,
+      default: "",
+    },
 
-    synonyms: { type: Array },
-
-    antonyms: [String],
-
-    dialects: [String],
-
-    cross_reference: [String],
-
-    inflections: String,
+    inflections: {
+      type: String,
+      default: "",
+    },
 
     equivalents: {
-      english: String,
-      tamil: String,
-      kannada: String,
-      telugu: String,
-      tulu: String,
+      type: EquivalentSchema,
+      default: {},
     },
 
-    images: [String],
+    images: {
+      type: [String],
+      default: [],
+    },
   },
   {
-    timestamps: true,
     collection: "malayalam_malayalam_dictionary",
+    timestamps: true,
   }
 );
 
 module.exports = mongoose.model(
   "MalayalamMalayalamDictionary",
-  MalayalamMalayalamDictionarySchema
+  MalayalamDictionarySchema
 );

@@ -14,14 +14,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import type { ImageSourcePropType } from "react-native";
 
 interface MenuItem {
   id: string;
   title: string;
   subtitle: string;
-  badgeText?: string;
+  badgeImage?: ImageSourcePropType;
   badgeIcon?: keyof typeof Ionicons.glyphMap;
-  badgeType: "text" | "icon";
   color: string;
   bgColor: string;
   onPress: () => void;
@@ -37,18 +37,16 @@ export default function HomeScreen() {
       id: "1",
       title: "മലയാളം - മലയാളം",
       subtitle: "നിഘണ്ടു",
-      badgeIcon: "language-outline",
+      badgeImage: require("../../assets/Icons/malayalam_malayalam.gif"),
       color: "#2B2C51",
       bgColor: "#F5F3FF",
-      badgeType: "icon",
       onPress: () => router.push("./malayalam-malayalam"),
     },
     {
       id: "2",
       title: "ഇംഗ്ലീഷ് - ഇംഗ്ലീഷ്",
       subtitle: "നിഘണ്ടു",
-      badgeIcon: "language-outline",
-      badgeType: "icon",
+      badgeImage: require("../../assets/Icons/english_english.gif"),
       color: "#2B2C51",
       bgColor: "#F5F3FF",
       onPress: () => router.push("./english-english"),
@@ -57,8 +55,7 @@ export default function HomeScreen() {
       id: "3",
       title: "മലയാളം - ഇംഗ്ലീഷ്",
       subtitle: "നിഘണ്ടു",
-      badgeIcon: "language-outline",
-      badgeType: "icon",
+      badgeImage: require("../../assets/Icons/malayalam_english.gif"),
       color: "#2B2C51",
       bgColor: "#F5F3FF",
       onPress: () => router.push("./malayalam_english"),
@@ -67,8 +64,7 @@ export default function HomeScreen() {
       id: "4",
       title: "ഇംഗ്ലീഷ് - മലയാളം",
       subtitle: "നിഘണ്ടു",
-      badgeIcon: "language-outline",
-      badgeType: "icon",
+      badgeImage: require("../../assets/Icons/english_malayalam.gif"),
       color: "#2B2C51",
       bgColor: "#F5F3FF",
       onPress: () => router.push("./english_malayalam"),
@@ -77,8 +73,7 @@ export default function HomeScreen() {
       id: "5",
       title: "മലയാളം നാനാത്ഥം",
       subtitle: "നിഘണ്ടു",
-      badgeIcon: "git-branch-outline",
-      badgeType: "icon",
+      badgeImage: require("../../assets/Icons/malayalam_thesaurus.gif"),
       color: "#2B2C51",
       bgColor: "#FDF2F8",
       onPress: () => router.push("./malayalam_synonym"),
@@ -87,8 +82,7 @@ export default function HomeScreen() {
       id: "6",
       title: "സമീപകാല",
       subtitle: "തിരച്ചിലുകൾ",
-      badgeIcon: "time-outline",
-      badgeType: "icon",
+      badgeImage: require("../../assets/Icons/savishesha_thirayal.gif"),
       color: "#2B2C51",
       bgColor: "#F3F4F6",
       onPress: () => router.push("./savishesha_thirayal"),
@@ -156,10 +150,13 @@ export default function HomeScreen() {
                       { borderColor: item.color + "30", backgroundColor: item.bgColor },
                     ]}
                   >
-                    {item.badgeType === "text" ? (
-                      <Text style={[styles.badgeText, { color: item.color }]}>
-                        {item.badgeText}
-                      </Text>
+                    {item.badgeImage ? (
+                      <Image
+                        source={item.badgeImage}
+                        style={styles.badgeImage}
+                        contentFit="contain"
+                        transition={150}
+                      />
                     ) : (
                       <Ionicons
                         name={item.badgeIcon as any}
@@ -289,6 +286,10 @@ const styles = StyleSheet.create({
     fontFamily: "NotoSansMalayalam",
     textAlign: "center",
     lineHeight: 18,
+  },
+  badgeImage: {
+    width: 44,
+    height: 44,
   },
   textContainer: {
     flex: 1,

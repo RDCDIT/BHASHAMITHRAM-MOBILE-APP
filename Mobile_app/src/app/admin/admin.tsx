@@ -88,6 +88,45 @@ export default function AdminDashboardScreen() {
             </View>
           </TouchableOpacity>
 
+          {/* Card: Manage Dictionary Records */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.85}
+            onPress={() => router.push("/admin/records")}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: "#F3E8FF" }]}>
+              <Ionicons name="list" size={32} color="#7C3AED" />
+            </View>
+            <Text style={styles.cardTitle}>Manage Dictionary Records</Text>
+            <Text style={styles.cardDescription}>
+              View, search, edit, or delete existing records in all dictionary collections
+            </Text>
+            <View style={styles.actionRow}>
+              <Text style={[styles.actionText, { color: "#7C3AED" }]}>Manage records</Text>
+              <Ionicons name="arrow-forward" size={16} color="#7C3AED" />
+            </View>
+          </TouchableOpacity>
+
+          {/* Card: Upload Word Media */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.85}
+            onPress={() => router.push("/admin/mediaupload")}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: "#FCE7F3" }]}>
+              <Ionicons name="cloud-upload" size={32} color="#DB2777" />
+            </View>
+            <Text style={styles.cardTitle}>Upload Word Media</Text>
+            <Text style={styles.cardDescription}>
+              Upload images and custom audio pronunciation files for existing dictionary words
+            </Text>
+            <View style={styles.actionRow}>
+              <Text style={[styles.actionText, { color: "#DB2777" }]}>Upload media</Text>
+              <Ionicons name="arrow-forward" size={16} color="#DB2777" />
+            </View>
+          </TouchableOpacity>
+
+
           {/* Card Placeholder: Users List (Disabled/Inactive) */}
           <View style={[styles.card, styles.disabledCard]}>
             <View style={[styles.iconContainer, { backgroundColor: "#F3F4F6" }]}>

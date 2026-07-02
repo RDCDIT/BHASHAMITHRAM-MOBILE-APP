@@ -18,10 +18,26 @@ exports.browseEnglishWords = async (req, res) => {
       : {};
 
     const words = await EnglishMalayalamDictionary.find(filter)
-      .select("word meanings")
+      .select("word Category meanings")
       .sort({ word: 1 });
 
-    res.status(200).json(words);
+    const formattedWords = words.map(item => {
+      let meaningsList = [];
+      if (Array.isArray(item.Category)) {
+        item.Category.forEach(c => {
+          if (c.meanings) meaningsList.push({ meaning: c.meanings });
+          else if (c.meaning) meaningsList.push({ meaning: c.meaning });
+        });
+      }
+      return {
+        _id: item._id,
+        id: item._id,
+        word: item.word,
+        meanings: meaningsList
+      };
+    });
+
+    res.status(200).json(formattedWords);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -33,9 +49,7 @@ exports.browseEnglishWords = async (req, res) => {
 // Get Details
 exports.getWordDetails = async (req, res) => {
   try {
-    const word = await EnglishMalayalamDictionary.findById(
-      req.params.id
-    );
+    const word = await EnglishMalayalamDictionary.findById(req.params.id);
 
     if (!word) {
       return res.status(404).json({
@@ -44,26 +58,45 @@ exports.getWordDetails = async (req, res) => {
       });
     }
 
-    const categoryVal = word.category || word.Category;
-    const categoryNames = categoryVal ? [categoryVal] : [];
-    const genderVal = word.gender || word.Gender;
+    const categoryValue = word.Category || word.category || [];
+
+    const formattedCategories = Array.isArray(categoryValue)
+      ? categoryValue.map((cat, categoryIndex) => ({
+          id: categoryIndex + 1,
+          category: cat.category || "",
+          meanings: cat.meanings || cat.meaning || "",
+          context: cat.context || cat.context_usage || "",
+        }))
+      : [];
+
+    if (formattedCategories.length === 0 && word.meanings && word.meanings.length > 0) {
+      word.meanings.forEach((m, idx) => {
+        formattedCategories.push({
+          id: idx + 1,
+          category: "",
+          meanings: m.meaning || "",
+          context: m.context_usage || ""
+        });
+      });
+    }
+
+    const genderValue = word.gender || word.Gender || "";
 
     const formattedWord = {
       ...word.toObject(),
+
       _id: word._id,
       id: word._id,
-      gender: genderVal || '',
-      category_names: categoryNames,
-      meanings: (word.meanings || []).map((m, idx) => ({
-        id: idx + 1,
-        meaning: m.meaning,
-        context_usage: m.context_usage
-      })),
-      proverbs: (word.proverbs || []).map((p, idx) => ({
-        id: idx + 1,
+
+      gender: genderValue,
+
+      categories: formattedCategories,
+
+      proverbs: (word.proverbs || []).map((p, index) => ({
+        id: index + 1,
         proverb: p.proverb,
-        context_usage: p.context_usage
-      }))
+        context_usage: p.context_usage || "",
+      })),
     };
 
     res.status(200).json(formattedWord);

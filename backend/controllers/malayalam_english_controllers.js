@@ -41,37 +41,67 @@ const getWords = async (req, res) => {
 // @route   GET /api/dictionary/:id
 const getWordById = async (req, res) => {
   try {
-    const queryId = !isNaN(Number(req.params.id)) ? Number(req.params.id) : req.params.id;
+    const queryId = !isNaN(Number(req.params.id))
+      ? Number(req.params.id)
+      : req.params.id;
+
     const wordEntry = await Dictionary.findById(queryId);
+
     if (!wordEntry) {
-      return res.status(404).json({ message: 'Word not found' });
+      return res.status(404).json({
+        message: "Word not found",
+      });
     }
-    
-    const categoryVal = wordEntry.category || wordEntry.Category;
-    const categoryNames = categoryVal ? [categoryVal] : [];
-    const genderVal = wordEntry.gender || wordEntry.Gender;
+
+    const categoryValue = wordEntry.Category || wordEntry.category || [];
+
+    const formattedCategories = Array.isArray(categoryValue)
+      ? categoryValue.map((cat, categoryIndex) => ({
+          id: categoryIndex + 1,
+          category: cat.category || "",
+          meanings: cat.meanings || cat.meaning || "",
+          context: cat.context || cat.context_usage || "",
+        }))
+      : [];
+
+    if (formattedCategories.length === 0 && wordEntry.meanings && wordEntry.meanings.length > 0) {
+      wordEntry.meanings.forEach((m, idx) => {
+        formattedCategories.push({
+          id: idx + 1,
+          category: "",
+          meanings: m.meaning || "",
+          context: m.context_usage || ""
+        });
+      });
+    }
+
+    const genderValue = wordEntry.gender || wordEntry.Gender || "";
 
     const formattedWord = {
       ...wordEntry.toObject(),
+
       _id: wordEntry._id,
       id: wordEntry._id,
-      gender: genderVal || '',
-      category_names: categoryNames,
-      meanings: (wordEntry.meanings || []).map((m, idx) => ({
-        id: idx + 1,
-        meaning: m.meaning,
-        context_usage: m.context_usage
-      })),
-      proverbs: (wordEntry.proverbs || []).map((p, idx) => ({
-        id: idx + 1,
+
+      gender: genderValue,
+
+      categories: formattedCategories,
+
+      proverbs: (wordEntry.proverbs || []).map((p, index) => ({
+        id: index + 1,
         proverb: p.proverb,
-        context_usage: p.context_usage
-      }))
+        context_usage: p.context_usage || "",
+      })),
+
+      images: wordEntry.images || [],
     };
 
     res.status(200).json(formattedWord);
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
 

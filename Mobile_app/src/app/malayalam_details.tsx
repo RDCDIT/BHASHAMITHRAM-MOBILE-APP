@@ -49,6 +49,12 @@ type DictionaryEntryDetails = {
 
   images?: string[];
   category_names?: string[];
+  categories?: Array<{
+    id: number;
+    category: string;
+    meanings: string;
+    context: string;
+  }>;
   meanings?: Array<{
     id: number;
     meaning: string;
@@ -301,8 +307,86 @@ export default function MalayalamWordDetailsScreen() {
           )}
         >
 
+          {/* Categories, Meanings & Context */}
+          {((details.categories && details.categories.length > 0) ||
+            (details.meanings && details.meanings.filter(Boolean).filter(m => hasValue(m?.meaning)).length > 0) ||
+            (details.category_names && details.category_names.length > 0)) && (
+              <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+                <AnimatedTouchableOpacity
+                  activeOpacity={0.95}
+                  onPressIn={() => toggleHighlight("categories")}
+                  delayPressIn={0}
+                  style={getAnimatedCardStyle("categories")}
+                >
+                  <Text style={styles.sectionTitle}>
+                    {details.categories && details.categories.length === 1
+                      ? "വ്യാകരണവിഭാഗം / Category"
+                      : "വ്യാകരണവിഭാഗം, അർത്ഥം, പ്രയോഗം / Categories, Meaning and Context"}
+                  </Text>
+
+                  {/* 1. Display structured Categories if available */}
+                  {details.categories && details.categories.length > 0 ? (
+                    details.categories.map((cat, catIdx) => (
+                      <View key={cat.id || catIdx} style={styles.categoryBlock}>
+                        {!!cat.category && (
+                          <View style={styles.categoryBadgeInline}>
+                            <Text style={styles.categoryBadgeTextInline}>{cat.category}</Text>
+                          </View>
+                        )}
+                        {!!cat.meanings && (
+                          <View style={styles.meaningItem}>
+                            <View style={styles.meaningNumberBox}>
+                              <Text style={styles.meaningNumber}>{catIdx + 1}</Text>
+                            </View>
+                            <View style={styles.meaningContent}>
+                              <Text style={styles.meaningText}>{cat.meanings}</Text>
+                              {!!cat.context && (
+                                <Text style={styles.contextUsage}>
+                                  <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
+                                  {cat.context}
+                                </Text>
+                              )}
+                            </View>
+                          </View>
+                        )}
+                      </View>
+                    ))
+                  ) : (
+                    /* 2. Fallback legacy layout */
+                    <View>
+                      {details.category_names && details.category_names.length > 0 && (
+                        <View style={[styles.categoriesContainer, { marginBottom: 14 }]}>
+                          {details.category_names.map((catName, idx) => (
+                            <View key={idx} style={styles.categoryBadge}>
+                              <Text style={styles.categoryBadgeText}>{catName}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                      {details.meanings && details.meanings.filter(Boolean).map((m, idx) => (
+                        <View key={m.id || idx} style={styles.meaningItem}>
+                          <View style={styles.meaningNumberBox}>
+                            <Text style={styles.meaningNumber}>{idx + 1}</Text>
+                          </View>
+                          <View style={styles.meaningContent}>
+                            <Text style={styles.meaningText}>{m.meaning}</Text>
+                            {!!m.context_usage && (
+                              <Text style={styles.contextUsage}>
+                                <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
+                                {m.context_usage}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </AnimatedTouchableOpacity>
+              </AnimatedCard>
+            )}
+
           {/* 6. Meanings & Context */}
-          {details.meanings && details.meanings.filter(Boolean).filter(m => hasValue(m?.meaning)).length > 0 && (
+          {details.meanings && details.meanings.length > 0 && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -310,8 +394,8 @@ export default function MalayalamWordDetailsScreen() {
                 delayPressIn={0}
                 style={getAnimatedCardStyle("meanings")}
               >
-                <Text style={styles.sectionTitle}>അർത്ഥവും സന്ദർഭവും / Meanings & Context</Text>
-                {details.meanings.filter(Boolean).map((m, idx) => (
+                <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ & സന്ദർഭം / Meanings & Context</Text>
+                {details.meanings.map((m, idx) => (
                   <View key={m.id || idx} style={styles.meaningItem}>
                     <View style={styles.meaningNumberBox}>
                       <Text style={styles.meaningNumber}>{idx + 1}</Text>
@@ -327,27 +411,6 @@ export default function MalayalamWordDetailsScreen() {
                     </View>
                   </View>
                 ))}
-              </AnimatedTouchableOpacity>
-            </AnimatedCard>
-          )}
-
-          {/* 2. Category */}
-          {details.category_names && details.category_names.length > 0 && (
-            <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-              <AnimatedTouchableOpacity
-                activeOpacity={0.95}
-                onPressIn={() => toggleHighlight("category_names")}
-                delayPressIn={0}
-                style={getAnimatedCardStyle("category_names")}
-              >
-                <Text style={styles.sectionTitle}>വ്യാകരണവിഭാഗം / Category</Text>
-                <View style={styles.categoriesContainer}>
-                  {details.category_names.map((catName, idx) => (
-                    <View key={idx} style={styles.categoryBadge}>
-                      <Text style={styles.categoryBadgeText}>{catName}</Text>
-                    </View>
-                  ))}
-                </View>
               </AnimatedTouchableOpacity>
             </AnimatedCard>
           )}
@@ -937,6 +1000,26 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: "#FFFFFF",
     fontSize: 14,
+    fontWeight: "700",
+    fontFamily: "NotoSansMalayalam",
+  },
+  categoryBlock: {
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F4EEE7",
+    paddingBottom: 10,
+  },
+  categoryBadgeInline: {
+    alignSelf: "flex-start",
+    backgroundColor: "#2B2C51",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  categoryBadgeTextInline: {
+    color: "#FFFFFF",
+    fontSize: 12,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
   },

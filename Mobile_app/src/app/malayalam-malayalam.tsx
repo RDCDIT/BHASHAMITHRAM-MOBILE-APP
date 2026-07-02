@@ -13,8 +13,6 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useVoiceSearch } from "../hooks/useVoiceSearch";
-import VoiceSearchOverlay from "../components/VoiceSearchOverlay";
 
 import AnimatedCard from "../components/AnimatedCard";
 import SkeletonLoader from "../components/SkeletonLoader";
@@ -67,12 +65,7 @@ export default function MalayalamEnglishScreen() {
 
   const [scrollY] = React.useState(() => new Animated.Value(0));
 
-  const {
-    isListening,
-    partialTranscript,
-    startListening,
-    stopListening,
-  } = useVoiceSearch((text) => setSearchText(text), "ml-IN");
+
 
   // ബാക്കെൻഡിൽ നിന്നും മലയാളം വാക്കുകൾ ഫെച്ച് ചെയ്യാനുള്ള ഫങ്ഷൻ
   const loadEntries = async () => {
@@ -268,9 +261,6 @@ export default function MalayalamEnglishScreen() {
           onChangeText={setSearchText}
           placeholderTextColor="#898683"
         />
-        <TouchableOpacity onPress={startListening} style={styles.micButton}>
-          <Ionicons name="mic-outline" size={20} color="#2B2C51" />
-        </TouchableOpacity>
         <TouchableOpacity onPress={() => void loadEntries()} style={styles.searchButton}>
           <Ionicons name="search" size={18} color="white" />
         </TouchableOpacity>
@@ -296,9 +286,9 @@ export default function MalayalamEnglishScreen() {
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
           onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
-          )}
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { useNativeDriver: true }
+            )}
           ListEmptyComponent={
             <View style={styles.stateContainer}>
               <Text style={styles.stateTitle}>വാക്കുകൾ കണ്ടെത്തിയില്ല</Text>
@@ -311,12 +301,6 @@ export default function MalayalamEnglishScreen() {
           }
         />
       )}
-      <VoiceSearchOverlay
-        visible={isListening}
-        partialTranscript={partialTranscript}
-        lang="ml-IN"
-        onClose={stopListening}
-      />
     </View>
   );
 }

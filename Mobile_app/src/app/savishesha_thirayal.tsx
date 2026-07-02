@@ -14,8 +14,6 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import { useVoiceSearch } from "../hooks/useVoiceSearch";
-import VoiceSearchOverlay from "../components/VoiceSearchOverlay";
 
 import AnimatedCard from "../components/AnimatedCard";
 import SkeletonLoader from "../components/SkeletonLoader";
@@ -64,12 +62,7 @@ export default function SavisheshaThirayalScreen() {
     }).start();
   }, [activeTab]);
 
-  const {
-    isListening,
-    partialTranscript,
-    startListening,
-    stopListening,
-  } = useVoiceSearch((text) => setSearchText(text), "ml-IN");
+
 
   const [searchResults, setSearchResults] = useState<DictionaryEntry[]>([]);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
@@ -287,9 +280,6 @@ export default function SavisheshaThirayalScreen() {
           onChangeText={setSearchText}
           placeholderTextColor="#898683"
         />
-        <TouchableOpacity onPress={startListening} style={styles.micButton}>
-          <Ionicons name="mic-outline" size={20} color="#2B2C51" />
-        </TouchableOpacity>
         {searchText.trim().length > 0 && (
           <TouchableOpacity onPress={() => setSearchText("")} style={styles.clearSearchIcon}>
             <Ionicons name="close-circle" size={20} color="#777" />
@@ -463,12 +453,6 @@ export default function SavisheshaThirayalScreen() {
           </Animated.ScrollView>
         )
       )}
-      <VoiceSearchOverlay
-        visible={isListening}
-        partialTranscript={partialTranscript}
-        lang="ml-IN"
-        onClose={stopListening}
-      />
     </View>
   );
 }

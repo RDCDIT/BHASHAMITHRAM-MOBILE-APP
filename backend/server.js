@@ -47,6 +47,16 @@ app.use('/api/admin/migrate', migrationRoute);
 app.use('/api/admin/dictionary', dictionaryAdminRoute);
 app.use('/api/pronunciation', pronunciationRoutes);
 
+// Global Error Handler Middleware
+app.use((err, req, res, next) => {
+  console.error('🚨 [Server Error Handled]:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'Internal Server Error'
+  });
+});
+
+
 
 // ------------------------------------------------------------
 // 1. DATABASE CONNECTIVITY LOGS

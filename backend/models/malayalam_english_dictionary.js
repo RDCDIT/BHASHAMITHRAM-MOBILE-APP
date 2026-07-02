@@ -1,41 +1,108 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-// Schema for meanings and context usages
-const MeaningSchema = new mongoose.Schema({
-  meaning: { type: String, required: true },
-  context_usage: { type: String }
-});
-
-// Schema for proverbs and context usages
-const ProverbSchema = new mongoose.Schema({
-  proverb: { type: String },
-  context_usage: { type: String }
-});
-
-// Main Malayalam-English Dictionary Schema
-const DictionarySchema = new mongoose.Schema({
-  _id: { type: Number, required: true }, // Using the numeric ID from the CSV
-  word: { type: String, required: true, index: true }, // Indexing for faster search
-  Category: { type: String },
-  Gender: { type: String },
-  root: { type: String },
-  phonetic_transcription: { type: String },
-  meanings: [MeaningSchema],
-  proverbs: [ProverbSchema],
-  images: [{ type: String }], // Array of image URLs/paths
-  status: {
-    approved: { type: Boolean, default: false },
-    superuser_approved: { type: Boolean, default: false },
-    done_by_user: { type: Boolean, default: false }
+const CategorySchema = new mongoose.Schema(
+  {
+    category: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    meaning: String,
+    meanings: String,
+    context: String,
+    context_usage: String,
   },
-  metadata: {
-    submitted_by_id: { type: Number },
-    last_edited_by_id: { type: Number },
-    last_edited_at: { type: Date, default: Date.now }
-  }
-}, { 
-  timestamps: true,// Adds createdAt and updatedAt automatic fields
-  collection: "Malayalam_English_Dictionary"
-});
+  { _id: false }
+);
 
-module.exports = mongoose.model('Malayalam_English_Dictionary', DictionarySchema);
+const MeaningSchema = new mongoose.Schema(
+  {
+    meaning: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    context_usage: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+  },
+  { _id: false }
+);
+
+const ProverbSchema = new mongoose.Schema(
+  {
+    proverb: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    context_usage: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+  },
+  { _id: false }
+);
+
+const MalayalamEnglishDictionarySchema = new mongoose.Schema(
+  {
+    _id: {
+      type: Number,
+      required: true,
+    },
+
+    word: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+
+    Category: {
+      type: [CategorySchema],
+      default: [],
+    },
+
+    Gender: {
+      type: String,
+      default: "",
+    },
+
+    root: {
+      type: String,
+      default: "",
+    },
+
+    phonetic_transcription: {
+      type: String,
+      default: "",
+    },
+
+    meanings: {
+      type: [MeaningSchema],
+      default: [],
+    },
+
+    proverbs: {
+      type: [ProverbSchema],
+      default: [],
+    },
+
+    images: {
+      type: [String],
+      default: [],
+    },
+  },
+  {
+    collection: "Malayalam_English_Dictionary",
+    timestamps: true,
+  }
+);
+
+module.exports = mongoose.model(
+  "MalayalamEnglishDictionary",
+  MalayalamEnglishDictionarySchema
+);

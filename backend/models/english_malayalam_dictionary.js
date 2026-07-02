@@ -1,18 +1,48 @@
-
 const mongoose = require("mongoose");
+
+const CategorySchema = new mongoose.Schema(
+  {
+    category: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    meaning: String,
+    meanings: String,
+    context: String,
+    context_usage: String,
+  },
+  { _id: false }
+);
 
 const MeaningSchema = new mongoose.Schema(
   {
-    meaning: String,
-    context_usage: String,
+    meaning: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    context_usage: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   { _id: false }
 );
 
 const ProverbSchema = new mongoose.Schema(
   {
-    proverb: String,
-    context_usage: String,
+    proverb: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    context_usage: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   { _id: false }
 );
@@ -23,6 +53,7 @@ const EnglishMalayalamDictionarySchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+
     word: {
       type: String,
       required: true,
@@ -30,58 +61,39 @@ const EnglishMalayalamDictionarySchema = new mongoose.Schema(
       index: true,
     },
 
-    category: String,
+    Category: {
+      type: [CategorySchema],
+      default: [],
+    },
 
     gender: {
       type: String,
-      enum: [
-        "പുല്ലിംഗം",
-        "സ്ത്രീലിംഗം",
-        "നപുംസകലിംഗം",
-        "ഉഭയലിംഗം",
-      ],
+      default: "",
     },
 
-    root: String,
-
-    phonetic_transcription: String,
-
-    meanings: [MeaningSchema],
-
-    proverbs: [ProverbSchema],
-
-    images: [String],
-
-    status: {
-      superuser_approved: {
-        type: Boolean,
-        default: false,
-      },
-      done_by_user: {
-        type: Boolean,
-        default: false,
-      },
+    root: {
+      type: String,
+      default: "",
     },
 
-    metadata: {
-      submitted_by_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
+    phonetic_transcription: {
+      type: String,
+      default: "",
+    },
 
-      last_edited_by_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
+    meanings: {
+      type: [MeaningSchema],
+      default: [],
+    },
 
-      created_at: Date,
-
-      last_edited_at: Date,
+    proverbs: {
+      type: [ProverbSchema],
+      default: [],
     },
   },
   {
-    timestamps: true,
     collection: "English-malayalam_dictionary",
+    timestamps: true,
   }
 );
 
