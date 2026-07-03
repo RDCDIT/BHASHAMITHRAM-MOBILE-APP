@@ -21,6 +21,8 @@ exports.getAllWords = async (req, res) => {
       id: item._id,
       english_equivalent: item.word || "",
       word: "",
+      meanings: item.meanings || [],
+      Category: item.Category || item.category || [],
       primary_malayalam_meaning:
         item.Category?.flatMap((category) => {
           if (Array.isArray(category.meanings)) {
