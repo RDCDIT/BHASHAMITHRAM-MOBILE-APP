@@ -314,13 +314,15 @@ const styles = StyleSheet.create({
     height: Platform.OS === "android" ? 75 : 95,
     backgroundColor: "#2B2C51",
     justifyContent: "flex-end",
-    paddingBottom: 12,
+    paddingBottom: 16,
   },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
+    paddingBottom: 5,
+
   },
   headerTitle: {
     color: "white",

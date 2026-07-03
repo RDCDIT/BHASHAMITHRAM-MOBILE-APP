@@ -204,9 +204,6 @@ export default function EnglishMalayalamScreen() {
                   {displayMeanings.slice(0, 5).map((m, idx) => (
                     <View key={idx} style={{ marginBottom: idx < 4 ? 5 : 0 }}>
                       <Text style={styles.definitionText}>• {m.meaning}</Text>
-                      {m.context_usage ? (
-                        <Text style={styles.contextText}>  {m.context_usage}</Text>
-                      ) : null}
                     </View>
                   ))}
                 </View>
@@ -219,9 +216,6 @@ export default function EnglishMalayalamScreen() {
                   {displayMeanings.slice(5).map((m, idx) => (
                     <View key={idx} style={{ marginBottom: idx < displayMeanings.slice(5).length - 1 ? 5 : 0 }}>
                       <Text style={styles.definitionText}>• {m.meaning}</Text>
-                      {m.context_usage ? (
-                        <Text style={styles.contextText}>  {m.context_usage}</Text>
-                      ) : null}
                     </View>
                   ))}
                 </View>
@@ -231,9 +225,6 @@ export default function EnglishMalayalamScreen() {
               displayMeanings.map((m, idx) => (
                 <View key={idx} style={{ marginBottom: idx < displayMeanings.length - 1 ? 6 : 0 }}>
                   <Text style={styles.definitionText}>• {m.meaning}</Text>
-                  {m.context_usage ? (
-                    <Text style={styles.contextText}>  {m.context_usage}</Text>
-                  ) : null}
                 </View>
               ))
             )}
@@ -320,9 +311,9 @@ export default function EnglishMalayalamScreen() {
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
           onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { useNativeDriver: true }
-            )}
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
           ListEmptyComponent={
             <View style={styles.stateContainer}>
               <Text style={styles.stateTitle}>No matches found</Text>

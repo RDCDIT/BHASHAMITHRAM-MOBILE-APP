@@ -61,11 +61,11 @@ exports.getWordById = async (req, res) => {
 
     const formattedCategories = Array.isArray(categoryValue)
       ? categoryValue.map((cat, categoryIndex) => ({
-          id: categoryIndex + 1,
-          category: cat.category || "",
-          meanings: cat.meanings || cat.meaning || "",
-          context: cat.context || cat.context_usage || "",
-        }))
+        id: categoryIndex + 1,
+        category: cat.category || "",
+        meanings: cat.meanings || cat.meaning || "",
+        context: cat.context || cat.context_usage || "",
+      }))
       : [];
 
     if (formattedCategories.length === 0 && word.meanings && word.meanings.length > 0) {
