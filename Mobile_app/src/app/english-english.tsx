@@ -26,6 +26,9 @@ type DictionaryEntry = {
   word: string; // Malayalam Word
   primary_malayalam_meaning: string;
   _id: string;
+  meanings?: Array<{ meaning: string; context_usage?: string }>;
+  Category?: Array<{ category: string; meanings?: string | string[]; meaning?: string }>;
+  category?: Array<{ category: string; meanings?: string | string[]; meaning?: string }>;
 };
 
 const API_BASE_URLS = [
@@ -137,9 +140,29 @@ export default function EnglishMalayalamScreen() {
   );
 
   const renderEntry = ({ item, index }: { item: DictionaryEntry; index: number }) => {
-    const meanings = item.primary_malayalam_meaning
-      ? item.primary_malayalam_meaning.split(",").map((m) => m.trim()).filter(Boolean)
-      : [];
+    // 1. Try to use meanings & context from the entry
+    let meanings: string[] = [];
+    if (Array.isArray(item.meanings) && item.meanings.length > 0) {
+      meanings = item.meanings.map((m) => m.meaning).filter(Boolean);
+    }
+    
+    // 2. If empty, fall back to Category/category meanings
+    if (meanings.length === 0) {
+      const catList = item.Category || item.category;
+      if (Array.isArray(catList) && catList.length > 0) {
+        meanings = catList.flatMap((c) => {
+          if (Array.isArray(c.meanings)) return c.meanings;
+          if (typeof c.meanings === 'string' && c.meanings.trim()) return [c.meanings];
+          if (typeof c.meaning === 'string' && c.meaning.trim()) return [c.meaning];
+          return [];
+        }).filter(Boolean);
+      }
+    }
+    
+    // 3. Fallback to pre-formatted string from backend
+    if (meanings.length === 0 && item.primary_malayalam_meaning) {
+      meanings = item.primary_malayalam_meaning.split(",").map((m) => m.trim()).filter(Boolean);
+    }
 
     return (
       <AnimatedCard index={index} scrollY={scrollY}>
