@@ -40,8 +40,6 @@ router.get("/browse-malayalam", async (req, res) => {
         ? new RegExp('^അ(?!ം)', 'i') 
         : new RegExp(`^${trimmedQuery}`, 'i');
       searchCriteria.word = searchRegex;
-
-      const isCharacterOnly = trimmedQuery.length === 1 || MALAYALAM_ALPHABET.includes(trimmedQuery);
     }
     
     const list = await MalayalamMalayalamDictionary.find(
@@ -87,8 +85,6 @@ router.get("/browse-synonyms", async (req, res) => {
         ? new RegExp('^അ(?!ം)', 'i')
         : new RegExp(`^${trimmedQuery}`, 'i');
       searchCriteria.word = searchRegex;
-
-      const isCharacterOnly = trimmedQuery.length === 1 || MALAYALAM_ALPHABET.includes(trimmedQuery);
     }
 
     const list = await MalayalamMalayalamDictionary.find(

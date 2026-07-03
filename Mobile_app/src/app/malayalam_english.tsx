@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Platform,
   StyleSheet,
@@ -52,7 +51,6 @@ export default function MalayalamEnglishScreen() {
   const [searchText, setSearchText] = useState("");
   const [allEntries, setAllEntries] = useState<DictionaryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const [scrollY] = React.useState(() => new Animated.Value(0));
@@ -61,7 +59,7 @@ export default function MalayalamEnglishScreen() {
 
   const loadEntries = async () => {
     try {
-      if (!isRefreshing) setIsLoading(true);
+      setIsLoading(true);
       setErrorMessage("");
       let lastError: unknown = null;
 
@@ -93,7 +91,6 @@ export default function MalayalamEnglishScreen() {
       setAllEntries([]);
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
   };
 
@@ -401,10 +398,6 @@ const styles = StyleSheet.create({
     color: "#333",
     padding: 0,
     fontFamily: "NotoSansMalayalam",
-  },
-  micButton: {
-    padding: 8,
-    marginRight: 4,
   },
   searchButton: {
     width: 42,

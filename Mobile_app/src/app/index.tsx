@@ -1,9 +1,10 @@
 import SideMenu from "@/components/side-menu";
 import AnimatedCard from "@/components/AnimatedCard";
+import FloatingLettersBackground from "@/components/FloatingLettersBackground";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   Animated,
   Platform,
@@ -124,7 +125,11 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Scrollable content area with floating background */}
       <View style={{ flex: 1, backgroundColor: colors.containerBg }}>
+        {/* Floating Malayalam letters background layer */}
+        <FloatingLettersBackground />
+
         <Animated.ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -237,29 +242,37 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   card: {
-    backgroundColor: "#FFFFFF",
     height: 125,
     marginTop: 8,
     borderRadius: 16,
     marginBottom: 16,
+    borderWidth: 1,
     ...Platform.select({
-      web: {
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+      android: {
+        // elevation bleeds through transparent backgrounds on Android — use border instead
+        backgroundColor: "rgba(255, 255, 255, 0.30)",
+        borderColor: "rgba(43, 44, 81, 0.18)",
+        elevation: 0,
       },
       ios: {
+        backgroundColor: "rgba(255, 255, 255, 0.30)",
+        borderColor: "rgba(255, 255, 255, 0.5)",
         shadowColor: "#000000",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.12,
+        shadowOpacity: 0.10,
         shadowRadius: 6,
       },
-      android: {
-        elevation: 3,
-        shadowColor: "#000000",
+      web: {
+        backgroundColor: "rgba(255, 255, 255, 0.30)",
+        borderColor: "rgba(255, 255, 255, 0.5)",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.06)",
       },
       default: {
+        backgroundColor: "rgba(255, 255, 255, 0.30)",
+        borderColor: "rgba(255, 255, 255, 0.5)",
         shadowColor: "#000000",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.12,
+        shadowOpacity: 0.10,
         shadowRadius: 6,
       },
     }),
@@ -279,13 +292,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
-    textAlign: "center",
-    lineHeight: 18,
+    overflow: "hidden",
   },
   badgeImage: {
     width: 44,

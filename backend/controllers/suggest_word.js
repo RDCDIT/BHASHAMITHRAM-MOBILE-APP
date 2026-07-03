@@ -1,6 +1,7 @@
 const SuggestedWord = require('../models/SuggestedWord');
 const DataviewSuggestion = require('../models/DataviewSuggestion');
 const DataviewCollection = require('../models/DataviewCollection');
+const { sendSuggestionReceivedMail } = require('../services/mailService');
 
 /**
  * POST /api/words/suggest
@@ -211,31 +212,5 @@ const getDataviewCollection = async (req, res) => {
   }
 };
 
-
-const {
-  sendSuggestionReceivedMail,
-} = require("../services/mailService");
-
-exports.createSuggestion = async (req, res) => {
-  try {
-    const suggestion = await SuggestedWord.create(req.body);
-
-    // Call mail handler
-    await sendSuggestionReceivedMail({
-      email: suggestion.email,
-      word: suggestion.word,
-    });
-
-    res.status(201).json({
-      success: true,
-      data: suggestion,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
 
 module.exports = { suggestWord, getSuggestions, saveDataviewCollection, getDataviewCollection };

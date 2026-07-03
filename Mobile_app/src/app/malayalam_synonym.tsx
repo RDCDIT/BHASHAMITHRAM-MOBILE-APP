@@ -184,7 +184,7 @@ export default function MalayalamSynonymScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={27} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>പര്യായപദ നിഘണ്ടു</Text>
+          <Text style={styles.headerTitle}>മലയാളം നാനാത്ഥം നിഘണ്ടു</Text>
           <View style={{ width: 27 }} />
         </View>
       </View>

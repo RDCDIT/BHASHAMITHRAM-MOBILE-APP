@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const EnglishDictionary = require("../models/english-english-dictionary");
 
 // Get all words (or browse with query)

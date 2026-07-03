@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Platform,
   StyleSheet,
@@ -52,7 +51,6 @@ export default function EnglishMalayalamScreen() {
   const [searchText, setSearchText] = useState("");
   const [allEntries, setAllEntries] = useState<DictionaryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const [scrollY] = React.useState(() => new Animated.Value(0));
@@ -61,7 +59,7 @@ export default function EnglishMalayalamScreen() {
 
   const loadEntries = async () => {
     try {
-      if (!isRefreshing) setIsLoading(true);
+      setIsLoading(true);
       setErrorMessage("");
       let lastError: unknown = null;
 
@@ -93,7 +91,6 @@ export default function EnglishMalayalamScreen() {
       setAllEntries([]);
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
   };
 
@@ -454,10 +451,6 @@ const styles = StyleSheet.create({
     padding: 0,
     fontFamily: "NotoSansMalayalam",
   },
-  micButton: {
-    padding: 8,
-    marginRight: 4,
-  },
   searchButton: {
     width: 42,
     height: 42,
@@ -497,37 +490,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
     fontFamily: "Roboto"
-  },
-  cardSubtext: {
-    color: "#2B2C51",
-    fontSize: 16,
-    fontWeight: "700",
-    marginTop: 4,
-    fontFamily: "NotoSansMalayalam",
-  },
-  cardHeaderRight: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  directionBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    backgroundColor: "#F0EAE1",
-  },
-  directionBadgeText: {
-    color: "#4E473E",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  playButtonCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#2B2C51",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 10,
   },
   definitionBox: {
     backgroundColor: "#F7F7F9",

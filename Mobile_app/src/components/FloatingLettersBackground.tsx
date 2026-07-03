@@ -163,7 +163,6 @@ export default function FloatingLettersBackground() {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFill,
-    zIndex: -1,
   },
   letter: {
     position: "absolute",
