@@ -23,12 +23,32 @@ exports.browseEnglishWords = async (req, res) => {
 
     const formattedWords = words.map(item => {
       let meaningsList = [];
+
+      // Primary source: Category array (stores meaning per grammatical category)
       if (Array.isArray(item.Category)) {
         item.Category.forEach(c => {
-          if (c.meanings) meaningsList.push({ meaning: c.meanings });
-          else if (c.meaning) meaningsList.push({ meaning: c.meaning });
+          const text = c.meanings || c.meaning || '';
+          if (text.trim()) {
+            meaningsList.push({
+              meaning: text,
+              context_usage: c.context_usage || c.context || ''
+            });
+          }
         });
       }
+
+      // Fallback: meanings[] array (structured meaning + context_usage records)
+      if (meaningsList.length === 0 && Array.isArray(item.meanings)) {
+        item.meanings.forEach(m => {
+          if (m.meaning && m.meaning.trim()) {
+            meaningsList.push({
+              meaning: m.meaning,
+              context_usage: m.context_usage || ''
+            });
+          }
+        });
+      }
+
       return {
         _id: item._id,
         id: item._id,

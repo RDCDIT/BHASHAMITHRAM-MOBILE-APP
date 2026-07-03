@@ -30,6 +30,14 @@ type DictionaryEntry = {
     meaning: string;
     context_usage?: string;
   }[];
+
+  Category?: {
+    category?: string;
+    meaning?: string;
+    meanings?: string;
+    context_usage?: string;
+    context?: string;
+  }[];
 };
 
 const API_BASE_URLS = [
@@ -151,8 +159,22 @@ export default function EnglishMalayalamScreen() {
     item: DictionaryEntry;
     index: number;
   }) => {
-    const meanings =
-      item.meanings?.filter(Boolean).map((m) => m.meaning) || [];
+    // Primary: use backend-formatted meanings[] (already merges Category + meanings fallback)
+    let displayMeanings: { meaning: string; context_usage?: string }[] =
+      (item.meanings || []).filter((m) => m.meaning?.trim());
+
+    // Client-side safety fallback: if meanings still empty, pull from raw Category
+    if (displayMeanings.length === 0 && Array.isArray(item.Category)) {
+      item.Category.forEach((c) => {
+        const text = c.meanings || c.meaning || "";
+        if (text.trim()) {
+          displayMeanings.push({
+            meaning: text,
+            context_usage: c.context_usage || c.context || "",
+          });
+        }
+      });
+    }
 
     return (
       <AnimatedCard index={index} scrollY={scrollY}>
@@ -175,19 +197,48 @@ export default function EnglishMalayalamScreen() {
               മലയാളം അർത്ഥം
             </Text>
 
-            {meanings.length > 0 ? (
-              meanings.slice(0, 3).map((meaning, idx) => (
-                <Text
-                  key={idx}
-                  style={styles.definitionText}
-                >
-                  • {meaning}
-                </Text>
-              ))
+            {displayMeanings.length === 0 ? (
+              <Text style={styles.definitionText}>No meaning available</Text>
+            ) : displayMeanings.length > 5 ? (
+              /* 2-column layout: left col = items 1–5, right col = items 6+ */
+              <View style={styles.twoColRow}>
+                {/* Left column: first 5 */}
+                <View style={styles.twoColLeft}>
+                  {displayMeanings.slice(0, 5).map((m, idx) => (
+                    <View key={idx} style={{ marginBottom: idx < 4 ? 5 : 0 }}>
+                      <Text style={styles.definitionText}>• {m.meaning}</Text>
+                      {m.context_usage ? (
+                        <Text style={styles.contextText}>  {m.context_usage}</Text>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+
+                {/* Vertical divider */}
+                <View style={styles.twoColDivider} />
+
+                {/* Right column: items 6+ */}
+                <View style={styles.twoColRight}>
+                  {displayMeanings.slice(5).map((m, idx) => (
+                    <View key={idx} style={{ marginBottom: idx < displayMeanings.slice(5).length - 1 ? 5 : 0 }}>
+                      <Text style={styles.definitionText}>• {m.meaning}</Text>
+                      {m.context_usage ? (
+                        <Text style={styles.contextText}>  {m.context_usage}</Text>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              </View>
             ) : (
-              <Text style={styles.definitionText}>
-                No meaning available
-              </Text>
+              /* Single-column layout: 5 or fewer */
+              displayMeanings.map((m, idx) => (
+                <View key={idx} style={{ marginBottom: idx < displayMeanings.length - 1 ? 6 : 0 }}>
+                  <Text style={styles.definitionText}>• {m.meaning}</Text>
+                  {m.context_usage ? (
+                    <Text style={styles.contextText}>  {m.context_usage}</Text>
+                  ) : null}
+                </View>
+              ))
             )}
           </View>
         </TouchableOpacity>
@@ -499,6 +550,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontFamily: "NotoSansMalayalam",
+  },
+  contextText: {
+    color: "#7C736B",
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: "NotoSansMalayalam",
+    fontStyle: "italic",
+    marginTop: 2,
+  },
+  twoColRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  twoColLeft: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  twoColDivider: {
+    width: 1,
+    backgroundColor: "#DDD8D2",
+    alignSelf: "stretch",
+    marginHorizontal: 4,
+  },
+  twoColRight: {
+    flex: 1,
+    paddingLeft: 8,
   },
   stateContainer: {
     flex: 1,
