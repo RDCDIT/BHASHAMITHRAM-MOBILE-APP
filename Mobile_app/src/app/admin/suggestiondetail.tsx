@@ -234,7 +234,7 @@ export default function SuggestionDetailScreen() {
         {/* Meanings */}
         {details.meanings && details.meanings.length > 0 && (
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Meanings & Context</Text>
+            <Text style={styles.sectionTitle}>Meanings &amp; Context</Text>
             {details.meanings.filter(Boolean).map((m, idx) => (
               <View key={m.id || idx} style={styles.meaningItem}>
                 <Text style={styles.meaningIndex}>{idx + 1}.</Text>
@@ -290,7 +290,7 @@ export default function SuggestionDetailScreen() {
           details.novel_words ||
           details.cross_reference) && (
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Lexical Relations & Tags</Text>
+            <Text style={styles.sectionTitle}>Lexical Relations &amp; Tags</Text>
             {!!details.synonyms && (
               <View style={styles.relationContainer}>
                 <Text style={styles.relationLabel}>Synonyms</Text>
@@ -327,10 +327,10 @@ export default function SuggestionDetailScreen() {
         {/* Proverbs */}
         {details.proverbs && details.proverbs.length > 0 && (
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Proverbs & Sayings</Text>
+            <Text style={styles.sectionTitle}>Proverbs &amp; Sayings</Text>
             {details.proverbs.map((p, idx) => (
               <View key={p.id || idx} style={styles.proverbContainer}>
-                <Text style={styles.proverbText}>&quot;{p.proverb}&quot;</Text>
+                <Text style={styles.proverbText}>{`"${p.proverb}"`}</Text>
                 {!!p.context_usage && (
                   <Text style={styles.proverbContext}>Context: {p.context_usage}</Text>
                 )}

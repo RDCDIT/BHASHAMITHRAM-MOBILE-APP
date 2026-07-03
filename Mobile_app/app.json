@@ -4,7 +4,7 @@
     "slug": "bhashamitram",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/bhashamithram-logo.png",
     "scheme": "bhashamitram",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -49,7 +49,7 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    },
+    },  
     "extra": {
       "router": {},
       "eas": {

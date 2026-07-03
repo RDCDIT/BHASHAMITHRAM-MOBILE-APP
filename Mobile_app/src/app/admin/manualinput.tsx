@@ -24,6 +24,12 @@ interface ProverbInput {
   context_usage: string;
 }
 
+interface CategoryItem {
+  category: string;
+  meanings: string;
+  context: string;
+}
+
 const DICTIONARIES = [
   { id: "malayalam-malayalam", label: "Malayalam - Malayalam" },
   { id: "malayalam-english", label: "Malayalam - English" },
@@ -42,7 +48,7 @@ const GENDER_OPTIONS = [
 export default function ManualInputScreen() {
   const [targetDictionary, setTargetDictionary] = useState("malayalam-malayalam");
   const [word, setWord] = useState("");
-  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<CategoryItem[]>([{ category: "", meanings: "", context: "" }]);
   const [gender, setGender] = useState("");
   const [root, setRoot] = useState("");
   const [phoneticTranscription, setPhoneticTranscription] = useState("");
@@ -72,6 +78,22 @@ export default function ManualInputScreen() {
   const [crossReference, setCrossReference] = useState("");
 
   const [loading, setLoading] = useState(false);
+
+  const handleAddCategory = () => {
+    setCategories([...categories, { category: "", meanings: "", context: "" }]);
+  };
+
+  const handleRemoveCategory = (index: number) => {
+    const list = [...categories];
+    list.splice(index, 1);
+    setCategories(list);
+  };
+
+  const handleCategoryChange = (index: number, field: keyof CategoryItem, val: string) => {
+    const list = [...categories];
+    list[index][field] = val;
+    setCategories(list);
+  };
 
   const handleAddMeaning = () => {
     setMeanings([...meanings, { meaning: "", context_usage: "" }]);
@@ -119,7 +141,13 @@ export default function ManualInputScreen() {
       const payload = {
         targetDictionary,
         word: word.trim(),
-        category: category.trim(),
+        Category: categories
+          .filter((c) => c.category.trim() || c.meanings.trim())
+          .map((c) => ({
+            category: c.category.trim(),
+            meanings: c.meanings.trim(),
+            context: c.context.trim(),
+          })),
         gender: gender.trim(),
         root: root.trim(),
         phonetic_transcription: phoneticTranscription.trim(),
@@ -162,7 +190,7 @@ export default function ManualInputScreen() {
       Alert.alert("Success", "Word successfully added to the dictionary collection!");
       // Reset form
       setWord("");
-      setCategory("");
+      setCategories([{ category: "", meanings: "", context: "" }]);
       setGender("");
       setRoot("");
       setPhoneticTranscription("");
@@ -236,7 +264,7 @@ export default function ManualInputScreen() {
         <Text style={styles.sectionTitle}>Basic Information</Text>
         <View style={styles.card}>
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Word / പദം *</Text>
+            <Text style={styles.inputLabel}>Word / പദം</Text>
             <TextInput
               style={styles.input}
               placeholder="e.g. അമ്മ, Love, etc."
@@ -247,15 +275,61 @@ export default function ManualInputScreen() {
 
           {targetDictionary !== "malayalam-synonym" && (
             <>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Category / വിഭാഗം</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. നാമം, ക്രിയ, Noun"
-                  value={category}
-                  onChangeText={setCategory}
-                />
+              {/* Category Array Inputs */}
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitleInline}>Category / വിഭാഗം</Text>
+                <TouchableOpacity style={styles.addButton} onPress={handleAddCategory}>
+                  <Ionicons name="add" size={16} color="#FFF" />
+                  <Text style={styles.addButtonText}>Add</Text>
+                </TouchableOpacity>
               </View>
+
+              {categories.map((cat, index) => (
+                <View key={`cat-${index}`} style={styles.card}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardHeaderTitle}>Category #{index + 1}</Text>
+                    {categories.length > 1 && (
+                      <TouchableOpacity onPress={() => handleRemoveCategory(index)}>
+                        <Ionicons name="trash" size={18} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Category Name / വിഭാഗം</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="e.g. Noun, Verb, നാമം, ക്രിയ"
+                      value={cat.category}
+                      onChangeText={(val) => handleCategoryChange(index, "category", val)}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Meanings / അർത്ഥം</Text>
+                    <TextInput
+                      style={[styles.input, styles.multilineInput]}
+                      placeholder="Enter the meaning for this category"
+                      value={cat.meanings}
+                      onChangeText={(val) => handleCategoryChange(index, "meanings", val)}
+                      multiline
+                      numberOfLines={3}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Context / പ്രയോഗം</Text>
+                    <TextInput
+                      style={[styles.input, styles.multilineInput]}
+                      placeholder="Usage in a sentence or context note"
+                      value={cat.context}
+                      onChangeText={(val) => handleCategoryChange(index, "context", val)}
+                      multiline
+                      numberOfLines={2}
+                    />
+                  </View>
+                </View>
+              ))}
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Root Word / ധാതു</Text>
@@ -432,7 +506,7 @@ export default function ManualInputScreen() {
                   )}
                 </View>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Meaning *</Text>
+                  <Text style={styles.inputLabel}>Meaning</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="Enter meaning"
@@ -733,6 +807,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 14,
     color: "#1F2937",
+  },
+  multilineInput: {
+    height: undefined,
+    minHeight: 60,
+    paddingTop: 10,
+    paddingBottom: 10,
+    textAlignVertical: "top",
   },
   genderGrid: {
     flexDirection: "row",

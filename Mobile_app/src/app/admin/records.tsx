@@ -26,11 +26,18 @@ interface ProverbInput {
   context_usage: string;
 }
 
+interface CategoryItem {
+  category: string;
+  meanings: string;
+  context: string;
+}
+
 interface RecordType {
   _id: string | number;
   word: string;
-  category?: string;
-  Category?: string;
+  // Category is now an array of objects in the DB
+  Category?: CategoryItem[];
+  category?: CategoryItem[] | string; // legacy fallback
   gender?: string;
   Gender?: string;
   root?: string;
@@ -86,7 +93,8 @@ export default function RecordsScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingRecordId, setEditingRecordId] = useState<string | number | null>(null);
   const [word, setWord] = useState("");
-  const [category, setCategory] = useState("");
+  // Category is now an array of { category, meanings, context }
+  const [categories, setCategories] = useState<CategoryItem[]>([{ category: "", meanings: "", context: "" }]);
   const [gender, setGender] = useState("");
   const [root, setRoot] = useState("");
   const [phoneticTranscription, setPhoneticTranscription] = useState("");
@@ -168,7 +176,24 @@ export default function RecordsScreen() {
   const handleOpenEdit = (record: RecordType) => {
     setEditingRecordId(record._id);
     setWord(record.word || "");
-    setCategory(record.category || record.Category || "");
+
+    // Parse Category array from DB — support both array and legacy string
+    const rawCat = record.Category || record.category;
+    if (Array.isArray(rawCat) && rawCat.length > 0) {
+      setCategories(
+        rawCat.map((c: any) => ({
+          category: c.category || "",
+          meanings: c.meanings || c.meaning || "",
+          context: c.context || c.context_usage || "",
+        }))
+      );
+    } else if (typeof rawCat === "string" && rawCat.trim()) {
+      // Legacy single-string fallback
+      setCategories([{ category: rawCat, meanings: "", context: "" }]);
+    } else {
+      setCategories([{ category: "", meanings: "", context: "" }]);
+    }
+
     setGender(record.gender || record.Gender || "");
     setRoot(record.root || "");
     setPhoneticTranscription(record.phonetic_transcription || "");
@@ -211,6 +236,22 @@ export default function RecordsScreen() {
     );
 
     setEditModalVisible(true);
+  };
+
+  const handleAddCategory = () => {
+    setCategories([...categories, { category: "", meanings: "", context: "" }]);
+  };
+
+  const handleRemoveCategory = (index: number) => {
+    const list = [...categories];
+    list.splice(index, 1);
+    setCategories(list);
+  };
+
+  const handleCategoryChange = (index: number, field: keyof CategoryItem, val: string) => {
+    const list = [...categories];
+    list[index][field] = val;
+    setCategories(list);
   };
 
   const handleAddMeaning = () => {
@@ -260,7 +301,14 @@ export default function RecordsScreen() {
       const payload = {
         targetDictionary: selectedDictionary,
         word: word.trim(),
-        category: category.trim(),
+        // Send Category as the new array structure
+        Category: categories
+          .filter((c) => c.category.trim() || c.meanings.trim())
+          .map((c) => ({
+            category: c.category.trim(),
+            meanings: c.meanings.trim(),
+            context: c.context.trim(),
+          })),
         gender: gender.trim(),
         root: root.trim(),
         phonetic_transcription: phoneticTranscription.trim(),
@@ -358,6 +406,10 @@ export default function RecordsScreen() {
         ? item.synonyms.join(", ")
         : item.synonyms || "No meaning details";
 
+    const catDisplay = Array.isArray(item.Category) && item.Category.length > 0
+      ? item.Category.map((c: CategoryItem) => c.category).filter(Boolean).join(" · ")
+      : typeof item.category === "string" ? item.category : "";
+
     return (
       <View style={styles.recordCard}>
         <View style={styles.recordMain}>
@@ -365,9 +417,9 @@ export default function RecordsScreen() {
           <Text style={styles.recordSnippet} numberOfLines={2}>
             {meaningSnippet}
           </Text>
-          {(item.category || item.Category) && (
+          {!!catDisplay && (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{item.category || item.Category}</Text>
+              <Text style={styles.badgeText}>{catDisplay}</Text>
             </View>
           )}
         </View>
@@ -502,15 +554,61 @@ export default function RecordsScreen() {
 
               {selectedDictionary !== "malayalam-synonym" && (
                 <>
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Category / വിഭാഗം</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="e.g. നാമം, ക്രിയ, Noun"
-                      value={category}
-                      onChangeText={setCategory}
-                    />
+                  {/* Category Array — one sub-card per category entry */}
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitleInline}>Category / വിഭാഗം</Text>
+                    <TouchableOpacity style={styles.addButton} onPress={handleAddCategory}>
+                      <Ionicons name="add" size={16} color="#FFF" />
+                      <Text style={styles.addButtonText}>Add</Text>
+                    </TouchableOpacity>
                   </View>
+
+                  {categories.map((cat, index) => (
+                    <View key={`cat-${index}`} style={styles.card}>
+                      <View style={styles.cardHeader}>
+                        <Text style={styles.cardHeaderTitle}>Category #{index + 1}</Text>
+                        {categories.length > 1 && (
+                          <TouchableOpacity onPress={() => handleRemoveCategory(index)}>
+                            <Ionicons name="trash" size={18} color="#EF4444" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Category Name / വിഭാഗം</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="e.g. Noun, Verb, നാമം, ക്രിയ"
+                          value={cat.category}
+                          onChangeText={(val) => handleCategoryChange(index, "category", val)}
+                        />
+                      </View>
+
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Meanings / അർത്ഥം *</Text>
+                        <TextInput
+                          style={[styles.input, styles.multilineInput]}
+                          placeholder="Enter the meaning for this category"
+                          value={cat.meanings}
+                          onChangeText={(val) => handleCategoryChange(index, "meanings", val)}
+                          multiline
+                          numberOfLines={3}
+                        />
+                      </View>
+
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Context Usage / പ്രയോഗം</Text>
+                        <TextInput
+                          style={[styles.input, styles.multilineInput]}
+                          placeholder="Usage in a sentence or context note"
+                          value={cat.context}
+                          onChangeText={(val) => handleCategoryChange(index, "context", val)}
+                          multiline
+                          numberOfLines={2}
+                        />
+                      </View>
+                    </View>
+                  ))}
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Root Word / ധാതു</Text>
@@ -1050,6 +1148,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 14,
     color: "#1F2937",
+  },
+  multilineInput: {
+    height: undefined,
+    minHeight: 60,
+    paddingTop: 10,
+    paddingBottom: 10,
+    textAlignVertical: "top",
   },
   genderGrid: {
     flexDirection: "row",
