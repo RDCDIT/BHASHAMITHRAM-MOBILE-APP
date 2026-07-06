@@ -1,7 +1,18 @@
+/**
+ * @file malayalam_english_controllers.js
+ * @description Controller actions for Malayalam-English dictionary entries.
+ */
+
 const Dictionary = require('../models/malayalam_english_dictionary');
 
 // @desc    Get all dictionary entries (with optional search filter & pagination)
 // @route   GET /api/dictionary
+/**
+ * Retrieves a list of Malayalam-English dictionary entries with pagination and queries.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 const getWords = async (req, res) => {
   try {
     const { search, category, page = 1, limit = 10 } = req.query;
@@ -39,6 +50,12 @@ const getWords = async (req, res) => {
 
 // @desc    Get single entry by ID
 // @route   GET /api/dictionary/:id
+/**
+ * Retrieves a single Malayalam-English word details structure by ID.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 const getWordById = async (req, res) => {
   try {
     const queryId = !isNaN(Number(req.params.id))
@@ -107,6 +124,12 @@ const getWordById = async (req, res) => {
 
 // @desc    Browse dictionary entries with prefix / letter filter
 // @route   GET /api/dictionary/browse-malayalam
+/**
+ * Searches and lists words starting with a character/query prefix.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 const browseMalayalamWords = async (req, res) => {
   try {
     const { query = "" } = req.query;
@@ -137,6 +160,12 @@ const browseMalayalamWords = async (req, res) => {
 
 // @desc    Create a new dictionary entry
 // @route   POST /api/dictionary
+/**
+ * Creates a brand new dictionary entry.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 const createWord = async (req, res) => {
   try {
     const newWord = new Dictionary(req.body);
@@ -149,6 +178,12 @@ const createWord = async (req, res) => {
 
 // @desc    Update a dictionary entry
 // @route   PUT /api/dictionary/:id
+/**
+ * Modifies an existing dictionary entry by ID.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 const updateWord = async (req, res) => {
   try {
     const updatedWord = await Dictionary.findByIdAndUpdate(
@@ -167,6 +202,12 @@ const updateWord = async (req, res) => {
 
 // @desc    Delete a dictionary entry
 // @route   DELETE /api/dictionary/:id
+/**
+ * Removes a dictionary entry from the collection by ID.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 const deleteWord = async (req, res) => {
   try {
     const deletedWord = await Dictionary.findByIdAndDelete(req.params.id);

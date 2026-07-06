@@ -1,3 +1,8 @@
+/**
+ * @file malayalam_synonym.js
+ * @description Express API routes routing definitions for malayalam_synonym.
+ */
+
 const express = require('express');
 const router = express.Router();
 const {

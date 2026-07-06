@@ -1,3 +1,8 @@
+/**
+ * @file dictionaryAdminRoute.js
+ * @description Express API routes routing definitions for dictionaryAdminRoute.
+ */
+
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");

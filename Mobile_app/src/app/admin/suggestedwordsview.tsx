@@ -1,3 +1,8 @@
+/**
+ * @file suggestedwordsview.tsx
+ * @description Admin dashboard view screen for suggestedwordsview management.
+ */
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -28,7 +33,10 @@ const SuggestedWordsScreen: React.FC = () => {
     "pending" | "approved" | "rejected"
   >("pending");
 
-  const fetchSuggestions = async () => {
+  /**
+ * Asynchronous controller/helper function: fetchSuggestions.
+ */
+const fetchSuggestions = async () => {
     try {
       setLoading(true);
 
@@ -48,7 +56,10 @@ const SuggestedWordsScreen: React.FC = () => {
     fetchSuggestions();
   }, []);
 
-  const updateStatus = async (
+  /**
+ * Asynchronous controller/helper function: updateStatus.
+ */
+const updateStatus = async (
     id: string,
     action: "approve" | "reject"
   ) => {

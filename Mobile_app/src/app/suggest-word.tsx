@@ -1,3 +1,8 @@
+/**
+ * @file suggest-word.tsx
+ * @description Application route screen component for suggest-word.
+ */
+
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
@@ -26,6 +31,11 @@ interface EquivalentLanguage {
   translation: string;
 }
 
+/**
+ * Renders and manages the SuggestWordScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function SuggestWordScreen() {
   const router = useRouter();
 
@@ -125,7 +135,10 @@ export default function SuggestWordScreen() {
 
 
   // Form submission handler
-  const handleSubmit = async () => {
+  /**
+ * Asynchronous controller/helper function: handleSubmit.
+ */
+const handleSubmit = async () => {
     if (!word.trim()) {
       Alert.alert(
         selectedLanguage === "english" ? "Error" : "പിശക്",

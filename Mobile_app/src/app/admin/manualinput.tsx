@@ -1,3 +1,8 @@
+/**
+ * @file manualinput.tsx
+ * @description Admin dashboard view screen for manualinput management.
+ */
+
 import React, { useState } from "react";
 import {
   View,
@@ -45,6 +50,11 @@ const GENDER_OPTIONS = [
   { id: "ഉഭയലിംഗം", label: "ഉഭയലിംഗം (Common)" },
 ];
 
+/**
+ * Renders and manages the ManualInputScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function ManualInputScreen() {
   const [targetDictionary, setTargetDictionary] = useState("malayalam-malayalam");
   const [word, setWord] = useState("");
@@ -127,7 +137,10 @@ export default function ManualInputScreen() {
     setProverbs(list);
   };
 
-  const handleSave = async () => {
+  /**
+ * Asynchronous controller/helper function: handleSave.
+ */
+const handleSave = async () => {
     if (!word.trim()) {
       Alert.alert("Input Validation", "Word is required.");
       return;

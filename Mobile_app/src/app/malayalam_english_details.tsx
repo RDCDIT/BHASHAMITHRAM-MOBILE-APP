@@ -1,3 +1,8 @@
+/**
+ * @file malayalam_english_details.tsx
+ * @description Application route screen component for malayalam_english_details.
+ */
+
 import React, { useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
@@ -69,6 +74,11 @@ const getImageUrl = (imgUrl: string) => {
   return `${apiBaseUrl}${finalPath}`;
 };
 
+/**
+ * Renders and manages the MalayalamEnglishDetailsScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function MalayalamEnglishDetailsScreen() {
   const { dictionaryId } = useLocalSearchParams();
   const [details, setDetails] = useState<DictionaryEntryDetails | null>(null);
@@ -127,7 +137,10 @@ export default function MalayalamEnglishDetailsScreen() {
 
   const [scrollY] = React.useState(() => new Animated.Value(0));
 
-  const loadDetails = async () => {
+  /**
+ * Asynchronous controller/helper function: loadDetails.
+ */
+const loadDetails = async () => {
     if (!dictionaryId) {
       setErrorMessage("ശരിയായ വാക്ക് കണ്ടെത്താൻ സാധിച്ചില്ല.");
       setIsLoading(false);

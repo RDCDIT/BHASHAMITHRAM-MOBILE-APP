@@ -1,6 +1,16 @@
+/**
+ * @file SkeletonLoader.tsx
+ * @description Skeleton card loading animation placeholder for dictionary query results.
+ */
+
 import React, { useEffect, useRef } from "react";
 import { View, StyleSheet, Animated } from "react-native";
 
+/**
+ * SkeletonLoader component rendering repeated cards with pulsing transparency.
+ * 
+ * @returns {React.JSX.Element}
+ */
 export default function SkeletonLoader() {
   const [opacity] = React.useState(() => new Animated.Value(0.3));
 
@@ -21,6 +31,12 @@ export default function SkeletonLoader() {
     ).start();
   }, [opacity]);
 
+  /**
+ * Renders an individual animated card structure with empty layout placeholders.
+ * 
+ * @param {number} key - React item key identifier.
+ * @returns {React.JSX.Element}
+ */
   const renderSkeletonCard = (key: number) => (
     <Animated.View key={key} style={[styles.card, { opacity }]}>
       <View style={styles.cardHeader}>

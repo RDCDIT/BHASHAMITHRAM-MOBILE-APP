@@ -1,4 +1,10 @@
-import React, { useEffect, useRef } from "react";
+/**
+ * @file AnimatedCard.tsx
+ * @description A customizable React Native component that wraps children with entrance animations
+ * (fade and slide up) staggered based on their list index, and horizontal drag-to-resize/flexibility physics.
+ */
+
+import React, { useEffect } from "react";
 import { Animated, PanResponder } from "react-native";
 
 interface AnimatedCardProps {
@@ -7,6 +13,13 @@ interface AnimatedCardProps {
   scrollY?: Animated.Value;
 }
 
+/**
+ * AnimatedCard component wraps list items to provide smooth stagger animations on mount
+ * and interactive spring scaling/dragging effects.
+ * 
+ * @param {AnimatedCardProps} props - The component properties.
+ * @returns {React.JSX.Element} The animated wrapper view.
+ */
 export default function AnimatedCard({ children, index, scrollY }: AnimatedCardProps) {
   const [fadeAnim] = React.useState(() => new Animated.Value(0));
   const [slideAnim] = React.useState(() => new Animated.Value(30));
@@ -50,7 +63,7 @@ export default function AnimatedCard({ children, index, scrollY }: AnimatedCardP
         const targetScaleX = 1 + gestureState.dx * 0.0008;
         const targetScaleY = 1 + gestureState.dy * 0.0008;
 
-        // Use Animated.spring for a organic feel
+        // Use Animated.spring for an organic feel
         Animated.spring(dragScaleX, {
           toValue: Math.max(0.8, Math.min(1.2, targetScaleX)),
           useNativeDriver: true,
@@ -137,3 +150,4 @@ export default function AnimatedCard({ children, index, scrollY }: AnimatedCardP
     </Animated.View>
   );
 }
+

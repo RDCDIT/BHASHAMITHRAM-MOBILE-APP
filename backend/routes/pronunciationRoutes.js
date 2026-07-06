@@ -1,3 +1,8 @@
+/**
+ * @file pronunciationRoutes.js
+ * @description Express API routes routing definitions for pronunciationRoutes.
+ */
+
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');

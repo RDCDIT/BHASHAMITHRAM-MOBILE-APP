@@ -1,3 +1,8 @@
+/**
+ * @file index.tsx
+ * @description Application route screen component for index.
+ */
+
 import SideMenu from "@/components/side-menu";
 import AnimatedCard from "@/components/AnimatedCard";
 import FloatingLettersBackground from "@/components/FloatingLettersBackground";
@@ -28,6 +33,12 @@ interface MenuItem {
   onPress: () => void;
 }
 
+/**
+ * HomeScreen aggregates primary navigation paths, quick-access dictionary cards,
+ * recent lookup histories, and drawer elements.
+ * 
+ * @returns {React.JSX.Element} Main dashboard screen layout.
+ */
 export default function HomeScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const router = useRouter();

@@ -1,3 +1,8 @@
+/**
+ * @file english_malayalam_details.tsx
+ * @description Detailed word view screen displaying translations, categories, grammatical details, and pronunciation for English-Malayalam pairs.
+ */
+
 import React, { useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
@@ -58,6 +63,12 @@ const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
 ].filter((value): value is string => Boolean(value));
 
+/**
+ * Formats relative image file URLs into valid resource locations referencing the backend storage.
+ * 
+ * @param {string} imgUrl - Raw image path.
+ * @returns {string} Fully qualified web resource URL.
+ */
 const getImageUrl = (imgUrl: string) => {
   if (!imgUrl) return "";
   if (imgUrl.startsWith("http://") || imgUrl.startsWith("https://") || imgUrl.startsWith("data:")) {
@@ -69,6 +80,12 @@ const getImageUrl = (imgUrl: string) => {
   return `${apiBaseUrl}${finalPath}`;
 };
 
+/**
+ * EnglishMalayalamDetailsScreen renders vocabulary definitions, related illustrations, 
+ * regional equivalents, proverbs, and audio triggers for the selected word.
+ * 
+ * @returns {React.JSX.Element} The details display container.
+ */
 export default function EnglishMalayalamDetailsScreen() {
   const { dictionaryId } = useLocalSearchParams();
   const [details, setDetails] = useState<DictionaryEntryDetails | null>(null);

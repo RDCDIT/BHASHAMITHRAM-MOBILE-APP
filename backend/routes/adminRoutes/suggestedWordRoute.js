@@ -1,3 +1,8 @@
+/**
+ * @file suggestedWordRoute.js
+ * @description Express API routes routing definitions for suggestedWordRoute.
+ */
+
 const express = require("express");
 const router = express.Router();
 

@@ -1,7 +1,18 @@
+/**
+ * @file english_englishcontroller.js
+ * @description Controller handling operations on the English-English dictionary database collection.
+ */
+
 const EnglishDictionary = require("../models/english-english-dictionary");
 
 // Get all words (or browse with query)
 // Get all words
+/**
+ * Retrieves a list of English words, optionally matching a search prefix regex query.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.getAllWords = async (req, res) => {
   const { query } = req.query;
 
@@ -49,6 +60,12 @@ exports.getAllWords = async (req, res) => {
 };
 
 // Get word by id
+/**
+ * Retrieves detailed dictionary records for a specific entry ID.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.getWordById = async (req, res) => {
   try {
     const word = await EnglishDictionary.findById(req.params.id);
@@ -112,6 +129,12 @@ exports.getWordById = async (req, res) => {
 };
 
 // Search by word
+/**
+ * Exact matches a search word case-insensitively and returns its full database record.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.searchWord = async (req, res) => {
   try {
     const { word } = req.query;
@@ -137,6 +160,12 @@ exports.searchWord = async (req, res) => {
 };
 
 // Create word
+/**
+ * Inserts a new English-English word record into the dictionary.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.createWord = async (req, res) => {
   try {
     const word = await EnglishDictionary.create(req.body);
@@ -150,6 +179,12 @@ exports.createWord = async (req, res) => {
 };
 
 // Update word
+/**
+ * Updates properties on a specific English-English dictionary document.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.updateWord = async (req, res) => {
   try {
     const word = await EnglishDictionary.findByIdAndUpdate(
@@ -175,6 +210,12 @@ exports.updateWord = async (req, res) => {
 };
 
 // Delete word
+/**
+ * Permanently removes a document from the English-English collection.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.deleteWord = async (req, res) => {
   try {
     const word = await EnglishDictionary.findByIdAndDelete(

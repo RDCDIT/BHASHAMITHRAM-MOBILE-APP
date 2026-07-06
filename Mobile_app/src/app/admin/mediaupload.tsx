@@ -1,3 +1,8 @@
+/**
+ * @file mediaupload.tsx
+ * @description Admin dashboard view screen for mediaupload management.
+ */
+
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -31,6 +36,11 @@ interface WordRecord {
   meanings?: Array<{ meaning: string }>;
 }
 
+/**
+ * Renders and manages the MediaUploadScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function MediaUploadScreen() {
   const [selectedDictionary, setSelectedDictionary] = useState("malayalam-malayalam");
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,7 +68,10 @@ export default function MediaUploadScreen() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery, selectedDictionary]);
 
-  const searchWords = async () => {
+  /**
+ * Asynchronous controller/helper function: searchWords.
+ */
+const searchWords = async () => {
     try {
       setSearching(true);
       const API_URL = `${
@@ -82,7 +95,10 @@ export default function MediaUploadScreen() {
     }
   };
 
-  const handlePickImage = async () => {
+  /**
+ * Asynchronous controller/helper function: handlePickImage.
+ */
+const handlePickImage = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
@@ -105,7 +121,10 @@ export default function MediaUploadScreen() {
     }
   };
 
-  const handlePickAudio = async () => {
+  /**
+ * Asynchronous controller/helper function: handlePickAudio.
+ */
+const handlePickAudio = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: "audio/*",
@@ -122,7 +141,10 @@ export default function MediaUploadScreen() {
     }
   };
 
-  const handleUpload = async () => {
+  /**
+ * Asynchronous controller/helper function: handleUpload.
+ */
+const handleUpload = async () => {
     if (!selectedWord) {
       Alert.alert("Required Field", "Please select a word first.");
       return;

@@ -1,3 +1,9 @@
+/**
+ * @file FloatingLettersBackground.tsx
+ * @description Background visual effect component containing Malayalam alphabet characters
+ * and educational icons that float and rotate continuously using React Native Reanimated.
+ */
+
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
@@ -17,6 +23,13 @@ interface FloatingLetterProps {
   delayMs: number;
 }
 
+/**
+ * Individual floating letter component which animate translation, scaling, opacity, 
+ * and rotation in a continuous loop with a start delay.
+ * 
+ * @param {FloatingLetterProps} props - The component parameters.
+ * @returns {React.JSX.Element} Animated text element containing the character.
+ */
 const FloatingLetter: React.FC<FloatingLetterProps> = ({ char, top, left, delayMs }) => {
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
@@ -124,6 +137,12 @@ const FloatingLetter: React.FC<FloatingLetterProps> = ({ char, top, left, delayM
   );
 };
 
+/**
+ * FloatingLettersBackground renders a container filled with various floating letters
+ * in different absolute positions and delayed starts, functioning as a non-interactive backdrop.
+ * 
+ * @returns {React.JSX.Element} The background view container.
+ */
 export default function FloatingLettersBackground() {
   const letters = [
     { char: "അ", top: "5%", left: "10%", delayMs: 0 },
@@ -172,3 +191,4 @@ const styles = StyleSheet.create({
     fontFamily: "Chilanka",
   },
 });
+

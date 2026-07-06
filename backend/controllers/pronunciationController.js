@@ -1,4 +1,14 @@
+/**
+ * @file pronunciationController.js
+ * @description Express controller actions handling operations for pronunciationController.
+ */
+
 const path = require('path');
+/**
+ * @file pronunciationController.js
+ * @description Controller managing pronunciation file paths, existence checks, and uploading availability.
+ */
+
 const fs = require('fs');
 const fileManager = require('../utils/fileManager');
 const googleTTSService = require('../services/googleTTSService');
@@ -11,6 +21,12 @@ fileManager.ensureDirectoryExists(AUDIO_DIR);
 /**
  * GET /api/pronunciation/:word
  * Returns cached or newly generated pronunciation details.
+ */
+/**
+ * Retrieves the pronunciation audio URL or local synthesis direction for a target word.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
  */
 const getPronunciation = async (req, res) => {
   const word = req.params.word;
@@ -77,6 +93,12 @@ const getPronunciation = async (req, res) => {
 /**
  * POST /api/pronunciation/upload
  * Admin tool to upload custom MP3 audio manually for a dictionary word.
+ */
+/**
+ * Uploads a custom MP3 audio pronunciation file for a target word.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
  */
 const uploadPronunciation = async (req, res) => {
   const { word, ipa } = req.body;

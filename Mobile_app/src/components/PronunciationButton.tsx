@@ -1,3 +1,9 @@
+/**
+ * @file PronunciationButton.tsx
+ * @description Button component that fetches pronunciation audio URLs or fallback 
+ * on-device Speech synthesis for the Malayalam and English vocabulary database.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { TouchableOpacity, ActivityIndicator, StyleSheet, Alert, Animated, Platform, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +14,13 @@ interface PronunciationButtonProps {
   word: string;
 }
 
+/**
+ * Public wrapper for the PronunciationButton component.
+ * Validates audio capabilities and displays mute fallback alert if needed.
+ * 
+ * @param {PronunciationButtonProps} props - The component parameters.
+ * @returns {React.JSX.Element}
+ */
 export default function PronunciationButton(props: PronunciationButtonProps) {
   const isSupported = typeof useAudioPlayer === 'function';
 
@@ -31,6 +44,13 @@ export default function PronunciationButton(props: PronunciationButtonProps) {
   return <PronunciationButtonInner {...props} />;
 }
 
+/**
+ * Inner component rendering the actual interactive audio playback button,
+ * handling the request to the pronunciation backend service or Fallback speech synthesis.
+ * 
+ * @param {PronunciationButtonProps} props - Inner component properties.
+ * @returns {React.JSX.Element}
+ */
 function PronunciationButtonInner({ word }: PronunciationButtonProps) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [ipa, setIpa] = useState<string | null>(null);

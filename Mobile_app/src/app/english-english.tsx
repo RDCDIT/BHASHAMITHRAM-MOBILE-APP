@@ -1,3 +1,8 @@
+/**
+ * @file english-english.tsx
+ * @description Application route screen component for english-english.
+ */
+
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   ActivityIndicator,
@@ -38,6 +43,11 @@ const API_BASE_URLS = [
 // Alphabet list for the browser menu layout
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
+/**
+ * Renders and manages the EnglishMalayalamScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function EnglishMalayalamScreen() {
   const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -50,7 +60,10 @@ export default function EnglishMalayalamScreen() {
 
 
 
-  const loadEntries = async () => {
+  /**
+ * Asynchronous controller/helper function: loadEntries.
+ */
+const loadEntries = async () => {
     try {
       if (!isRefreshing) setIsLoading(true);
       setErrorMessage("");

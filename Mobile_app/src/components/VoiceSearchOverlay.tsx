@@ -1,3 +1,8 @@
+/**
+ * @file VoiceSearchOverlay.tsx
+ * @description React Native UI Component: VoiceSearchOverlay.
+ */
+
 import React from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +14,11 @@ interface VoiceSearchOverlayProps {
   onClose: () => void;
 }
 
+/**
+ * Renders and manages the VoiceSearchOverlay component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function VoiceSearchOverlay({
   visible,
   partialTranscript,

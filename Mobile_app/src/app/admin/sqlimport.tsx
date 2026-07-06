@@ -1,3 +1,8 @@
+/**
+ * @file sqlimport.tsx
+ * @description Admin dashboard view screen for sqlimport management.
+ */
+
 import React, { useState } from "react";
 import {
   View,
@@ -22,6 +27,11 @@ interface SelectedFile {
   size?: number;
 }
 
+/**
+ * Renders and manages the SQLImportScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function SQLImportScreen() {
   const [sqlitePath, setSqlitePath] = useState("");
   const [targetDbName, setTargetDbName] = useState("");
@@ -29,7 +39,10 @@ export default function SQLImportScreen() {
   const [loading, setLoading] = useState(false);
   const [migrationReport, setMigrationReport] = useState<string | null>(null);
 
-  const handlePickFile = async () => {
+  /**
+ * Asynchronous controller/helper function: handlePickFile.
+ */
+const handlePickFile = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: "*/*",
@@ -57,7 +70,10 @@ export default function SQLImportScreen() {
     setSelectedFile(null);
   };
 
-  const handleStartMigration = async () => {
+  /**
+ * Asynchronous controller/helper function: handleStartMigration.
+ */
+const handleStartMigration = async () => {
     if (!targetDbName.trim()) {
       Alert.alert("Input Error", "Please specify a target MongoDB database name.");
       return;

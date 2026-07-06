@@ -1,3 +1,8 @@
+/**
+ * @file speechRoutes.js
+ * @description Express API routes routing definitions for speechRoutes.
+ */
+
 const express = require("express");
 const router = express.Router();
 const { recognizeSpeech } = require("../controllers/speechController");

@@ -1,3 +1,8 @@
+/**
+ * @file malayalam_english.tsx
+ * @description Application route screen component for malayalam_english.
+ */
+
 import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
@@ -46,6 +51,11 @@ const MALAYALAM_ALPHABET = Object.freeze([
   "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
 ]);
 
+/**
+ * Renders and manages the MalayalamEnglishScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function MalayalamEnglishScreen() {
   const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -57,7 +67,10 @@ export default function MalayalamEnglishScreen() {
 
 
 
-  const loadEntries = async () => {
+  /**
+ * Asynchronous controller/helper function: loadEntries.
+ */
+const loadEntries = async () => {
     try {
       setIsLoading(true);
       setErrorMessage("");

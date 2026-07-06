@@ -1,3 +1,8 @@
+/**
+ * @file wordroute.js
+ * @description Express API routes routing definitions for wordroute.
+ */
+
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
@@ -207,8 +212,6 @@ router.get("/details/:id", async (req, res) => {
     if (!wordDetails) {
       return res.status(404).json({ message: "Word details not found." });
     }
-
-
 
     const formattedDetails = {
       ...wordDetails.toObject(),

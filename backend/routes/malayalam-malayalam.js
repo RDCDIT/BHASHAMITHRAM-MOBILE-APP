@@ -1,3 +1,7 @@
+/**
+ * @file malayalam-malayalam.js
+ * @description Express API routes routing definitions for malayalam-malayalam.
+ */
 
 const express = require("express");
 

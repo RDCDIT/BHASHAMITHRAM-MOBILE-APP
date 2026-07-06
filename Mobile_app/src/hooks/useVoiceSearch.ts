@@ -1,3 +1,9 @@
+/**
+ * @file useVoiceSearch.ts
+ * @description Hook managing speech transcription using either HTML5 Speech Recognition (Web)
+ * or expo-audio recorder with backend speech-to-text API calls (Native).
+ */
+
 import { useState, useEffect, useRef } from "react";
 import { Platform } from "react-native";
 import { 
@@ -13,6 +19,13 @@ const API_BASE_URLS = [
 ].filter((value): value is string => Boolean(value));
 
 
+/**
+ * Custom hook tracking voice states, managing web APIs or device recording to produce transcriptions.
+ * 
+ * @param {(text: string) => void} onTranscript - Callback fired upon successfully receiving transcriptions.
+ * @param {"en-US" | "ml-IN"} lang - Locale language constraint.
+ * @returns {Object} Listening states, partial transcript, and start/stop controls.
+ */
 export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-US" | "ml-IN" = "ml-IN") {
   const [isListening, setIsListening] = useState(false);
   const [partialTranscript, setPartialTranscript] = useState("");
@@ -64,6 +77,9 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
     }
   }, [lang]);
 
+  /**
+ * Triggers speech recognition permissions check and starts audio captures or listeners.
+ */
   const startListening = async () => {
     // Web Speech API
     if (Platform.OS === "web" && webRecognizerRef.current) {
@@ -109,6 +125,9 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
     }
   };
 
+  /**
+ * Stops ongoing voice captures and dispatches recorded bytes to transcribe services.
+ */
   const stopListening = async () => {
     // Web Speech API
     if (Platform.OS === "web" && webRecognizerRef.current) {
@@ -164,6 +183,11 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
     }
   };
 
+  /**
+ * Sends base64-encoded audio bytes to speech-to-text API endpoints.
+ * 
+ * @param {string} base64Audio - Binary audio chunk.
+ */
   const transcribeAudio = async (base64Audio: string) => {
     let lastError: unknown = null;
 

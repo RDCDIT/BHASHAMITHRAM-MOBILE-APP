@@ -1,8 +1,21 @@
+/**
+ * @file dictionary_word.js
+ * @description Controller for general dictionary word lookups, specifically handling
+ * the retrieval of English-equivalent words beginning with a specified letter.
+ */
+
 const Dictionary = require('../models/englishmalayalam');
 
 /**
  * GET /api/words/browse
- * Fetches all items starting with a specific English character with 1 meaning.
+ * Fetches all dictionary items starting with a specific English character (using a prefix regex match)
+ * with approved status, returning their English equivalents, primary Malayalam meanings, and IDs.
+ * 
+ * @param {Object} req - Express request object.
+ * @param {Object} req.query - URL query parameters.
+ * @param {string} req.query.letter - The character prefix used to filter words.
+ * @param {Object} res - Express response object.
+ * @returns {Promise<Object>} JSON response containing the list of formatted dictionary entries or error messages.
  */
 const getEnglishMasterList = async (req, res) => {
   const startTime = Date.now();
@@ -33,7 +46,7 @@ const getEnglishMasterList = async (req, res) => {
       }
     ).sort({ 'equivalents.english': 1 });
 
-    // format database records to layout format expected by the mobile client
+    // Format database records to layout format expected by the mobile client
     const formattedList = wordsList.map(item => ({
       id: item._id,
       english_equivalent: item.equivalents?.english || '',
@@ -53,4 +66,4 @@ const getEnglishMasterList = async (req, res) => {
   }
 };
 
-module.exports = { getEnglishMasterList };
+module.exports = { getEnglishMasterList };

@@ -1,9 +1,27 @@
+/**
+ * @file english_malayalam_controller.js
+ * @description Express controller actions handling operations for english_malayalam_controller.
+ */
+
+
+/**
+ * @file english_malayalam_controller.js
+ * @description Express controller actions handling CRUD operations and queries for the English-Malayalam dictionary.
+ */
 
 const EnglishMalayalamDictionary = require(
   "../models/english_malayalam_dictionary"
 );
 
 // Browse / Search
+/**
+ * Fetches and filters English words starting with a search query, with their Malayalam meanings.
+ * 
+ * @param {Object} req - Express request object.
+ * @param {Object} req.query - URL query parameters.
+ * @param {string} req.query.query - Query string to filter words (starts-with match).
+ * @param {Object} res - Express response object.
+ */
 exports.browseEnglishWords = async (req, res) => {
   try {
     const { query = "" } = req.query;
@@ -67,6 +85,14 @@ exports.browseEnglishWords = async (req, res) => {
 };
 
 // Get Details
+/**
+ * Retrieves detailed dictionary entry record (including proverbs and categories) for a specific word ID.
+ * 
+ * @param {Object} req - Express request object.
+ * @param {Object} req.params - URL route parameters.
+ * @param {string} req.params.id - Unique ID of the dictionary entry.
+ * @param {Object} res - Express response object.
+ */
 exports.getWordDetails = async (req, res) => {
   try {
     const word = await EnglishMalayalamDictionary.findById(req.params.id);
@@ -129,6 +155,12 @@ exports.getWordDetails = async (req, res) => {
 };
 
 // Create
+/**
+ * Creates and stores a new English-Malayalam word entry in the database.
+ * 
+ * @param {Object} req - Express request object containing word data in body.
+ * @param {Object} res - Express response object.
+ */
 exports.createWord = async (req, res) => {
   try {
     const word = await EnglishMalayalamDictionary.create(
@@ -145,6 +177,14 @@ exports.createWord = async (req, res) => {
 };
 
 // Update
+/**
+ * Updates an existing English-Malayalam word entry by its unique ID.
+ * 
+ * @param {Object} req - Express request object.
+ * @param {Object} req.params.id - ID of the word to update.
+ * @param {Object} req.body - Object containing fields to update.
+ * @param {Object} res - Express response object.
+ */
 exports.updateWord = async (req, res) => {
   try {
     const word =
@@ -164,6 +204,13 @@ exports.updateWord = async (req, res) => {
 };
 
 // Delete
+/**
+ * Deletes a word entry from the English-Malayalam dictionary by ID.
+ * 
+ * @param {Object} req - Express request object.
+ * @param {Object} req.params.id - ID of the word to delete.
+ * @param {Object} res - Express response object.
+ */
 exports.deleteWord = async (req, res) => {
   try {
     await EnglishMalayalamDictionary.findByIdAndDelete(

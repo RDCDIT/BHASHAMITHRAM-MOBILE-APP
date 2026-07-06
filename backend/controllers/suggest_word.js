@@ -1,3 +1,8 @@
+/**
+ * @file suggest_word.js
+ * @description Controller handles incoming suggestions from users proposing new words/meanings.
+ */
+
 const SuggestedWord = require('../models/SuggestedWord');
 const DataviewSuggestion = require('../models/DataviewSuggestion');
 const DataviewCollection = require('../models/DataviewCollection');
@@ -7,6 +12,12 @@ const { sendSuggestionReceivedMail } = require('../services/mailService');
  * POST /api/words/suggest
  * Creates a new word suggestion entry in the Suggested_words collection
  * and contributor records in the DataviewSuggestions collection.
+ */
+/**
+ * Adds a new word suggestion entry into the suggestions database collection.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
  */
 const suggestWord = async (req, res) => {
   const startTime = Date.now();
@@ -211,6 +222,5 @@ const getDataviewCollection = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
-
 
 module.exports = { suggestWord, getSuggestions, saveDataviewCollection, getDataviewCollection };

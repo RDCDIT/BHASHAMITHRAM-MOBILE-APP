@@ -1,3 +1,8 @@
+/**
+ * @file records.tsx
+ * @description Admin dashboard view screen for records management.
+ */
+
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -80,6 +85,11 @@ const GENDER_OPTIONS = [
   { id: "ഉഭയലിംഗം", label: "ഉഭയലിംഗം (Common)" },
 ];
 
+/**
+ * Renders and manages the RecordsScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function RecordsScreen() {
   const [selectedDictionary, setSelectedDictionary] = useState("malayalam-malayalam");
   const [searchQuery, setSearchQuery] = useState("");
@@ -126,7 +136,10 @@ export default function RecordsScreen() {
 
   const [saving, setSaving] = useState(false);
 
-  const fetchRecords = async (pageNum = 1) => {
+  /**
+ * Asynchronous controller/helper function: fetchRecords.
+ */
+const fetchRecords = async (pageNum = 1) => {
     try {
       setLoading(true);
       const API_URL = `${
@@ -286,7 +299,10 @@ export default function RecordsScreen() {
     setProverbs(list);
   };
 
-  const handleSaveEdit = async () => {
+  /**
+ * Asynchronous controller/helper function: handleSaveEdit.
+ */
+const handleSaveEdit = async () => {
     if (!word.trim()) {
       Alert.alert("Validation", "Word is required.");
       return;

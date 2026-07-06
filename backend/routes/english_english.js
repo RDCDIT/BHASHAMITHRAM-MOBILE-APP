@@ -1,3 +1,8 @@
+/**
+ * @file english_english.js
+ * @description Express API routes routing definitions for english_english.
+ */
+
 const express = require("express");
 
 const router = express.Router();

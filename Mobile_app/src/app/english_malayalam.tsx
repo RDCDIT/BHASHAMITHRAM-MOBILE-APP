@@ -1,3 +1,8 @@
+/**
+ * @file english_malayalam.tsx
+ * @description Application route screen component for english_malayalam.
+ */
+
 import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
@@ -46,6 +51,12 @@ const API_BASE_URLS = [
 // Alphabet list for the browser menu layout
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
+/**
+ * EnglishMalayalamScreen manages query input, voice search triggers, alphabet filtering tabs,
+ * and paginated scroll listings of translation pairs.
+ * 
+ * @returns {React.JSX.Element} Browse lists layout.
+ */
 export default function EnglishMalayalamScreen() {
   const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -57,7 +68,10 @@ export default function EnglishMalayalamScreen() {
 
 
 
-  const loadEntries = async () => {
+  /**
+ * Asynchronous controller/helper function: loadEntries.
+ */
+const loadEntries = async () => {
     try {
       setIsLoading(true);
       setErrorMessage("");

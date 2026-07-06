@@ -1,3 +1,8 @@
+/**
+ * @file dictionaryAdminController.js
+ * @description Admin actions to manage dictionary entries: import, update, read, delete, and upload media attachments.
+ */
+
 const MalayalamMalayalamDictionary = require("../../models/malayalam_malayalam_dictionary");
 const MalayalamEnglishDictionary = require("../../models/malayalam_english_dictionary");
 const EnglishMalayalamDictionary = require("../../models/english_malayalam_dictionary");
@@ -8,8 +13,13 @@ const MalayalamPronunciation = require("../../models/pronounciation_malayalam");
 const fs = require("fs");
 const path = require("path");
 
-
 // Import word manually into specified dictionary
+/**
+ * Manual imports of dictionary terms directly into target collections.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.importManualWord = async (req, res) => {
   const startTime = Date.now();
   console.log(`\n📥 [Incoming Request] POST /api/admin/dictionary/import-manual`);
@@ -247,6 +257,12 @@ exports.importManualWord = async (req, res) => {
 };
 
 // GET /api/admin/dictionary/words
+/**
+ * Queries lists of words across various target dictionary collections with pagination.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.getWords = async (req, res) => {
   const startTime = Date.now();
   try {
@@ -314,6 +330,12 @@ exports.getWords = async (req, res) => {
 };
 
 // PUT /api/admin/dictionary/words/:id
+/**
+ * Updates dictionary document properties across any dictionary collection.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.updateWord = async (req, res) => {
   const startTime = Date.now();
   const { id } = req.params;
@@ -479,6 +501,12 @@ exports.updateWord = async (req, res) => {
 };
 
 // DELETE /api/admin/dictionary/words/:id
+/**
+ * Deletes dictionary documents and associated pronunciation objects.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.deleteWord = async (req, res) => {
   const startTime = Date.now();
   const { id } = req.params;
@@ -528,6 +556,12 @@ exports.deleteWord = async (req, res) => {
   }
 };
 
+/**
+ * Binds uploaded media files and visual illustrations to specific dictionary records.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.uploadMedia = async (req, res) => {
   const startTime = Date.now();
   console.log(`\n📥 [Incoming Request] POST /api/admin/dictionary/upload-media`);

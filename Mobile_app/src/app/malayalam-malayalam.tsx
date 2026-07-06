@@ -1,3 +1,8 @@
+/**
+ * @file malayalam-malayalam.tsx
+ * @description Application route screen component for malayalam-malayalam.
+ */
+
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   ActivityIndicator,
@@ -55,6 +60,11 @@ const MALAYALAM_ALPHABET = Object.freeze([
   "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
 ]);
 
+/**
+ * Renders and manages the MalayalamEnglishScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function MalayalamEnglishScreen() {
   const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -68,7 +78,10 @@ export default function MalayalamEnglishScreen() {
 
 
   // ബാക്കെൻഡിൽ നിന്നും മലയാളം വാക്കുകൾ ഫെച്ച് ചെയ്യാനുള്ള ഫങ്ഷൻ
-  const loadEntries = async () => {
+  /**
+ * Asynchronous controller/helper function: loadEntries.
+ */
+const loadEntries = async () => {
     try {
       if (!isRefreshing) setIsLoading(true);
       setErrorMessage("");

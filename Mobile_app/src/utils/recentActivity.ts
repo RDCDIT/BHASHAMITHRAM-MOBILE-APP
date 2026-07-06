@@ -1,3 +1,9 @@
+/**
+ * @file recentActivity.ts
+ * @description Utility functions for saving, retrieving, and clearing recent search queries
+ * and recently opened dictionary words using React Native's AsyncStorage.
+ */
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const RECENT_SEARCHES_KEY = "@bashamitram:recent_searches";
@@ -18,6 +24,11 @@ export type RecentOpening = {
   openedAt: string;
 };
 
+/**
+ * Retrieves the history of recent searches and recently opened words.
+ * 
+ * @returns {Promise<{ recentSearches: RecentSearch[]; recentOpenings: RecentOpening[] }>} Promise resolving to objects containing both activity lists.
+ */
 export async function getRecentActivity(): Promise<{
   recentSearches: RecentSearch[];
   recentOpenings: RecentOpening[];
@@ -38,6 +49,14 @@ export async function getRecentActivity(): Promise<{
   }
 }
 
+/**
+ * Saves a new query to the search history, filters duplicates, and limits results to top 10.
+ * Single letters/alphabets in Malayalam are ignored.
+ * 
+ * @param {string} title - The search query text.
+ * @param {"english" | "character" | "synonym"} itemType - The category type of search query.
+ * @returns {Promise<RecentSearch[]>} Updated search history array.
+ */
 export async function saveRecentSearch(
   title: string,
   itemType: "english" | "character" | "synonym" = "character"
@@ -82,6 +101,14 @@ export async function saveRecentSearch(
   }
 }
 
+/**
+ * Saves a dictionary word details screen visit event to recent openings history,
+ * removing previous references of the same word and limiting entries to 10.
+ * 
+ * @param {number} wordId - Unique identifier of the word.
+ * @param {string} word - The word itself.
+ * @returns {Promise<RecentOpening[]>} Updated recent openings array.
+ */
 export async function saveRecentOpening(
   wordId: number,
   word: string
@@ -110,6 +137,12 @@ export async function saveRecentOpening(
   }
 }
 
+/**
+ * Clears stored recent activities from AsyncStorage based on the specified type.
+ * 
+ * @param {"searches" | "openings" | "all"} type - Selection of which list to clear.
+ * @returns {Promise<void>}
+ */
 export async function clearRecentActivity(
   type: "searches" | "openings" | "all"
 ): Promise<void> {
@@ -124,3 +157,4 @@ export async function clearRecentActivity(
     console.error("Failed to clear recent activity:", error);
   }
 }
+

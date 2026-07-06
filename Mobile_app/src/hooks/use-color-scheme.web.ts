@@ -1,3 +1,8 @@
+/**
+ * @file use-color-scheme.web.ts
+ * @description Contains logic and definitions for use-color-scheme.
+ */
+
 import { useEffect, useState } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 

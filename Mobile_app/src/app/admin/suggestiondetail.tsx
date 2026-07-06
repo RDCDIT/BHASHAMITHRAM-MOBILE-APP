@@ -1,3 +1,8 @@
+/**
+ * @file suggestiondetail.tsx
+ * @description Admin dashboard view screen for suggestiondetail management.
+ */
+
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -76,13 +81,21 @@ const getImageUrl = (imgUrl: string) => {
   return `${apiBaseUrl}${finalPath}`;
 };
 
+/**
+ * Renders and manages the SuggestionDetailScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function SuggestionDetailScreen() {
   const { id } = useLocalSearchParams();
   const [details, setDetails] = useState<SuggestedWordDetails | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [updating, setUpdating] = useState<boolean>(false);
 
-  const fetchDetails = async () => {
+  /**
+ * Asynchronous controller/helper function: fetchDetails.
+ */
+const fetchDetails = async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/${id}`);
@@ -105,7 +118,10 @@ export default function SuggestionDetailScreen() {
     }
   }, [id]);
 
-  const updateStatus = async (action: "approve" | "reject") => {
+  /**
+ * Asynchronous controller/helper function: updateStatus.
+ */
+const updateStatus = async (action: "approve" | "reject") => {
     try {
       setUpdating(true);
       const response = await fetch(`${API_URL}/${id}/${action}`, {

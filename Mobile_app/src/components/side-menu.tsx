@@ -1,3 +1,8 @@
+/**
+ * @file side-menu.tsx
+ * @description React Native UI Component: side-menu.
+ */
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -20,6 +25,11 @@ interface SideMenuProps {
   onClose: () => void;
 }
 
+/**
+ * Renders and manages the SideMenu component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function SideMenu({ visible, onClose }: SideMenuProps) {
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
@@ -39,7 +49,10 @@ export default function SideMenu({ visible, onClose }: SideMenuProps) {
     router.replace("/");
   };
 
-  const handleOpenURL = async (url: string) => {
+  /**
+ * Asynchronous controller/helper function: handleOpenURL.
+ */
+const handleOpenURL = async (url: string) => {
     onClose();
     try {
       await Linking.openURL(url);

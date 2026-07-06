@@ -1,3 +1,8 @@
+/**
+ * @file SpeakButton.tsx
+ * @description Native text-to-speech speak button utilizing expo-speech library for local speech synthesis.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +13,12 @@ interface SpeakButtonProps {
   lang: 'ml' | 'en';
 }
 
+/**
+ * SpeakButton handles the local device audio speech output of target terms in English or Malayalam.
+ * 
+ * @param {SpeakButtonProps} props - The component parameters.
+ * @returns {React.JSX.Element}
+ */
 export default function SpeakButton({ word, lang }: SpeakButtonProps) {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
@@ -53,6 +64,9 @@ export default function SpeakButton({ word, lang }: SpeakButtonProps) {
     }
   }, [isPlaying]);
 
+  /**
+ * Initiates speech playbacks or interrupts them if already speaking.
+ */
   const handlePlayback = async () => {
     if (!word || typeof word !== 'string' || word.trim() === '') {
       return;

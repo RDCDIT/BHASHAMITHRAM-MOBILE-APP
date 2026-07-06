@@ -1,3 +1,8 @@
+/**
+ * @file malayalam_synonym_details.tsx
+ * @description Application route screen component for malayalam_synonym_details.
+ */
+
 import React, { useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
@@ -27,6 +32,11 @@ const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
 ].filter((value): value is string => Boolean(value));
 
+/**
+ * Renders and manages the MalayalamSynonymDetailsScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function MalayalamSynonymDetailsScreen() {
   const { dictionaryId } = useLocalSearchParams();
   const [details, setDetails] = useState<SynonymDetails | null>(null);
@@ -85,7 +95,10 @@ export default function MalayalamSynonymDetailsScreen() {
 
   const [scrollY] = React.useState(() => new Animated.Value(0));
 
-  const loadDetails = async () => {
+  /**
+ * Asynchronous controller/helper function: loadDetails.
+ */
+const loadDetails = async () => {
     if (!dictionaryId) {
       setErrorMessage("ശരിയായ വാക്ക് കണ്ടെത്താൻ സാധിച്ചില്ല.");
       setIsLoading(false);

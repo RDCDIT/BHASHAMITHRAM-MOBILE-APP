@@ -1,3 +1,8 @@
+/**
+ * @file gttsFallbackController.js
+ * @description Controller for text-to-speech fallback, attempting gTTS first and falling back to MongoDB-stored audio.
+ */
+
 const gTTS = require('gtts');
 const mongoose = require('mongoose');
 
@@ -14,6 +19,13 @@ const DICTIONARY_COLLECTIONS = [
  * @param {string} word 
  * @param {string} lang 
  * @returns {Promise<Buffer>}
+ */
+/**
+ * Generates audio buffer from text using Google Text-to-Speech (gTTS).
+ * 
+ * @param {string} word - The term/word to synthesize.
+ * @param {string} lang - Language code ('en' or 'ml').
+ * @returns {Promise<Buffer>} Generated audio file buffer.
  */
 const generateGttsAudio = (word, lang) => {
   return new Promise((resolve, reject) => {
@@ -46,6 +58,12 @@ const generateGttsAudio = (word, lang) => {
  * 1. Try to generate audio using gTTS.
  * 2. If Success -> Return generated audio.
  * 3. If Failed -> Find word in Dictionary collection -> Get _id -> Search pronunciation collection -> Return stored audio.
+ */
+/**
+ * GET endpoint to serve pronunciation audio using gTTS or database cache recovery.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
  */
 const getPronunciationWithFallback = async (req, res) => {
   const { word, lang } = req.query;

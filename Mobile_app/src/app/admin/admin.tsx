@@ -1,3 +1,8 @@
+/**
+ * @file admin.tsx
+ * @description Admin dashboard view screen for admin management.
+ */
+
 import React from "react";
 import {
   View,
@@ -11,6 +16,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
+/**
+ * Renders and manages the AdminDashboardScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function AdminDashboardScreen() {
   return (
     <View style={styles.container}>
@@ -125,7 +135,6 @@ export default function AdminDashboardScreen() {
               <Ionicons name="arrow-forward" size={16} color="#DB2777" />
             </View>
           </TouchableOpacity>
-
 
           {/* Card Placeholder: Users List (Disabled/Inactive) */}
           <View style={[styles.card, styles.disabledCard]}>

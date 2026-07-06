@@ -1,8 +1,23 @@
+/**
+ * @file malayalam_malayalamcontroller.js
+ * @description Express controller actions handling operations for malayalam_malayalamcontroller.
+ */
 
 const MalayalamMalayalamDictionary = require(
   "../models/malayalam_malayalam_dictionary"
 );
 
+/**
+ * @file malayalam_malayalamcontroller.js
+ * @description Controller actions for Malayalam-Malayalam dictionary operations.
+ */
+
+/**
+ * Utility helper to parse and clean raw query entries into flat arrays of strings.
+ * 
+ * @param {string|string[]} input - Raw database array or text to parse.
+ * @returns {string[]} Formatted clean strings list.
+ */
 const parseStringArray = (input) => {
   if (Array.isArray(input)) {
     return input.flat(Infinity)
@@ -18,6 +33,12 @@ const parseStringArray = (input) => {
 };
 
 // Get all words
+/**
+ * Fetches all Malayalam words sorted alphabetically.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.getAllWords = async (req, res) => {
   try {
     const words = await MalayalamMalayalamDictionary.find()
@@ -33,6 +54,12 @@ exports.getAllWords = async (req, res) => {
 };
 
 // Get word details
+/**
+ * Gets a Malayalam word details entry and structures categories, synonyms, inflections, and related items.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.getWordById = async (req, res) => {
   try {
     const word = await MalayalamMalayalamDictionary.findById(req.params.id);
@@ -105,6 +132,12 @@ exports.getWordById = async (req, res) => {
 };
 
 // Search word
+/**
+ * Searches Malayalam words by matching queries case-insensitively with a limit of 50.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.searchWord = async (req, res) => {
   try {
     const { q } = req.query;
@@ -126,6 +159,12 @@ exports.searchWord = async (req, res) => {
 };
 
 // Create word
+/**
+ * Creates a new Malayalam word document in the dictionary collection.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.createWord = async (req, res) => {
   try {
     const word = await MalayalamMalayalamDictionary.create(req.body);
@@ -140,6 +179,12 @@ exports.createWord = async (req, res) => {
 };
 
 // Update word
+/**
+ * Updates a Malayalam dictionary document's fields by ID.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.updateWord = async (req, res) => {
   try {
     const word = await MalayalamMalayalamDictionary.findByIdAndUpdate(
@@ -160,6 +205,12 @@ exports.updateWord = async (req, res) => {
 };
 
 // Delete word
+/**
+ * Deletes a Malayalam dictionary document by ID.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.deleteWord = async (req, res) => {
   try {
     await MalayalamMalayalamDictionary.findByIdAndDelete(

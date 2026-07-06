@@ -1,3 +1,8 @@
+/**
+ * @file migrationRoute.js
+ * @description Express API routes routing definitions for migrationRoute.
+ */
+
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');

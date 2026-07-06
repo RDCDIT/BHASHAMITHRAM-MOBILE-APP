@@ -1,3 +1,8 @@
+/**
+ * @file malayalam_synonym.tsx
+ * @description Application route screen component for malayalam_synonym.
+ */
+
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   ActivityIndicator,
@@ -37,6 +42,11 @@ const MALAYALAM_ALPHABET = [
   "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
 ];
 
+/**
+ * Renders and manages the MalayalamSynonymScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function MalayalamSynonymScreen() {
   const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -49,7 +59,10 @@ export default function MalayalamSynonymScreen() {
 
 
 
-  const loadEntries = async () => {
+  /**
+ * Asynchronous controller/helper function: loadEntries.
+ */
+const loadEntries = async () => {
     try {
       if (!isRefreshing) setIsLoading(true);
       setErrorMessage("");

@@ -1,6 +1,17 @@
+/**
+ * @file malayalam_synonym_controller.js
+ * @description Controller actions for CRUD and search operations on Malayalam synonyms/thesaurus entries.
+ */
+
 const Synonym = require('../models/malayalam_synonyms');
 
 // Utility helper to clean and convert comma-separated string inputs into clean string arrays
+/**
+ * Formats raw synonym input records into flat, clean arrays.
+ * 
+ * @param {string|string[]} input - Raw synonyms text/data.
+ * @returns {string[]} Parsed synonyms list.
+ */
 const parseSynonyms = (input) => {
   if (Array.isArray(input)) {
     return input.flat(Infinity)
@@ -17,6 +28,12 @@ const parseSynonyms = (input) => {
 
 // @desc    Get all synonyms (with optional query filters & pagination)
 // @route   GET /api/synonyms
+/**
+ * Retrieves lists of Malayalam synonyms matching search filters.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 const getSynonyms = async (req, res) => {
   try {
     const { search, page = 1, limit = 20 } = req.query;
@@ -72,6 +89,12 @@ const getSynonyms = async (req, res) => {
 
 // @desc    Get synonyms for a specific word by ID
 // @route   GET /api/synonyms/:id
+/**
+ * Retrieves a synonym entry document by ID.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 const getSynonymById = async (req, res) => {
   try {
     const queryId = !isNaN(Number(req.params.id)) ? Number(req.params.id) : req.params.id;
@@ -89,6 +112,12 @@ const getSynonymById = async (req, res) => {
 
 // @desc    Create a new synonym mapping
 // @route   POST /api/synonyms
+/**
+ * Inserts a new synonym entry into the database.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 const createSynonym = async (req, res) => {
   try {
     const { _id, word, synonyms } = req.body;
@@ -110,6 +139,12 @@ const createSynonym = async (req, res) => {
 
 // @desc    Update an existing synonym mapping
 // @route   PUT /api/synonyms/:id
+/**
+ * Updates properties on a specific synonym document.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 const updateSynonym = async (req, res) => {
   try {
     const updates = { ...req.body };
@@ -136,6 +171,12 @@ const updateSynonym = async (req, res) => {
 
 // @desc    Delete a synonym mapping
 // @route   DELETE /api/synonyms/:id
+/**
+ * Deletes a synonym document from the collection by ID.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 const deleteSynonym = async (req, res) => {
   try {
     const deletedRecord = await Synonym.findByIdAndDelete(req.params.id);

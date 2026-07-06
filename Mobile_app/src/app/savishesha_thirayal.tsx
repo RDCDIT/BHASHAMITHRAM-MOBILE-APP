@@ -1,3 +1,8 @@
+/**
+ * @file savishesha_thirayal.tsx
+ * @description Application route screen component for savishesha_thirayal.
+ */
+
 import React, { useState, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
@@ -39,6 +44,11 @@ const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
 ].filter((value): value is string => Boolean(value));
 
+/**
+ * Renders and manages the SavisheshaThirayalScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function SavisheshaThirayalScreen() {
   const [searchText, setSearchText] = useState("");
   const [activeTab, setActiveTab] = useState<"searches" | "openings">("searches");
@@ -69,7 +79,10 @@ export default function SavisheshaThirayalScreen() {
   const [searchErrorMessage, setSearchErrorMessage] = useState("");
 
   // ലോക്കൽ സ്റ്റോറേജിൽ നിന്നും സമീപകാല വിവരങ്ങൾ ഫെച്ച് ചെയ്യാനുള്ള ഫങ്ഷൻ
-  const loadRecentActivity = async (showLoadingIndicator = true) => {
+  /**
+ * Asynchronous controller/helper function: loadRecentActivity.
+ */
+const loadRecentActivity = async (showLoadingIndicator = true) => {
     try {
       if (showLoadingIndicator) setIsLoadingActivity(true);
       setActivityErrorMessage("");
@@ -89,7 +102,10 @@ export default function SavisheshaThirayalScreen() {
   };
 
   // ബാക്കെൻഡിൽ നിന്നും മലയാളം വാക്കുകൾ തിരയാനുള്ള ഫങ്ഷൻ
-  const loadSearchEntries = async (queryText: string) => {
+  /**
+ * Asynchronous controller/helper function: loadSearchEntries.
+ */
+const loadSearchEntries = async (queryText: string) => {
     try {
       setIsLoadingResults(true);
       setSearchErrorMessage("");
@@ -161,7 +177,10 @@ export default function SavisheshaThirayalScreen() {
   };
 
   // സമീപകാല ചരിത്രം ഇല്ലാതാക്കാനുള്ള ഫങ്ഷൻ
-  const handleClearHistory = async (type: "searches" | "openings") => {
+  /**
+ * Asynchronous controller/helper function: handleClearHistory.
+ */
+const handleClearHistory = async (type: "searches" | "openings") => {
     try {
       setIsLoadingActivity(true);
       await clearRecentActivity(type);

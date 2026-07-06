@@ -1,8 +1,19 @@
+/**
+ * @file speechController.js
+ * @description Express controller actions handling operations for speechController.
+ */
+
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || process.env.GOOGLE_SPEECH_API_KEY;
 
 /**
  * Handles speech-to-text recognition requests by forwarding base64 audio to Google Cloud Speech API
  * POST /api/speech-to-text
+ */
+/**
+ * Sends speech audio payload to Google Speech API or returns mock transcribed text if API key is not present.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
  */
 const recognizeSpeech = async (req, res) => {
   try {

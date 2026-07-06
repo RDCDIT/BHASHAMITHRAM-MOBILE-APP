@@ -1,3 +1,8 @@
+/**
+ * @file english_details.tsx
+ * @description Detail screen mapping definitions, categories, and references for English dictionary vocabulary entries.
+ */
+
 import React, { useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
@@ -13,11 +18,21 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 
+
+
+
+
+
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 import AnimatedCard from "../components/AnimatedCard";
 import SkeletonLoader from "../components/SkeletonLoader";
 import { saveRecentOpening } from "../utils/recentActivity";
+
+
+
+
+
 
 type DictionaryEntryDetails = {
   id: number;
@@ -46,9 +61,19 @@ type DictionaryEntryDetails = {
   }>;
 };
 
+
+
+
+
+
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
 ].filter((value): value is string => Boolean(value));
+
+
+
+
+
 
 const getImageUrl = (imgUrl: string) => {
   if (!imgUrl) return "";
@@ -61,6 +86,13 @@ const getImageUrl = (imgUrl: string) => {
   return `${apiBaseUrl}${finalPath}`;
 };
 
+
+
+
+
+
+
+
 export default function EnglishWordDetailsScreen() {
   const { dictionaryId } = useLocalSearchParams();
   const [details, setDetails] = useState<DictionaryEntryDetails | null>(null);
@@ -69,6 +101,13 @@ export default function EnglishWordDetailsScreen() {
   const [highlightedCard, _setHighlightedCard] = useState<string | null>(null);
   const [highlightAnim] = React.useState(() => new Animated.Value(0));
 
+
+
+
+
+
+
+  
   const toggleHighlight = (key: string) => {
     if (highlightedCard === key) {
       Animated.timing(highlightAnim, {
@@ -91,6 +130,11 @@ export default function EnglishWordDetailsScreen() {
           useNativeDriver: true,
         }).start();
       });
+
+
+
+
+
     } else {
       _setHighlightedCard(key);
       Animated.spring(highlightAnim, {
@@ -100,6 +144,11 @@ export default function EnglishWordDetailsScreen() {
       }).start();
     }
   };
+
+
+
+
+
 
   const getAnimatedCardStyle = (key: string, isSection = true) => {
     const isHighlighted = highlightedCard === key;
@@ -116,6 +165,10 @@ export default function EnglishWordDetailsScreen() {
       { transform: [{ scale }] },
     ];
   };
+
+
+
+
 
   const [scrollY] = React.useState(() => new Animated.Value(0));
 
@@ -180,6 +233,9 @@ export default function EnglishWordDetailsScreen() {
     return false;
   };
 
+
+
+
   const renderBulletedList = (text?: string) => {
     if (!text) return null;
     const items = text.split(/[,;\n]+/).map(item => item.trim()).filter(Boolean);
@@ -196,6 +252,9 @@ export default function EnglishWordDetailsScreen() {
     );
   };
 
+
+
+
   const renderPlainList = (text?: string) => {
     if (!text) return null;
     const items = text.split(/[,;\n]+/).map(item => item.trim()).filter(Boolean);
@@ -210,6 +269,10 @@ export default function EnglishWordDetailsScreen() {
       </View>
     );
   };
+
+
+
+
 
   return (
     <View style={styles.screen}>
@@ -226,6 +289,10 @@ export default function EnglishWordDetailsScreen() {
         </View>
       </View>
 
+
+
+
+
       {isLoading ? (
         <SkeletonLoader />
       ) : errorMessage || !details ? (
@@ -237,6 +304,11 @@ export default function EnglishWordDetailsScreen() {
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
+
+
+
+
+
       ) : (
         <Animated.ScrollView
           contentContainerStyle={styles.scrollContainer}
@@ -247,6 +319,10 @@ export default function EnglishWordDetailsScreen() {
             { useNativeDriver: true }
           )}
         >
+
+
+
+
 
           {/* Categories, Meanings & Context */}
           {((details.categories && details.categories.length > 0) ||
@@ -326,6 +402,13 @@ export default function EnglishWordDetailsScreen() {
               </AnimatedCard>
             )}
 
+
+
+
+
+
+
+
           {/* 2. Meanings & Context */}
           {details.meanings && details.meanings.length > 0 && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
@@ -356,6 +439,12 @@ export default function EnglishWordDetailsScreen() {
             </AnimatedCard>
           )}
 
+
+
+
+
+
+
           {/* 3. Gender */}
           {!!details.gender && hasValue(details.gender) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
@@ -370,6 +459,12 @@ export default function EnglishWordDetailsScreen() {
               </AnimatedTouchableOpacity>
             </AnimatedCard>
           )}
+
+
+
+
+
+
 
           {/* 4. Root */}
           {hasValue(details.root) && (
@@ -386,6 +481,11 @@ export default function EnglishWordDetailsScreen() {
             </AnimatedCard>
           )}
 
+
+
+
+
+
           {/* 5. Phonetic Transcription */}
           {hasValue(details.phonetic_transcription) && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
@@ -400,6 +500,12 @@ export default function EnglishWordDetailsScreen() {
               </AnimatedTouchableOpacity>
             </AnimatedCard>
           )}
+
+
+
+
+
+
 
           {/* 7. Proverbs & Context */}
           {details.proverbs && details.proverbs.length > 0 && (
@@ -430,6 +536,15 @@ export default function EnglishWordDetailsScreen() {
             </AnimatedCard>
           )}
 
+
+
+
+
+
+
+
+
+
           {/* 8. Images */}
           {details.images && details.images.length > 0 && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
@@ -455,6 +570,24 @@ export default function EnglishWordDetailsScreen() {
     </View>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const styles = StyleSheet.create({
   screen: {

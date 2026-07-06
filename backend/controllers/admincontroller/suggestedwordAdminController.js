@@ -1,3 +1,8 @@
+/**
+ * @file suggestedwordAdminController.js
+ * @description Controller actions for administrators to review, approve, reject, or delete user-suggested dictionary words.
+ */
+
 const SuggestedWord = require("../../models/SuggestedWord");
 
 // Helper function to format DB suggestions to frontend requirements
@@ -34,6 +39,12 @@ const formatSuggestion = (doc) => {
 };
 
 // Get all suggestions
+/**
+ * Fetches all word suggestions submitted by users.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.getAllSuggestions = async (req, res) => {
   try {
     const suggestions = await SuggestedWord
@@ -51,6 +62,12 @@ exports.getAllSuggestions = async (req, res) => {
 };
 
 // Get only pending suggestions
+/**
+ * Fetches only the pending suggestions awaiting administrator moderation.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.getPendingSuggestions = async (req, res) => {
   try {
     const suggestions = await SuggestedWord
@@ -74,6 +91,12 @@ exports.getPendingSuggestions = async (req, res) => {
 };
 
 // Approve suggestion
+/**
+ * Approves a user suggested word and copies it into the primary target dictionary collection.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.approveSuggestion = async (req, res) => {
   try {
     const suggestion = await SuggestedWord.findById(req.params.id);
@@ -105,6 +128,12 @@ exports.approveSuggestion = async (req, res) => {
 };
 
 // Reject suggestion
+/**
+ * Rejects a word suggestion, updating its status flag in the database.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.rejectSuggestion = async (req, res) => {
   try {
     const suggestion = await SuggestedWord.findById(req.params.id);
@@ -136,6 +165,12 @@ exports.rejectSuggestion = async (req, res) => {
 };
 
 // Delete suggestion
+/**
+ * Permanently removes a suggested word entry from the suggestions collection.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.deleteSuggestion = async (req, res) => {
   try {
     const suggestion = await SuggestedWord.findByIdAndDelete(
@@ -160,6 +195,12 @@ exports.deleteSuggestion = async (req, res) => {
 };
 
 // Get suggestion by ID
+/**
+ * Retrieves a detailed suggestion entry document by ID.
+ * 
+ * @param {Object} req - Express request.
+ * @param {Object} res - Express response.
+ */
 exports.getSuggestionById = async (req, res) => {
   try {
     const suggestion = await SuggestedWord.findById(req.params.id);

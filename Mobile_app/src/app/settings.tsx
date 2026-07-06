@@ -1,3 +1,8 @@
+/**
+ * @file settings.tsx
+ * @description Application route screen component for settings.
+ */
+
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -15,6 +20,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { clearRecentActivity } from "@/utils/recentActivity";
 
+/**
+ * Renders and manages the SettingsScreen component/view.
+ *
+ * @returns {React.JSX.Element} The rendered React component.
+ */
 export default function SettingsScreen() {
   const router = useRouter();
   const [voiceSearchEnabled, setVoiceSearchEnabled] = useState(true);
