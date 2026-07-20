@@ -42,6 +42,7 @@ type DictionaryEntry = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
+  "http://localhost:5000",
 ].filter((value): value is string => Boolean(value));
 
 /**

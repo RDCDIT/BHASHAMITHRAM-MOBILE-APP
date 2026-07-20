@@ -1,11 +1,13 @@
 /**
  * @file malayalam-malayalam.tsx
- * @description Application route screen component for malayalam-malayalam.
+ * @description Malayalam-Malayalam dictionary browse screen.
+ *              Letter filtering is done server-side — clicking a letter fetches
+ *              only that letter's words from the backend (no client-side slice cap).
  */
 
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
+  Animated,
   FlatList,
   Platform,
   StyleSheet,
@@ -13,7 +15,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Animated,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -24,17 +25,10 @@ import SkeletonLoader from "../components/SkeletonLoader";
 import { saveRecentSearch } from "../utils/recentActivity";
 import SpeakButton from "../components/SpeakButton";
 
-// ബാക്കെൻഡ് റെസ്പോൺസ് ഘടനയ്ക്ക് അനുയോജ്യമായ ടൈപ്പ് ഡെഫനിഷ
 type DictionaryEntry = {
   _id: string;
-
   word: string;
-
-  meanings?: {
-    meaning: string;
-    context_usage?: string;
-  }[];
-
+  meanings?: { meaning: string; context_usage?: string }[];
   equivalents?: {
     english?: string;
     tamil?: string;
@@ -44,53 +38,39 @@ type DictionaryEntry = {
   };
 };
 
-
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
+   "http://192.168.3.148:5000",
 ].filter((value): value is string => Boolean(value));
 
-// മലയാളം സ്വരാക്ഷരങ്ങളും പ്രധാന വ്യഞ്ജനാക്ഷരങ്ങളും അടങ്ങിയ ലിസ്റ്റ് (Browsing എളുപ്പമാക്കാൻ)
 const MALAYALAM_ALPHABET = Object.freeze([
-  // Vowels
   "അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "എ", "ഏ", "ഐ", "ഒ", "ഓ", "ഔ", "അം",
-  // Consonants
   "ക", "ഖ", "ഗ", "ഘ", "ങ", "ച", "ഛ", "ജ", "ഝ", "ഞ",
   "ട", "ഠ", "ഡ", "ഢ", "ണ", "ത", "ഥ", "ദ", "ധ", "ന",
   "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര", "ല", "വ", "ശ",
-  "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
+  "ഷ", "സ", "ഹ", "ള", "ഴ", "റ",
 ]);
 
-/**
- * Renders and manages the MalayalamEnglishScreen component/view.
- *
- * @returns {React.JSX.Element} The rendered React component.
- */
-export default function MalayalamEnglishScreen() {
+export default function MalayalamMalayalamScreen() {
   const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
   const [allEntries, setAllEntries] = useState<DictionaryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [scrollY] = useState(() => new Animated.Value(0));
 
-  const [scrollY] = React.useState(() => new Animated.Value(0));
-
-
-
-  // ബാക്കെൻഡിൽ നിന്നും മലയാളം വാക്കുകൾ ഫെച്ച് ചെയ്യാനുള്ള ഫങ്ഷൻ
-  /**
- * Asynchronous controller/helper function: loadEntries.
- */
-const loadEntries = async () => {
+  // Fetch words for a given letter prefix from the backend (server-side filtering)
+  const loadEntries = useCallback(async (letterQuery: string = "") => {
     try {
-      if (!isRefreshing) setIsLoading(true);
+      setIsLoading(true);
       setErrorMessage("");
       let lastError: unknown = null;
 
       for (const apiBaseUrl of API_BASE_URLS) {
         try {
+          const encodedQuery = encodeURIComponent(letterQuery);
           const response = await fetch(
-            `${apiBaseUrl}/api/malayalam-malayalam/browse-malayalam?query=`
+            `${apiBaseUrl}/api/malayalam-malayalam/browse-malayalam?query=${encodedQuery}`
           );
 
           if (!response.ok) {
@@ -100,13 +80,15 @@ const loadEntries = async () => {
 
           const data = await response.json();
           setAllEntries(Array.isArray(data) ? data : []);
-          return; // Success, exit function
+          return;
         } catch (error) {
           lastError = error;
         }
       }
 
-      throw lastError instanceof Error ? lastError : new Error("Could not reach the dictionary backend.");
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Could not reach the dictionary backend.");
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "വാക്കുകൾ ലോഡ് ചെയ്യാൻ സാധിച്ചില്ല."
@@ -114,41 +96,37 @@ const loadEntries = async () => {
       setAllEntries([]);
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
-  };
-
-  // Load entries once on mount
-  useEffect(() => {
-    void loadEntries();
   }, []);
 
-  // Save search queries with a debounce
+  // Load initial entries on mount
+  useEffect(() => {
+    void loadEntries("");
+  }, [loadEntries]);
+
+  // Re-fetch from backend whenever selected letter changes
+  useEffect(() => {
+    void loadEntries(selectedLetter);
+  }, [selectedLetter, loadEntries]);
+
+  // Save search text for recent activity
   useEffect(() => {
     if (searchText.trim().length > 1) {
-      const delayDebounceFn = setTimeout(() => {
+      const timer = setTimeout(() => {
         void saveRecentSearch(searchText.trim(), "character");
       }, 1000);
-      return () => clearTimeout(delayDebounceFn);
+      return () => clearTimeout(timer);
     }
   }, [searchText]);
 
-  // Client-side real-time filtering
+  // Client-side text search only (letter filtering is done server-side)
   const filteredEntries = useMemo(() => {
     if (searchText.trim()) {
-      const query = searchText.trim().toLowerCase();
-      return allEntries.filter((entry) =>
-        (entry.word || "").toLowerCase().includes(query)
-      );
-    }
-    if (selectedLetter) {
-      const letter = selectedLetter;
-      return allEntries.filter((entry) =>
-        (entry.word || "").startsWith(letter)
-      );
+      const q = searchText.trim().toLowerCase();
+      return allEntries.filter((e) => (e.word || "").toLowerCase().includes(q));
     }
     return allEntries;
-  }, [allEntries, searchText, selectedLetter]);
+  }, [allEntries, searchText]);
 
   const handleCardPress = (wordId: string) => {
     router.push({
@@ -157,30 +135,30 @@ const loadEntries = async () => {
     });
   };
 
-
   const renderAlphabetItem = ({ item }: { item: string }) => (
     <TouchableOpacity
-      style={[styles.letterTab, selectedLetter === item && !searchText.trim() && styles.activeLetterTab]}
+      style={[
+        styles.letterTab,
+        selectedLetter === item && !searchText.trim() && styles.activeLetterTab,
+      ]}
       onPress={() => {
-        setSearchText(""); // അക്ഷരം ക്ലിക്ക് ചെയ്യുമ്പോൾ സെർച്ച് ക്ലിയർ ചെയ്യുക
+        setSearchText("");
         setSelectedLetter(item);
       }}
     >
-      <Text style={[styles.letterText, selectedLetter === item && !searchText.trim() && styles.activeLetterText]}>
+      <Text
+        style={[
+          styles.letterText,
+          selectedLetter === item && !searchText.trim() && styles.activeLetterText,
+        ]}
+      >
         {item}
       </Text>
     </TouchableOpacity>
   );
 
-  const renderEntry = ({
-    item,
-    index,
-  }: {
-    item: DictionaryEntry;
-    index: number;
-  }) => {
-    const meanings =
-      item.meanings?.filter(Boolean).map((m) => m.meaning) || [];
+  const renderEntry = ({ item, index }: { item: DictionaryEntry; index: number }) => {
+    const meanings = item.meanings?.filter(Boolean).map((m) => m.meaning) || [];
 
     return (
       <AnimatedCard index={index} scrollY={scrollY}>
@@ -191,38 +169,27 @@ const loadEntries = async () => {
         >
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderText}>
-              <Text style={styles.malayalamWord}>
-                {item.word}
-              </Text>
+              <Text style={styles.malayalamWord}>{item.word}</Text>
             </View>
             <SpeakButton word={item.word} lang="ml" />
           </View>
 
           <View style={styles.definitionBox}>
-            <Text style={styles.definitionHeader}>
-              Definition
-            </Text>
-
+            <Text style={styles.definitionHeader}>നിർവചനം</Text>
             {meanings.length > 0 ? (
               meanings.slice(0, 3).map((meaning, idx) => (
-                <Text
-                  key={idx}
-                  style={styles.definitionText}
-                >
+                <Text key={idx} style={styles.definitionText}>
                   • {meaning}
                 </Text>
               ))
             ) : (
-              <Text style={styles.definitionText}>
-                No meaning available
-              </Text>
+              <Text style={styles.definitionText}>അർത്ഥം ലഭ്യമല്ല</Text>
             )}
           </View>
         </TouchableOpacity>
       </AnimatedCard>
     );
   };
-
 
   return (
     <View style={styles.screen}>
@@ -237,7 +204,7 @@ const loadEntries = async () => {
         </View>
       </View>
 
-      {/* മലയാളം അക്ഷരങ്ങളുടെ തിരശ്ചീന ലിസ്റ്റ് (Horizontal Alphabet Strip) */}
+      {/* Alphabet strip */}
       <View style={styles.alphabetContainer}>
         <TouchableOpacity
           style={[
@@ -265,7 +232,7 @@ const loadEntries = async () => {
         />
       </View>
 
-      {/* Search Input */}
+      {/* Search bar */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -274,19 +241,25 @@ const loadEntries = async () => {
           onChangeText={setSearchText}
           placeholderTextColor="#898683"
         />
-        <TouchableOpacity onPress={() => void loadEntries()} style={styles.searchButton}>
+        <TouchableOpacity
+          onPress={() => void loadEntries(selectedLetter)}
+          style={styles.searchButton}
+        >
           <Ionicons name="search" size={18} color="white" />
         </TouchableOpacity>
       </View>
 
-      {/* UI State Logic */}
+      {/* Content */}
       {isLoading ? (
         <SkeletonLoader />
       ) : errorMessage ? (
         <View style={styles.stateContainer}>
           <Text style={styles.stateTitle}>കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല</Text>
           <Text style={styles.stateText}>{errorMessage}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => void loadEntries()}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => void loadEntries(selectedLetter)}
+          >
             <Text style={styles.retryButtonText}>വീണ്ടും ശ്രമിക്കുക</Text>
           </TouchableOpacity>
         </View>
@@ -299,16 +272,18 @@ const loadEntries = async () => {
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
           onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { useNativeDriver: true }
-            )}
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
           ListEmptyComponent={
             <View style={styles.stateContainer}>
               <Text style={styles.stateTitle}>വാക്കുകൾ കണ്ടെത്തിയില്ല</Text>
               <Text style={styles.stateText}>
                 {searchText.trim()
                   ? `"${searchText}" എന്ന വാക്ക് നിഘണ്ടുവിൽ കണ്ടെത്താൻ സാധിച്ചില്ല.`
-                  : `"${selectedLetter}" എന്ന അക്ഷരത്തിൽ തുടങ്ങുന്ന അംഗീകരിക്കപ്പെട്ട വാക്കുകൾ നിലവിലില്ല.`}
+                  : selectedLetter
+                  ? `"${selectedLetter}" എന്ന അക്ഷരത്തിൽ തുടങ്ങുന്ന വാക്കുകൾ നിലവിലില്ല.`
+                  : "ഒരു അക്ഷരം തിരഞ്ഞെടുക്കുക."}
               </Text>
             </View>
           }
@@ -319,23 +294,18 @@ const loadEntries = async () => {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
+  screen: { flex: 1, backgroundColor: "transparent" },
   header: {
     height: Platform.OS === "android" ? 75 : 95,
     backgroundColor: "#2B2C51",
     justifyContent: "flex-end",
-    paddingBottom: 16,
+    paddingBottom: 12,
   },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingBottom: 5,
-
   },
   headerTitle: {
     color: "white",
@@ -350,9 +320,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
   },
-  alphabetFlatList: {
-    flex: 1,
-  },
+  alphabetFlatList: { flex: 1 },
   clearFilterButton: {
     width: 42,
     height: 42,
@@ -369,12 +337,8 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  clearFilterButtonDisabled: {
-    opacity: 0.5,
-  },
-  alphabetList: {
-    paddingHorizontal: 4,
-  },
+  clearFilterButtonDisabled: { opacity: 0.5 },
+  alphabetList: { paddingHorizontal: 4 },
   letterTab: {
     width: 42,
     height: 42,
@@ -403,9 +367,7 @@ const styles = StyleSheet.create({
     color: "#2B2C51",
     fontFamily: "NotoSansMalayalam",
   },
-  activeLetterText: {
-    color: "#FFFFFF",
-  },
+  activeLetterText: { color: "#FFFFFF" },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -432,10 +394,6 @@ const styles = StyleSheet.create({
     padding: 0,
     fontFamily: "NotoSansMalayalam",
   },
-  micButton: {
-    padding: 8,
-    marginRight: 4,
-  },
   searchButton: {
     width: 42,
     height: 42,
@@ -444,10 +402,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  listContent: {
-    padding: 16,
-    paddingBottom: 24,
-  },
+  listContent: { padding: 16, paddingBottom: 24 },
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
@@ -467,49 +422,16 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 12,
   },
-  cardHeaderText: {
-    flex: 1,
-  },
+  cardHeaderText: { flex: 1 },
   malayalamWord: {
     color: "#1F2330",
     fontSize: 20,
     fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
   },
-  cardSubtext: {
-    color: "#4E473E",
-    fontSize: 16,
-    fontWeight: "700",
-    marginTop: 4,
-    fontFamily: "NotoSansMalayalam",
-  },
-  cardHeaderRight: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  directionBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    backgroundColor: "#F0EAE1",
-  },
-  directionBadgeText: {
-    color: "#4E473E",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  playButtonCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#2B2C51",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 10,
-  },
   definitionBox: {
     backgroundColor: "#F7F7F9",
-    borderLeftColor: "#43AC98",
+    borderLeftColor: "#2B2C51",
     borderLeftWidth: 4,
     borderRadius: 14,
     padding: 14,
@@ -557,9 +479,5 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
   },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
+  retryButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
 });

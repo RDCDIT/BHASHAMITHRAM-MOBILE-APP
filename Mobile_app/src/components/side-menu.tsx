@@ -97,15 +97,6 @@ const handleOpenURL = async (url: string) => {
               <Text style={styles.sectionHeader}>നിഘണ്ടുക്കൾ (Dictionaries)</Text>
               <MenuRow
                 icon="swap-horizontal"
-                title="ഇംഗ്ലീഷ് - ഇംഗ്ലീഷ് നിഘണ്ടു"
-                showChevron
-                onPress={() => {
-                  onClose();
-                  router.push("/english-english");
-                }}
-              />
-              <MenuRow
-                icon="swap-horizontal"
                 title="മലയാളം - മലയാളം നിഘണ്ടു"
                 showChevron
                 onPress={() => {

@@ -61,6 +61,7 @@ type DictionaryEntryDetails = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
+   "http://192.168.3.148:5000",
 ].filter((value): value is string => Boolean(value));
 
 /**
@@ -287,85 +288,8 @@ export default function EnglishMalayalamDetailsScreen() {
           )}
         >
 
-          {/* Categories, Meanings & Context */}
-          {((details.categories && details.categories.length > 0) ||
-            (details.meanings && details.meanings.filter(Boolean).filter(m => hasValue(m?.meaning)).length > 0) ||
-            (details.category_names && details.category_names.length > 0)) && (
-              <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-                <AnimatedTouchableOpacity
-                  activeOpacity={0.95}
-                  onPressIn={() => toggleHighlight("categories")}
-                  delayPressIn={0}
-                  style={getAnimatedCardStyle("categories")}
-                >
-                  <Text style={styles.sectionTitle}>
-                    {details.categories && details.categories.length === 1
-                      ? "Category"
-                      : "Categories, Meaning and Context"}
-                  </Text>
-
-                  {/* 1. Display structured Categories if available */}
-                  {details.categories && details.categories.length > 0 ? (
-                    details.categories.map((cat, catIdx) => (
-                      <View key={cat.id || catIdx} style={styles.categoryBlock}>
-                        {!!cat.category && (
-                          <View style={styles.categoryBadgeInline}>
-                            <Text style={styles.categoryBadgeTextInline}>{cat.category}</Text>
-                          </View>
-                        )}
-                        {!!cat.meanings && (
-                          <View style={styles.meaningItem}>
-                            <View style={styles.meaningNumberBox}>
-                              <Text style={styles.meaningNumber}>{catIdx + 1}</Text>
-                            </View>
-                            <View style={styles.meaningContent}>
-                              <Text style={styles.meaningText}>{cat.meanings}</Text>
-                              {!!cat.context && (
-                                <Text style={styles.contextUsage}>
-                                  <Text style={{ fontWeight: "700" }}>Context: </Text>
-                                  {cat.context}
-                                </Text>
-                              )}
-                            </View>
-                          </View>
-                        )}
-                      </View>
-                    ))
-                  ) : (
-                    /* 2. Fallback legacy layout */
-                    <View>
-                      {details.category_names && details.category_names.length > 0 && (
-                        <View style={[styles.categoriesContainer, { marginBottom: 14 }]}>
-                          {details.category_names.map((catName, idx) => (
-                            <View key={idx} style={styles.categoryBadge}>
-                              <Text style={styles.categoryBadgeText}>{catName}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-                      {details.meanings && details.meanings.filter(Boolean).map((m, idx) => (
-                        <View key={m.id || idx} style={styles.meaningItem}>
-                          <View style={styles.meaningNumberBox}>
-                            <Text style={styles.meaningNumber}>{idx + 1}</Text>
-                          </View>
-                          <View style={styles.meaningContent}>
-                            <Text style={styles.meaningText}>{m.meaning}</Text>
-                            {!!m.context_usage && (
-                              <Text style={styles.contextUsage}>
-                                <Text style={{ fontWeight: "700" }}>Context: </Text>
-                                {m.context_usage}
-                              </Text>
-                            )}
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </AnimatedTouchableOpacity>
-              </AnimatedCard>
-            )}
-
-          {details.meanings && details.meanings.length > 0 && (
+          {/* Meanings & Context — single clean block */}
+          {details.meanings && details.meanings.filter(Boolean).filter(m => hasValue(m?.meaning)).length > 0 && (
             <AnimatedCard index={cardIndex++} scrollY={scrollY}>
               <AnimatedTouchableOpacity
                 activeOpacity={0.95}
@@ -374,7 +298,7 @@ export default function EnglishMalayalamDetailsScreen() {
                 style={getAnimatedCardStyle("meanings")}
               >
                 <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ / Meanings & Context</Text>
-                {details.meanings.map((m, idx) => (
+                {details.meanings.filter(Boolean).map((m, idx) => (
                   <View key={m.id || idx} style={styles.meaningItem}>
                     <View style={styles.meaningNumberBox}>
                       <Text style={styles.meaningNumber}>{idx + 1}</Text>

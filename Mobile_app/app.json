@@ -1,16 +1,21 @@
 {
   "expo": {
     "name": "bhashamitram",
-    "slug": "bhashamitram",
+    "slug": "bhashamitharam2",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/bhashamithram-logo.png",
     "scheme": "bhashamitram",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/images/bhashamithram-logo.png"
+      "icon": "./assets/images/bhashamithram-logo.png",
+      "bundleIdentifier": "org.cdit.bhashamithram",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/bhashamithram-logo.png",
@@ -18,7 +23,7 @@
         "monochromeImage": "./assets/images/bhashamithram-logo.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.bhashamitram",
+      "package": "org.cdit.bhashamithram",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
@@ -44,17 +49,20 @@
       ],
       "expo-image",
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      "expo-font",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    },  
+    },
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "9a4c78fa-dd18-4bf9-a487-96ada1224c80"
+        "projectId": "322fe8e9-06f7-47c1-8bd1-7aa6d55b68e3"
       }
-    }
+    },
+    "owner": "c-dit"
   }
 }

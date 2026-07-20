@@ -56,15 +56,6 @@ export default function HomeScreen() {
     },
     {
       id: "2",
-      title: "ഇംഗ്ലീഷ് - ഇംഗ്ലീഷ്",
-      subtitle: "നിഘണ്ടു",
-      badgeImage: require("../../assets/Icons/english_english.gif"),
-      color: "#2B2C51",
-      bgColor: "#F5F3FF",
-      onPress: () => router.push("./english-english"),
-    },
-    {
-      id: "3",
       title: "മലയാളം - ഇംഗ്ലീഷ്",
       subtitle: "നിഘണ്ടു",
       badgeImage: require("../../assets/Icons/malayalam_english.gif"),
@@ -73,7 +64,7 @@ export default function HomeScreen() {
       onPress: () => router.push("./malayalam_english"),
     },
     {
-      id: "4",
+      id: "3",
       title: "ഇംഗ്ലീഷ് - മലയാളം",
       subtitle: "നിഘണ്ടു",
       badgeImage: require("../../assets/Icons/english_malayalam.gif"),
@@ -82,7 +73,7 @@ export default function HomeScreen() {
       onPress: () => router.push("./english_malayalam"),
     },
     {
-      id: "5",
+      id: "4",
       title: "മലയാളം നാനാത്ഥം",
       subtitle: "നിഘണ്ടു",
       badgeImage: require("../../assets/Icons/malayalam_thesaurus.gif"),
@@ -91,7 +82,7 @@ export default function HomeScreen() {
       onPress: () => router.push("./malayalam_synonym"),
     },
     {
-      id: "6",
+      id: "5",
       title: "സമീപകാല",
       subtitle: "തിരച്ചിലുകൾ",
       badgeImage: require("../../assets/Icons/savishesha_thirayal.gif"),

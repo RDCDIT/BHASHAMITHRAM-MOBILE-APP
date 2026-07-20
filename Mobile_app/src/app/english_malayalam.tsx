@@ -1,10 +1,13 @@
 /**
  * @file english_malayalam.tsx
- * @description Application route screen component for english_malayalam.
+ * @description English-Malayalam dictionary browse screen.
+ *              Letter filtering is done server-side — clicking a letter fetches
+ *              only that letter's words from the backend (no client-side slice cap).
  */
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Animated,
   FlatList,
   Platform,
   StyleSheet,
@@ -12,7 +15,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Animated,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -23,18 +25,10 @@ import SkeletonLoader from "../components/SkeletonLoader";
 import { saveRecentSearch } from "../utils/recentActivity";
 import SpeakButton from "../components/SpeakButton";
 
-// Updated type mapping to align directly with your MongoDB query projections
-
 type DictionaryEntry = {
   _id: string;
-
   word: string;
-
-  meanings?: {
-    meaning: string;
-    context_usage?: string;
-  }[];
-
+  meanings?: { meaning: string; context_usage?: string }[];
   Category?: {
     category?: string;
     meaning?: string;
@@ -46,32 +40,21 @@ type DictionaryEntry = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
+   "http://192.168.3.148:5000",
 ].filter((value): value is string => Boolean(value));
 
-// Alphabet list for the browser menu layout
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-/**
- * EnglishMalayalamScreen manages query input, voice search triggers, alphabet filtering tabs,
- * and paginated scroll listings of translation pairs.
- * 
- * @returns {React.JSX.Element} Browse lists layout.
- */
 export default function EnglishMalayalamScreen() {
   const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
   const [allEntries, setAllEntries] = useState<DictionaryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [scrollY] = useState(() => new Animated.Value(0));
 
-  const [scrollY] = React.useState(() => new Animated.Value(0));
-
-
-
-  /**
- * Asynchronous controller/helper function: loadEntries.
- */
-const loadEntries = async () => {
+  // Fetch words for a given letter prefix from the backend (server-side filtering)
+  const loadEntries = useCallback(async (letterQuery: string = "") => {
     try {
       setIsLoading(true);
       setErrorMessage("");
@@ -79,9 +62,9 @@ const loadEntries = async () => {
 
       for (const apiBaseUrl of API_BASE_URLS) {
         try {
-          console.log(`[Dictionary Browse] Fetching all entries from ${apiBaseUrl}`);
+          const encodedQuery = encodeURIComponent(letterQuery);
           const response = await fetch(
-            `${apiBaseUrl}/api/english-malayalam/browse-english?query=`
+            `${apiBaseUrl}/api/english-malayalam/browse-english?query=${encodedQuery}`
           );
 
           if (!response.ok) {
@@ -97,92 +80,88 @@ const loadEntries = async () => {
         }
       }
 
-      throw lastError instanceof Error ? lastError : new Error("Could not reach the dictionary backend.");
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Could not reach the dictionary backend.");
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Could not load dictionary entries right now."
+        error instanceof Error ? error.message : "Could not load dictionary entries."
       );
       setAllEntries([]);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Load entries once on mount
-  useEffect(() => {
-    void loadEntries();
   }, []);
 
-  // Save search queries with a debounce
+  // Load initial entries on mount
+  useEffect(() => {
+    void loadEntries("");
+  }, [loadEntries]);
+
+  // Re-fetch from backend whenever selected letter changes
+  useEffect(() => {
+    void loadEntries(selectedLetter);
+  }, [selectedLetter, loadEntries]);
+
+  // Save search text for recent activity
   useEffect(() => {
     if (searchText.trim().length > 1) {
-      const delayDebounceFn = setTimeout(() => {
+      const timer = setTimeout(() => {
         void saveRecentSearch(searchText.trim(), "english");
       }, 1000);
-      return () => clearTimeout(delayDebounceFn);
+      return () => clearTimeout(timer);
     }
   }, [searchText]);
 
-  // Client-side real-time filtering
+  // Client-side text search only (letter filtering is done server-side)
   const filteredEntries = useMemo(() => {
     if (searchText.trim()) {
-      const query = searchText.trim().toLowerCase();
-      return allEntries.filter((entry) =>
-        (entry.word || "").toLowerCase().includes(query)
-      );
-    }
-    if (selectedLetter) {
-      const letter = selectedLetter.toUpperCase();
-      return allEntries.filter((entry) =>
-        (entry.word || "").toUpperCase().startsWith(letter)
-      );
+      const q = searchText.trim().toLowerCase();
+      return allEntries.filter((e) => (e.word || "").toLowerCase().includes(q));
     }
     return allEntries;
-  }, [allEntries, searchText, selectedLetter]);
+  }, [allEntries, searchText]);
 
   const handleCardPress = (id: string) => {
     router.push({
       pathname: "/english_malayalam_details",
-      params: {
-        dictionaryId: id,
-      },
+      params: { dictionaryId: id },
     });
   };
 
   const renderAlphabetItem = ({ item }: { item: string }) => (
     <TouchableOpacity
-      style={[styles.letterTab, selectedLetter === item && !searchText.trim() && styles.activeLetterTab]}
+      style={[
+        styles.letterTab,
+        selectedLetter === item && !searchText.trim() && styles.activeLetterTab,
+      ]}
       onPress={() => {
-        setSearchText(""); // Clear search when alphabet is clicked
+        setSearchText("");
         setSelectedLetter(item);
       }}
     >
-      <Text style={[styles.letterText, selectedLetter === item && !searchText.trim() && styles.activeLetterText]}>
+      <Text
+        style={[
+          styles.letterText,
+          selectedLetter === item && !searchText.trim() && styles.activeLetterText,
+        ]}
+      >
         {item}
       </Text>
     </TouchableOpacity>
   );
 
-  const renderEntry = ({
-    item,
-    index,
-  }: {
-    item: DictionaryEntry;
-    index: number;
-  }) => {
-    // Primary: use backend-formatted meanings[] (already merges Category + meanings fallback)
+  const renderEntry = ({ item, index }: { item: DictionaryEntry; index: number }) => {
+    // Primary: backend-formatted meanings[]
     let displayMeanings: { meaning: string; context_usage?: string }[] =
       (item.meanings || []).filter((m) => m.meaning?.trim());
 
-    // Client-side safety fallback: if meanings still empty, pull from raw Category
+    // Fallback: raw Category array
     if (displayMeanings.length === 0 && Array.isArray(item.Category)) {
       item.Category.forEach((c) => {
         const text = c.meanings || c.meaning || "";
         if (text.trim()) {
-          displayMeanings.push({
-            meaning: text,
-            context_usage: c.context_usage || c.context || "",
-          });
+          displayMeanings.push({ meaning: text, context_usage: c.context_usage || c.context || "" });
         }
       });
     }
@@ -196,50 +175,39 @@ const loadEntries = async () => {
         >
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderText}>
-              <Text style={styles.englishWord}>
-                {item.word}
-              </Text>
+              <Text style={styles.englishWord}>{item.word}</Text>
             </View>
             <SpeakButton word={item.word} lang="en" />
           </View>
 
           <View style={styles.definitionBox}>
-            <Text style={styles.definitionHeader}>
-              മലയാളം അർത്ഥം
-            </Text>
+            <Text style={styles.definitionHeader}>മലയാളം അർത്ഥം</Text>
 
             {displayMeanings.length === 0 ? (
               <Text style={styles.definitionText}>No meaning available</Text>
             ) : displayMeanings.length > 5 ? (
-              /* 2-column layout: left col = items 1–5, right col = items 6+ */
               <View style={styles.twoColRow}>
-                {/* Left column: first 5 */}
                 <View style={styles.twoColLeft}>
                   {displayMeanings.slice(0, 5).map((m, idx) => (
-                    <View key={idx} style={{ marginBottom: idx < 4 ? 5 : 0 }}>
-                      <Text style={styles.definitionText}>• {m.meaning}</Text>
-                    </View>
+                    <Text key={idx} style={[styles.definitionText, { marginBottom: idx < 4 ? 4 : 0 }]}>
+                      • {m.meaning}
+                    </Text>
                   ))}
                 </View>
-
-                {/* Vertical divider */}
                 <View style={styles.twoColDivider} />
-
-                {/* Right column: items 6+ */}
                 <View style={styles.twoColRight}>
                   {displayMeanings.slice(5).map((m, idx) => (
-                    <View key={idx} style={{ marginBottom: idx < displayMeanings.slice(5).length - 1 ? 5 : 0 }}>
-                      <Text style={styles.definitionText}>• {m.meaning}</Text>
-                    </View>
+                    <Text key={idx} style={[styles.definitionText, { marginBottom: 4 }]}>
+                      • {m.meaning}
+                    </Text>
                   ))}
                 </View>
               </View>
             ) : (
-              /* Single-column layout: 5 or fewer */
               displayMeanings.map((m, idx) => (
-                <View key={idx} style={{ marginBottom: idx < displayMeanings.length - 1 ? 6 : 0 }}>
-                  <Text style={styles.definitionText}>• {m.meaning}</Text>
-                </View>
+                <Text key={idx} style={[styles.definitionText, { marginBottom: idx < displayMeanings.length - 1 ? 5 : 0 }]}>
+                  • {m.meaning}
+                </Text>
               ))
             )}
           </View>
@@ -248,11 +216,9 @@ const loadEntries = async () => {
     );
   };
 
-
-
   return (
     <View style={styles.screen}>
-      {/* Header Layout */}
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()}>
@@ -263,7 +229,7 @@ const loadEntries = async () => {
         </View>
       </View>
 
-      {/* Dynamic Alphabet Filter Strip Menu */}
+      {/* Alphabet strip */}
       <View style={styles.alphabetContainer}>
         <TouchableOpacity
           style={[
@@ -291,7 +257,7 @@ const loadEntries = async () => {
         />
       </View>
 
-      {/* Input Search Container */}
+      {/* Search bar */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -300,19 +266,25 @@ const loadEntries = async () => {
           onChangeText={setSearchText}
           placeholderTextColor="#898683"
         />
-        <TouchableOpacity onPress={() => void loadEntries()} style={styles.searchButton}>
+        <TouchableOpacity
+          onPress={() => void loadEntries(selectedLetter)}
+          style={styles.searchButton}
+        >
           <Ionicons name="search" size={18} color="white" />
         </TouchableOpacity>
       </View>
 
-      {/* Core Component State Engine Rendering */}
+      {/* Content */}
       {isLoading ? (
         <SkeletonLoader />
       ) : errorMessage ? (
         <View style={styles.stateContainer}>
           <Text style={styles.stateTitle}>Unable to load entries</Text>
           <Text style={styles.stateText}>{errorMessage}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => void loadEntries()}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => void loadEntries(selectedLetter)}
+          >
             <Text style={styles.retryButtonText}>Try again</Text>
           </TouchableOpacity>
         </View>
@@ -333,8 +305,10 @@ const loadEntries = async () => {
               <Text style={styles.stateTitle}>No matches found</Text>
               <Text style={styles.stateText}>
                 {searchText.trim()
-                  ? "Try a different English word or local keyword variation."
-                  : `No records initialized under alphabet group category '${selectedLetter}' yet.`}
+                  ? `No results for "${searchText}".`
+                  : selectedLetter
+                  ? `No entries found under letter '${selectedLetter}'.`
+                  : "Select a letter to browse."}
               </Text>
             </View>
           }
@@ -345,10 +319,7 @@ const loadEntries = async () => {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
+  screen: { flex: 1, backgroundColor: "transparent" },
   header: {
     height: Platform.OS === "android" ? 75 : 95,
     backgroundColor: "#2B2C51",
@@ -374,9 +345,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
   },
-  alphabetFlatList: {
-    flex: 1,
-  },
+  alphabetFlatList: { flex: 1 },
   clearFilterButton: {
     width: 42,
     height: 42,
@@ -393,12 +362,8 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  clearFilterButtonDisabled: {
-    opacity: 0.5,
-  },
-  alphabetList: {
-    paddingHorizontal: 4,
-  },
+  clearFilterButtonDisabled: { opacity: 0.5 },
+  alphabetList: { paddingHorizontal: 4 },
   letterTab: {
     width: 42,
     height: 42,
@@ -422,14 +387,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   letterText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "700",
     color: "#2B2C51",
-    fontFamily: "NotoSansMalayalam",
   },
-  activeLetterText: {
-    color: "#FFFFFF",
-  },
+  activeLetterText: { color: "#FFFFFF" },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -454,7 +416,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#333",
     padding: 0,
-    fontFamily: "NotoSansMalayalam",
   },
   searchButton: {
     width: 42,
@@ -464,10 +425,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  listContent: {
-    padding: 16,
-    paddingBottom: 24,
-  },
+  listContent: { padding: 16, paddingBottom: 24 },
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
@@ -487,18 +445,15 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 12,
   },
-  cardHeaderText: {
-    flex: 1,
-  },
+  cardHeaderText: { flex: 1 },
   englishWord: {
-    color: "#2B2C51",
+    color: "#1F2330",
     fontSize: 20,
     fontWeight: "800",
-    fontFamily: "Roboto"
   },
   definitionBox: {
     backgroundColor: "#F7F7F9",
-    borderLeftColor: "#43AC98",
+    borderLeftColor: "#E07B54",
     borderLeftWidth: 4,
     borderRadius: 14,
     padding: 14,
@@ -511,6 +466,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+    fontFamily: "NotoSansMalayalam",
   },
   definitionText: {
     color: "#4E473E",
@@ -518,32 +474,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: "NotoSansMalayalam",
   },
-  contextText: {
-    color: "#7C736B",
-    fontSize: 12,
-    lineHeight: 18,
-    fontFamily: "NotoSansMalayalam",
-    fontStyle: "italic",
-    marginTop: 2,
-  },
-  twoColRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  twoColLeft: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  twoColDivider: {
-    width: 1,
-    backgroundColor: "#DDD8D2",
-    alignSelf: "stretch",
-    marginHorizontal: 4,
-  },
-  twoColRight: {
-    flex: 1,
-    paddingLeft: 8,
-  },
+  twoColRow: { flexDirection: "row" },
+  twoColLeft: { flex: 1 },
+  twoColDivider: { width: 1, backgroundColor: "#E5E0D8", marginHorizontal: 10 },
+  twoColRight: { flex: 1 },
   stateContainer: {
     flex: 1,
     minHeight: 260,
@@ -555,15 +489,14 @@ const styles = StyleSheet.create({
     color: "#1F2330",
     fontSize: 17,
     fontWeight: "800",
-    fontFamily: "NotoSansMalayalam",
     marginBottom: 6,
   },
   stateText: {
     color: "#6D625A",
     fontSize: 14,
-    fontFamily: "NotoSansMalayalam",
     textAlign: "center",
     lineHeight: 20,
+    fontFamily: "NotoSansMalayalam",
   },
   retryButton: {
     marginTop: 14,
@@ -572,9 +505,5 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
   },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
+  retryButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
 });

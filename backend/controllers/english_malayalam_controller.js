@@ -12,6 +12,7 @@
 const EnglishMalayalamDictionary = require(
   "../models/english_malayalam_dictionary"
 );
+const { idQuery } = require("../utils/idQuery");
 
 // Browse / Search
 /**
@@ -26,17 +27,13 @@ exports.browseEnglishWords = async (req, res) => {
   try {
     const { query = "" } = req.query;
 
-    const filter = query
-      ? {
-          word: {
-            $regex: "^" + query,
-            $options: "i",
-          },
-        }
+    const filter = query && query.trim()
+      ? { word: { $regex: "^" + query.trim(), $options: "i" } }
       : {};
 
+    // No artificial limit — return ALL words matching the letter/query
     const words = await EnglishMalayalamDictionary.find(filter)
-      .select("word Category meanings")
+      .select("_id word Category meanings")
       .sort({ word: 1 });
 
     const formattedWords = words.map(item => {
@@ -55,7 +52,7 @@ exports.browseEnglishWords = async (req, res) => {
         });
       }
 
-      // Fallback: meanings[] array (structured meaning + context_usage records)
+      // Fallback: meanings[] array
       if (meaningsList.length === 0 && Array.isArray(item.meanings)) {
         item.meanings.forEach(m => {
           if (m.meaning && m.meaning.trim()) {
@@ -95,17 +92,19 @@ exports.browseEnglishWords = async (req, res) => {
  */
 exports.getWordDetails = async (req, res) => {
   try {
-    const word = await EnglishMalayalamDictionary.findById(req.params.id);
+    // Collections hold mixed numeric/ObjectId _id values — match either form
+    const query = idQuery(req.params.id);
+    if (!query) {
+      return res.status(400).json({ success: false, message: "Invalid word ID." });
+    }
+
+    const word = await EnglishMalayalamDictionary.findOne(query);
 
     if (!word) {
-      return res.status(404).json({
-        success: false,
-        message: "Word not found",
-      });
+      return res.status(404).json({ success: false, message: "Word not found" });
     }
 
     const categoryValue = word.Category || word.category || [];
-
     const formattedCategories = Array.isArray(categoryValue)
       ? categoryValue.map((cat, categoryIndex) => ({
           id: categoryIndex + 1,
@@ -126,18 +125,12 @@ exports.getWordDetails = async (req, res) => {
       });
     }
 
-    const genderValue = word.gender || word.Gender || "";
-
     const formattedWord = {
       ...word.toObject(),
-
       _id: word._id,
       id: word._id,
-
-      gender: genderValue,
-
+      gender: word.gender || word.Gender || "",
       categories: formattedCategories,
-
       proverbs: (word.proverbs || []).map((p, index) => ({
         id: index + 1,
         proverb: p.proverb,
@@ -147,10 +140,7 @@ exports.getWordDetails = async (req, res) => {
 
     res.status(200).json(formattedWord);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -187,9 +177,13 @@ exports.createWord = async (req, res) => {
  */
 exports.updateWord = async (req, res) => {
   try {
+    const query = idQuery(req.params.id);
+    if (!query) {
+      return res.status(400).json({ success: false, message: "Invalid word ID." });
+    }
     const word =
-      await EnglishMalayalamDictionary.findByIdAndUpdate(
-        req.params.id,
+      await EnglishMalayalamDictionary.findOneAndUpdate(
+        query,
         req.body,
         { new: true }
       );
@@ -213,9 +207,11 @@ exports.updateWord = async (req, res) => {
  */
 exports.deleteWord = async (req, res) => {
   try {
-    await EnglishMalayalamDictionary.findByIdAndDelete(
-      req.params.id
-    );
+    const query = idQuery(req.params.id);
+    if (!query) {
+      return res.status(400).json({ success: false, message: "Invalid word ID." });
+    }
+    await EnglishMalayalamDictionary.findOneAndDelete(query);
 
     res.status(200).json({
       success: true,

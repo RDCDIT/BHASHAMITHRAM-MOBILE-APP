@@ -12,6 +12,7 @@ const EnglishPronunciation = require("../../models/pronounciation_english");
 const MalayalamPronunciation = require("../../models/pronounciation_malayalam");
 const fs = require("fs");
 const path = require("path");
+const { idQuery } = require("../../utils/idQuery");
 
 // Import word manually into specified dictionary
 /**
@@ -79,8 +80,10 @@ exports.importManualWord = async (req, res) => {
         return res.status(400).json({ error: `Invalid dictionary selected: ${targetDictionary}` });
     }
 
-    // Auto-increment integer ID
-    const maxDoc = await Model.findOne().sort({ _id: -1 });
+    // Auto-increment integer ID.
+    // Restrict to numeric _id docs: collections also contain ObjectId _ids,
+    // which sort after numbers in BSON order and would break the max lookup.
+    const maxDoc = await Model.findOne({ _id: { $type: "number" } }).sort({ _id: -1 });
     const nextId = maxDoc && typeof maxDoc._id === "number" ? maxDoc._id + 1 : 1;
 
     // Helper to clean comma-separated strings to array of strings
@@ -482,7 +485,7 @@ exports.updateWord = async (req, res) => {
       };
     }
 
-    const updatedDoc = await Model.findByIdAndUpdate(queryId, documentData, { new: true });
+    const updatedDoc = await Model.findOneAndUpdate(idQuery(queryId), documentData, { new: true });
     if (!updatedDoc) {
       return res.status(404).json({ error: "Record not found." });
     }
@@ -539,7 +542,7 @@ exports.deleteWord = async (req, res) => {
     }
 
     const queryId = isNaN(id) ? id : Number(id);
-    const deletedDoc = await Model.findByIdAndDelete(queryId);
+    const deletedDoc = await Model.findOneAndDelete(idQuery(queryId));
     if (!deletedDoc) {
       return res.status(404).json({ error: "Record not found." });
     }
@@ -602,7 +605,7 @@ exports.uploadMedia = async (req, res) => {
         return res.status(400).json({ error: `Invalid dictionary: ${dictionary}` });
     }
 
-    const wordDoc = await Model.findById(idNumber);
+    const wordDoc = await Model.findOne(idQuery(idNumber));
     if (!wordDoc) {
       return res.status(404).json({ error: `Word with ID ${idNumber} not found in ${dictionary}.` });
     }
@@ -677,7 +680,7 @@ exports.uploadMedia = async (req, res) => {
 
     // Save image update in the word document if image was uploaded
     if (Object.keys(updateData).length > 0) {
-      const updatedWord = await Model.findByIdAndUpdate(idNumber, { $set: updateData }, { new: true });
+      const updatedWord = await Model.findOneAndUpdate(idQuery(idNumber), { $set: updateData }, { new: true });
       wordDoc.images = updatedWord.images;
     }
 

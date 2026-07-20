@@ -1,0 +1,1370 @@
+[
+  {
+    "word": "അംശം",
+    "gender": "",
+    "root": "അംശ",
+    "phonetic_transcription": "/aṁɕam/",
+    "etymology": "സംസ്‌കൃതത്തിൽ നിന്ന്; “ഭാഗം, വിഹിതം” എന്നർത്ഥം",
+    "cultural_note": " ജ്യോതിഷത്തിൽ രാശിയുടെ ഭാഗം, സമൂഹത്തിൽ പങ്കുവിഹിതം സൂചിപ്പിക്കാൻ ഉപയോഗിക്കുന്നു",
+    "synonyms": [
+      "ഭാഗം",
+      "വിഹിതം",
+      "ഓഹരി"
+    ],
+    "antonyms": [
+      "സമ്പൂർണ്ണം",
+      "ഏകകം"
+    ],
+    "dialects": [
+      "കേരളത്തിലെ വിവിധ ഭാഷാപ്രയോഗങ്ങളിൽ ഒരേപോലെ"
+    ],
+    "inflections": [
+      "അംശങ്ങൾ",
+      "അംശത്തിനു",
+      "അംശത്തിൽ"
+    ],
+    "cross_reference": [
+      "അംശി",
+      "അംശകം"
+    ],
+    "novel_words": [
+      "അംശിക",
+      "അംശീകരണം"
+    ],
+    "similar_word": "വിഹിതം",
+    "meanings": [
+      {
+        "meaning": "പങ്ക്, ഓഹരി, ഭാഗം, ഭിന്നസംഖ്യയിലെ ഘടകം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഭാഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംശകം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഓഹരി",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഘടകം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "തുണ്ട്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഭിന്നസംഖ്യ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഭിന്നസംഖ്യയിലെ ഛേദ്യം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഗ്രാമം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പാർപ്പിടം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "നാട്ടുപുറം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കര",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [
+      {
+        "proverb": "അംശം കിട്ടിയാൽ അഹങ്കാരം",
+        "context_usage": ""
+      }
+    ],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "ಅಂಶ",
+      "tamil": "அம்‌ஷம் / பங்கு",
+      "telugu": "అంసం / భాగం",
+      "tulu": "ಅಂಶ",
+      "english": "Part, Fraction, Share"
+    }
+  },
+  {
+    "word": "അംഗം",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "ശരീരം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അവയവം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗകം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗഭംഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗമർദ്ദം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗന",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗലാവണ്യം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗവസ്ത്രം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗരക്ഷ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗവിക്ഷേപം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗവൈകല്യം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗസംസ്കാരം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സഭാംഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സാമാജികൻ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സഭാവാസിഷ്ട്രീയസംഘാംഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "നിയമസഭാപ്രതിനിധി",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ശാശ്വതാംഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സമിതിയംഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കുടുംബാംഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പ്രതിപക്ഷാംഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സഹപ്രവര്ത്തകന്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഭാഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വിഭാഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഘടകം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വകുപ്പ്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ശാഖ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഉള്പിരിവ്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംശം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഗ്രന്ഥഭാഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "നാടകാങ്കം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഖണ്ഡകം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വാല്യം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഉപഭോഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സര്ഗ്ഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഖണ്ഡിക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "മനസ്സ്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗക്രിയ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "നാമാംഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ക്രിയാംഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ആറ് എന്ന സംഖ്യ",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അംഗത്വം",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "അംഗമെന്നനില",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗസംഖ്യ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ശാശ്വതാംഗത്വം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സംഘബലം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വിശിഷ്ടാംഗത്വം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സാമാജികത്വം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പങ്കാളിത്തം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സമിതിയംഗത്വം",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അംഗന",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "സ്ത്രീ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പെണ്ണ്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "നാരി",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ലലന",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വനിത",
+        "context_usage": ""
+      },
+      {
+        "meaning": "മഹിള",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അംഗപ്പൊരുത്തം",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "ആനുരൂപ്യം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ചേര്ച്ച",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഇണക്കം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പൊരുത്തം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "യോജിപ്പ്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സാദ്ൃശ്യം",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അംഗഭംഗം",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "വൈരൂപ്യം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വൈകല്യം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വൈകൃതം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കളങ്കം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അഭംഗി",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അപൂർണ്ണത",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കേട്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ശരീരക്ഷതം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗവൈകല്യം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ന്യൂനത",
+        "context_usage": ""
+      },
+      {
+        "meaning": "നാനാവിധമാക്കൽ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അക്ഷരലോപം",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അംഗരക്ഷകൻ",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "മെയ്ക്കാവലൻ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗരക്ഷക സൈന്യം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കാവൽക്കാരൻ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അകമ്പടി",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പാറാവുകാരൻ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "രക്ഷാപുരുഷൻ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കാവൽഭടൻ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കാവൽനായ്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പരിവാരം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അനുചരഗണം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അകമ്പടിക്കാർ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "രക്ഷകർ",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അംഗീകരിക്കുക",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "അംഗീകാരം നല്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഇഷ്ടപ്പെടുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ആദരിക്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ആനുകൂല്യം കാണിക്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അനുവദിക്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സ്വീകരിക്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പിൻതുണനല്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "മേലൊപ്പുവെയ്ക്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അനുമതിനല്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പിൻതാങ്ങുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അനുസരിക്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അഭിനന്ദിക്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ആശീർവദിക്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ആദരിക്കപ്പെടുക",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അംഗീകാരം",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "അംഗീകരണം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അനുമതി",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സമ്മതം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഉത്തരവ്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അധികാരപത്രം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "മതിപ്പ്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ആനുകൂലം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കീർത്തി",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പ്രസിദ്ധി",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പ്രചാരം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ജനസ്വാധീനം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ശ്ലാഘ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സ്തുതി",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അഭിനന്ദനം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അഭിവാദനം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഉപചാരം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ആചാരവെടി",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വന്ദനം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പ്രകീർത്തനം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഉപഹാരം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ആശിർവാദം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കരഘോഷം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ജയഗീതം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പട്ടാഭിഷേകം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സ്വീകരണം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പാരിതോഷികം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വരം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സമ്മാനം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പ്രശംസാലേഖനം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സ്മാരകം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കീര്ത്തിമുദ്ര",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അംഗീകാരപത്രം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ബഹുമതിപത്രം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പതക്കം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പെന്നാട",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ബഹുമതി",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സ്വീകരിക്കല്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സമ്മതിക്കല്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കൈകൊള്ളല്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അനുമതിക്കല്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഇഷ്ടപ്പെടല്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വിശ്വസിക്കല്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വകച്ചുകൊടുക്കല്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "നിയമസാധുത്വം നല്കല്",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അംഗീകാര്യമായ",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "അംഗീകൃതമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ശ്ലാഘപരമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സതുത്യർഹമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഉപചാരപൂർവ്വമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പ്രശംസാപരമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സ്തുതിപരമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ശ്രേഷ്ഠമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പ്രതിജ്ഞാതമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സമാഹിതമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ജനഹിതമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "മാതൃകയോഗ്യമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പൂജ്യനായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അർഹതയുള്ള",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കുറ്റമറ്റ",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അകം",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "ഉള്ള്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഉള്ളം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അന്തർഭാഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ആന്തരികാവയവം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഗർ‌ഭം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അടിത്തറ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഉള്ളറ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഉൾഭാഗം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഉൾപ്രദേശം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ആഭ്യന്തരമായത്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അടിത്തട്ട്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "മനസ്സ്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഹൃദയം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "മനോഗതം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഉദ്ദേശ്യം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഹൃദയവികാരങ്ങൾ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സ്ഥലം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ദേശം",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വീട്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ജയിൽ",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അകത്താക്കുക",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "ഉള്ളിലാക്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഭക്ഷിക്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ജയിലിലാക്കുക",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അകത്തെ",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "ഉള്ളിലുള്ള",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അകത്തേക്കുള്ള",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അകത്തുള്ള",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അന്തസ്ഥിതമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ആഭ്യന്തരമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അടച്ചുകെട്ടിയ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഗാർഹികമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വലയിതമായ",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അകന്ന",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "ദൂരെയുള്ള",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വേർപെട്ട",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വിദൂര",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അത്യന്തിക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അതിർത്തിയിലുള്ള",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വിശാലമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അടുപ്പമില്ലാത്ത",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അന്യമായ",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അസദൃശമായദൂരത്ത്",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ദൂരെ ഇതരമായ",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "അകപ്പെടുക",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "കുടുങ്ങുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അകത്തുപെടുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കുരുക്കിൽവീഴുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വലയിൽവീഴുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ആപ്പിലാകുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കെണിയിലാകുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പിടിയിൽപ്പെടുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "കുഴപ്പത്തിലാകുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "നൂലാമാലയിൽപ്പെടുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഊരാക്കുടുക്കിലാവുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ദുർഘടസ്ഥിതിയിലാകുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വശീകരിക്കപ്പെടുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "സ്വാധീനത്തിലാകുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "പ്രലോഭിക്കപ്പെടുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "വഞ്ചിക്കപ്പെടുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "അപകടത്തിലാകുക",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  },
+  {
+    "word": "ഹ്രസ്വമാക്കുക",
+    "gender": "",
+    "root": "",
+    "phonetic_transcription": "",
+    "etymology": "",
+    "cultural_note": "",
+    "synonyms": [],
+    "antonyms": [],
+    "dialects": [],
+    "inflections": [],
+    "cross_reference": [],
+    "novel_words": [],
+    "similar_word": "",
+    "meanings": [
+      {
+        "meaning": "ഹ്രസ്വമാക്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഹ്രസ്വമാക്കുക",
+        "context_usage": ""
+      },
+      {
+        "meaning": "ഹ്രസ്വമാക്കുക",
+        "context_usage": ""
+      }
+    ],
+    "proverbs": [],
+    "images": [],
+    "category": [],
+    "equivalents": {
+      "kannada": "",
+      "tamil": "",
+      "telugu": "",
+      "tulu": "",
+      "english": ""
+    }
+  }
+]

@@ -68,7 +68,13 @@ exports.getAllWords = async (req, res) => {
  */
 exports.getWordById = async (req, res) => {
   try {
-    const word = await EnglishDictionary.findById(req.params.id);
+    // _id is numeric in this collection — validate before querying to avoid CastError
+    const numericId = Number(req.params.id);
+    if (isNaN(numericId)) {
+      return res.status(400).json({ message: "Invalid word ID." });
+    }
+
+    const word = await EnglishDictionary.findById(numericId);
 
     if (!word) {
       return res.status(404).json({
@@ -187,8 +193,14 @@ exports.createWord = async (req, res) => {
  */
 exports.updateWord = async (req, res) => {
   try {
+    // _id is numeric in this collection — validate before querying to avoid CastError
+    const numericId = Number(req.params.id);
+    if (isNaN(numericId)) {
+      return res.status(400).json({ message: "Invalid word ID." });
+    }
+
     const word = await EnglishDictionary.findByIdAndUpdate(
-      req.params.id,
+      numericId,
       req.body,
       {
         new: true,
@@ -218,9 +230,13 @@ exports.updateWord = async (req, res) => {
  */
 exports.deleteWord = async (req, res) => {
   try {
-    const word = await EnglishDictionary.findByIdAndDelete(
-      req.params.id
-    );
+    // _id is numeric in this collection — validate before querying to avoid CastError
+    const numericId = Number(req.params.id);
+    if (isNaN(numericId)) {
+      return res.status(400).json({ message: "Invalid word ID." });
+    }
+
+    const word = await EnglishDictionary.findByIdAndDelete(numericId);
 
     if (!word) {
       return res.status(404).json({

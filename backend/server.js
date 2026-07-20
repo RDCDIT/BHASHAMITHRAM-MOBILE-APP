@@ -9,7 +9,11 @@ const app = express();
 const PORT = process.env.PORT;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
@@ -82,8 +86,8 @@ mongoose.connection.on('error', (err) => {
 // ------------------------------------------------------------
 // 2. SERVER PORT BOUNDARY LOGS
 // ------------------------------------------------------------
-app.listen(PORT, () => {
-  console.log(`🚀 [Server] Environment running in mode: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 [Server] Microservice listening for frontend calls on port: ${PORT}`);
-  console.log(`📍 [Server] Test local active endpoints at: http://localhost:${PORT}/api/words/browse?letter=A`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 [Server] Environment running in mode: ${process.env.NODE_ENV || "development"}`);
+  console.log(`🌐 [Server] Listening on http://0.0.0.0:${PORT}`);
+  console.log(`📱 Mobile URL: http://192.168.3.148:${PORT}`);
 });

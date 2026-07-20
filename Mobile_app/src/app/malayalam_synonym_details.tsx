@@ -30,6 +30,7 @@ type SynonymDetails = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
+   "http://192.168.3.148:5000",
 ].filter((value): value is string => Boolean(value));
 
 /**
@@ -39,6 +40,8 @@ const API_BASE_URLS = [
  */
 export default function MalayalamSynonymDetailsScreen() {
   const { dictionaryId } = useLocalSearchParams();
+  //console.log("Route params:", useLocalSearchParams());
+  //console.log("dictionaryId:", dictionaryId);
   const [details, setDetails] = useState<SynonymDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");

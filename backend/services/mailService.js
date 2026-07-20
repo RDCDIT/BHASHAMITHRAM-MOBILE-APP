@@ -12,7 +12,7 @@ const sendSuggestionReceivedMail = async (email, name, word) => {
   const displayName = name || "സുഹൃത്തേ";
 
   await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+    from: '"ഭാഷാമിത്രം" <cditresearch@gmail.com>',
     to: email,
     subject: "നിങ്ങളുടെ സംഭാവനയ്ക്ക് നന്ദി! - ഭാഷാമിത്രം",
     html: `

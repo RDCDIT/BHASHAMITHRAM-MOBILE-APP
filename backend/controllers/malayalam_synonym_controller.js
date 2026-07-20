@@ -4,6 +4,7 @@
  */
 
 const Synonym = require('../models/malayalam_synonyms');
+const { idQuery } = require('../utils/idQuery');
 
 // Utility helper to clean and convert comma-separated string inputs into clean string arrays
 /**
@@ -36,8 +37,9 @@ const parseSynonyms = (input) => {
  */
 const getSynonyms = async (req, res) => {
   try {
-    const { search, page = 1, limit = 20 } = req.query;
+    const { search, page = 1, limit = 500 } = req.query;
     const query = {};
+    let isLetterSearch = false;
 
     if (search && search.trim() !== '') {
       const trimmedSearch = search.trim();
@@ -48,9 +50,9 @@ const getSynonyms = async (req, res) => {
         "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര", "ല", "വ", "ശ",
         "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
       ];
-      const isLetter = trimmedSearch.length === 1 || MALAYALAM_ALPHABET.includes(trimmedSearch);
-      
-      if (isLetter) {
+      isLetterSearch = MALAYALAM_ALPHABET.includes(trimmedSearch);
+
+      if (isLetterSearch) {
         const searchRegex = trimmedSearch === 'അ'
           ? new RegExp('^അ(?!ം)', 'i')
           : new RegExp(`^${trimmedSearch}`, 'i');
@@ -63,10 +65,14 @@ const getSynonyms = async (req, res) => {
       }
     }
 
-    const records = await Synonym.find(query)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .exec();
+    // Letter searches return ALL matching words (no pagination cap)
+    // Generic browse uses the requested limit with pagination
+    const records = isLetterSearch
+      ? await Synonym.find(query).sort({ word: 1 }).exec()
+      : await Synonym.find(query)
+          .limit(Number(limit))
+          .skip((Number(page) - 1) * Number(limit))
+          .exec();
 
     const count = await Synonym.countDocuments(query);
 
@@ -78,8 +84,8 @@ const getSynonyms = async (req, res) => {
 
     res.status(200).json({
       records: cleanedRecords,
-      totalPages: Math.ceil(count / limit),
-      currentPage: Number(page),
+      totalPages: isLetterSearch ? 1 : Math.ceil(count / Number(limit)),
+      currentPage: isLetterSearch ? 1 : Number(page),
       totalEntries: count
     });
   } catch (error) {
@@ -97,8 +103,12 @@ const getSynonyms = async (req, res) => {
  */
 const getSynonymById = async (req, res) => {
   try {
-    const queryId = !isNaN(Number(req.params.id)) ? Number(req.params.id) : req.params.id;
-    const record = await Synonym.findById(queryId);
+    // Collections hold mixed numeric/ObjectId _id values — match either form
+    const query = idQuery(req.params.id);
+    if (!query) {
+      return res.status(400).json({ message: "Invalid synonym ID." });
+    }
+    const record = await Synonym.findOne(query);
     if (!record) {
       return res.status(404).json({ message: 'Synonym entry not found' });
     }
@@ -154,8 +164,13 @@ const updateSynonym = async (req, res) => {
       updates.synonyms = parseSynonyms(updates.synonyms);
     }
 
-    const updatedRecord = await Synonym.findByIdAndUpdate(
-      req.params.id,
+    const query = idQuery(req.params.id);
+    if (!query) {
+      return res.status(400).json({ message: 'Invalid synonym ID.' });
+    }
+
+    const updatedRecord = await Synonym.findOneAndUpdate(
+      query,
       updates,
       { new: true, runValidators: true }
     );
@@ -179,7 +194,11 @@ const updateSynonym = async (req, res) => {
  */
 const deleteSynonym = async (req, res) => {
   try {
-    const deletedRecord = await Synonym.findByIdAndDelete(req.params.id);
+    const query = idQuery(req.params.id);
+    if (!query) {
+      return res.status(400).json({ message: 'Invalid synonym ID.' });
+    }
+    const deletedRecord = await Synonym.findOneAndDelete(query);
     if (!deletedRecord) {
       return res.status(404).json({ message: 'Synonym entry not found' });
     }

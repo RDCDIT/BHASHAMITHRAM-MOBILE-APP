@@ -3,7 +3,7 @@
  * @description Application route screen component for malayalam_english.
  */
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Platform,
@@ -41,6 +41,7 @@ type DictionaryEntry = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
+   "http://192.168.3.148:5000",
 ].filter((value): value is string => Boolean(value));
 
 const MALAYALAM_ALPHABET = Object.freeze([
@@ -51,11 +52,6 @@ const MALAYALAM_ALPHABET = Object.freeze([
   "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
 ]);
 
-/**
- * Renders and manages the MalayalamEnglishScreen component/view.
- *
- * @returns {React.JSX.Element} The rendered React component.
- */
 export default function MalayalamEnglishScreen() {
   const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -65,12 +61,8 @@ export default function MalayalamEnglishScreen() {
 
   const [scrollY] = React.useState(() => new Animated.Value(0));
 
-
-
-  /**
- * Asynchronous controller/helper function: loadEntries.
- */
-const loadEntries = async () => {
+  // Fetch words for a given letter prefix from the backend
+  const loadEntries = useCallback(async (letterQuery: string = "") => {
     try {
       setIsLoading(true);
       setErrorMessage("");
@@ -78,9 +70,9 @@ const loadEntries = async () => {
 
       for (const apiBaseUrl of API_BASE_URLS) {
         try {
-          console.log(`[Malayalam-English Browse] Fetching all entries from ${apiBaseUrl}`);
+          const encodedQuery = encodeURIComponent(letterQuery);
           const response = await fetch(
-            `${apiBaseUrl}/api/malayalam-english/browse-malayalam?query=`
+            `${apiBaseUrl}/api/malayalam-english/browse-malayalam?query=${encodedQuery}`
           );
 
           if (!response.ok) {
@@ -105,12 +97,17 @@ const loadEntries = async () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Load entries once on mount
-  useEffect(() => {
-    void loadEntries();
   }, []);
+
+  // Load initial entries on mount
+  useEffect(() => {
+    void loadEntries("");
+  }, [loadEntries]);
+
+  // Re-fetch from backend whenever selected letter changes
+  useEffect(() => {
+    void loadEntries(selectedLetter);
+  }, [selectedLetter, loadEntries]);
 
   // Save search queries with a debounce
   useEffect(() => {
@@ -122,7 +119,7 @@ const loadEntries = async () => {
     }
   }, [searchText]);
 
-  // Client-side real-time filtering
+  // Client-side search filtering only (letter filtering is done server-side)
   const filteredEntries = useMemo(() => {
     if (searchText.trim()) {
       const query = searchText.trim().toLowerCase();
@@ -130,14 +127,8 @@ const loadEntries = async () => {
         (entry.word || "").toLowerCase().includes(query)
       );
     }
-    if (selectedLetter) {
-      const letter = selectedLetter;
-      return allEntries.filter((entry) =>
-        (entry.word || "").startsWith(letter)
-      );
-    }
     return allEntries;
-  }, [allEntries, searchText, selectedLetter]);
+  }, [allEntries, searchText]);
 
   const handleCardPress = (wordId: string) => {
     router.push({
@@ -160,13 +151,7 @@ const loadEntries = async () => {
     </TouchableOpacity>
   );
 
-  const renderEntry = ({
-    item,
-    index,
-  }: {
-    item: DictionaryEntry;
-    index: number;
-  }) => {
+  const renderEntry = ({ item, index }: { item: DictionaryEntry; index: number }) => {
     const meanings = item.meanings?.filter(Boolean).map((m) => m.meaning) || [];
 
     return (
@@ -178,31 +163,19 @@ const loadEntries = async () => {
         >
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderText}>
-              <Text style={styles.malayalamWord}>
-                {item.word}
-              </Text>
+              <Text style={styles.malayalamWord}>{item.word}</Text>
             </View>
             <SpeakButton word={item.word} lang="ml" />
           </View>
 
           <View style={styles.definitionBox}>
-            <Text style={styles.definitionHeader}>
-              Meaning
-            </Text>
-
+            <Text style={styles.definitionHeader}>Meaning</Text>
             {meanings.length > 0 ? (
               meanings.slice(0, 3).map((meaning, idx) => (
-                <Text
-                  key={idx}
-                  style={styles.definitionText}
-                >
-                  • {meaning}
-                </Text>
+                <Text key={idx} style={styles.definitionText}>• {meaning}</Text>
               ))
             ) : (
-              <Text style={styles.definitionText}>
-                No meaning available
-              </Text>
+              <Text style={styles.definitionText}>No meaning available</Text>
             )}
           </View>
         </TouchableOpacity>
@@ -224,19 +197,12 @@ const loadEntries = async () => {
 
       <View style={styles.alphabetContainer}>
         <TouchableOpacity
-          style={[
-            styles.clearFilterButton,
-            selectedLetter === "" && styles.clearFilterButtonDisabled,
-          ]}
+          style={[styles.clearFilterButton, selectedLetter === "" && styles.clearFilterButtonDisabled]}
           onPress={() => setSelectedLetter("")}
           disabled={selectedLetter === ""}
           activeOpacity={0.7}
         >
-          <Ionicons
-            name="funnel-outline"
-            size={18}
-            color={selectedLetter === "" ? "#9CA3AF" : "#EF4444"}
-          />
+          <Ionicons name="funnel-outline" size={18} color={selectedLetter === "" ? "#9CA3AF" : "#EF4444"} />
         </TouchableOpacity>
         <FlatList
           horizontal
@@ -257,7 +223,7 @@ const loadEntries = async () => {
           onChangeText={setSearchText}
           placeholderTextColor="#898683"
         />
-        <TouchableOpacity onPress={() => void loadEntries()} style={styles.searchButton}>
+        <TouchableOpacity onPress={() => void loadEntries(selectedLetter)} style={styles.searchButton}>
           <Ionicons name="search" size={18} color="white" />
         </TouchableOpacity>
       </View>
@@ -268,7 +234,7 @@ const loadEntries = async () => {
         <View style={styles.stateContainer}>
           <Text style={styles.stateTitle}>കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല</Text>
           <Text style={styles.stateText}>{errorMessage}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => void loadEntries()}>
+          <TouchableOpacity style={styles.retryButton} onPress={() => void loadEntries(selectedLetter)}>
             <Text style={styles.retryButtonText}>വീണ്ടും ശ്രമിക്കുക</Text>
           </TouchableOpacity>
         </View>
@@ -281,16 +247,16 @@ const loadEntries = async () => {
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
           onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { useNativeDriver: true }
-            )}
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
           ListEmptyComponent={
             <View style={styles.stateContainer}>
               <Text style={styles.stateTitle}>വാക്കുകൾ കണ്ടെത്തിയില്ല</Text>
               <Text style={styles.stateText}>
                 {searchText.trim()
                   ? `"${searchText}" എന്ന വാക്ക് നിഘണ്ടുവിൽ കണ്ടെത്താൻ സാധിച്ചില്ല.`
-                  : `"${selectedLetter}" എന്ന അക്ഷരത്തിൽ തുടങ്ങുന്ന അംഗീകരിക്കപ്പെട്ട വാക്കുകൾ നിലവിലില്ല.`}
+                  : `"${selectedLetter}" എന്ന അക്ഷരത്തിൽ തുടങ്ങുന്ന വാക്കുകൾ നിലവിലില്ല.`}
               </Text>
             </View>
           }
@@ -301,210 +267,33 @@ const loadEntries = async () => {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
-  header: {
-    height: Platform.OS === "android" ? 75 : 95,
-    backgroundColor: "#2B2C51",
-    justifyContent: "flex-end",
-    paddingBottom: 12,
-  },
-  headerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-  },
-  headerTitle: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
-  },
-  alphabetContainer: {
-    backgroundColor: "#F9F6F1",
-    paddingVertical: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-  },
-  alphabetFlatList: {
-    flex: 1,
-  },
-  clearFilterButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#EAE6DF",
-    marginRight: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  clearFilterButtonDisabled: {
-    opacity: 0.5,
-  },
-  alphabetList: {
-    paddingHorizontal: 4,
-  },
-  letterTab: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 5,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#EAE6DF",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  activeLetterTab: {
-    backgroundColor: "#2B2C51",
-    borderColor: "#2B2C51",
-    shadowOpacity: 0.12,
-    elevation: 3,
-  },
-  letterText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#2B2C51",
-    fontFamily: "NotoSansMalayalam",
-  },
-  activeLetterText: {
-    color: "#FFFFFF",
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    marginHorizontal: 16,
-    marginTop: 4,
-    marginBottom: 12,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: "#EAE6DF",
-    paddingLeft: 18,
-    paddingRight: 4,
-    height: 50,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: "#333",
-    padding: 0,
-    fontFamily: "NotoSansMalayalam",
-  },
-  searchButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#2B2C51",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 24,
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#F0ECE6",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  cardHeaderText: {
-    flex: 1,
-  },
-  malayalamWord: {
-    color: "#1F2330",
-    fontSize: 20,
-    fontWeight: "800",
-    fontFamily: "NotoSansMalayalam",
-  },
-  definitionBox: {
-    backgroundColor: "#F7F7F9",
-    borderLeftColor: "#43AC98",
-    borderLeftWidth: 4,
-    borderRadius: 14,
-    padding: 14,
-    marginTop: 4,
-  },
-  definitionHeader: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#1F2330",
-    marginBottom: 6,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  definitionText: {
-    color: "#4E473E",
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: "NotoSansMalayalam",
-  },
-  stateContainer: {
-    flex: 1,
-    minHeight: 260,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  stateTitle: {
-    color: "#1F2330",
-    fontSize: 17,
-    fontWeight: "800",
-    fontFamily: "NotoSansMalayalam",
-    marginBottom: 6,
-  },
-  stateText: {
-    color: "#6D625A",
-    fontSize: 14,
-    fontFamily: "NotoSansMalayalam",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  retryButton: {
-    marginTop: 14,
-    backgroundColor: "#2B2C51",
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
+  screen: { flex: 1, backgroundColor: "transparent" },
+  header: { height: Platform.OS === "android" ? 75 : 95, backgroundColor: "#2B2C51", justifyContent: "flex-end", paddingBottom: 12 },
+  headerContent: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20 },
+  headerTitle: { color: "white", fontSize: 16, fontWeight: "700", fontFamily: "NotoSansMalayalam" },
+  alphabetContainer: { backgroundColor: "#F9F6F1", paddingVertical: 14, flexDirection: "row", alignItems: "center", paddingHorizontal: 16 },
+  alphabetFlatList: { flex: 1 },
+  clearFilterButton: { width: 42, height: 42, borderRadius: 21, justifyContent: "center", alignItems: "center", backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EAE6DF", marginRight: 8, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 },
+  clearFilterButtonDisabled: { opacity: 0.5 },
+  alphabetList: { paddingHorizontal: 4 },
+  letterTab: { width: 42, height: 42, borderRadius: 21, justifyContent: "center", alignItems: "center", marginHorizontal: 5, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EAE6DF", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 },
+  activeLetterTab: { backgroundColor: "#2B2C51", borderColor: "#2B2C51", shadowOpacity: 0.12, elevation: 3 },
+  letterText: { fontSize: 15, fontWeight: "700", color: "#2B2C51", fontFamily: "NotoSansMalayalam" },
+  activeLetterText: { color: "#FFFFFF" },
+  searchContainer: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", marginHorizontal: 16, marginTop: 4, marginBottom: 12, borderRadius: 25, borderWidth: 1, borderColor: "#EAE6DF", paddingLeft: 18, paddingRight: 4, height: 50, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 2 },
+  searchInput: { flex: 1, fontSize: 15, color: "#333", padding: 0, fontFamily: "NotoSansMalayalam" },
+  searchButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#2B2C51", justifyContent: "center", alignItems: "center" },
+  listContent: { padding: 16, paddingBottom: 24 },
+  card: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: "#F0ECE6", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
+  cardHeaderText: { flex: 1 },
+  malayalamWord: { color: "#1F2330", fontSize: 20, fontWeight: "800", fontFamily: "NotoSansMalayalam" },
+  definitionBox: { backgroundColor: "#F7F7F9", borderLeftColor: "#43AC98", borderLeftWidth: 4, borderRadius: 14, padding: 14, marginTop: 4 },
+  definitionHeader: { fontSize: 13, fontWeight: "800", color: "#1F2330", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 },
+  definitionText: { color: "#4E473E", fontSize: 14, lineHeight: 20, fontFamily: "NotoSansMalayalam" },
+  stateContainer: { flex: 1, minHeight: 260, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+  stateTitle: { color: "#1F2330", fontSize: 17, fontWeight: "800", fontFamily: "NotoSansMalayalam", marginBottom: 6 },
+  stateText: { color: "#6D625A", fontSize: 14, fontFamily: "NotoSansMalayalam", textAlign: "center", lineHeight: 20 },
+  retryButton: { marginTop: 14, backgroundColor: "#2B2C51", paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
+  retryButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
 });

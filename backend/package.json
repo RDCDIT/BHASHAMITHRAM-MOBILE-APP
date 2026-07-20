@@ -19,10 +19,12 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "gtts": "^0.2.1",
-    "mongodb": "^7.2.0",
+    "mongodb": "^7.5.0",
     "mongoose": "^9.6.3",
     "multer": "^2.2.0",
+    "mysql2": "^3.22.6",
     "nodemailer": "^9.0.1",
+    "sequelize": "^6.37.8",
     "sqlite3": "^6.0.1"
   },
   "devDependencies": {

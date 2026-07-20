@@ -68,14 +68,14 @@ interface SuggestedWordDetails {
   createdAt?: string;
 }
 
-const API_URL = `${process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/suggestions`;
+const API_URL = `${process.env.EXPO_PUBLIC_API_URL ||  "http://192.168.3.148:5000"}/api/admin/suggestions`;
 
 const getImageUrl = (imgUrl: string) => {
   if (!imgUrl) return "";
   if (imgUrl.startsWith("http://") || imgUrl.startsWith("https://") || imgUrl.startsWith("data:")) {
     return imgUrl;
   }
-  const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000";
+  const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL ||  "http://192.168.3.148:5000";
   const relativePath = imgUrl.startsWith("/") ? imgUrl : `/${imgUrl}`;
   const finalPath = relativePath.startsWith("/public") ? relativePath : `/public${relativePath}`;
   return `${apiBaseUrl}${finalPath}`;

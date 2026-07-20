@@ -75,6 +75,7 @@ type DictionaryEntryDetails = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
+   "http://192.168.3.148:5000",
 ].filter((value): value is string => Boolean(value));
 
 const getImageUrl = (imgUrl: string) => {
@@ -320,6 +321,21 @@ const loadDetails = async () => {
           )}
         >
 
+          {/* Word Title Card */}
+          <AnimatedCard index={cardIndex++} scrollY={scrollY}>
+            <View style={styles.wordCard}>
+              <View style={styles.wordBadge}>
+                <Text style={styles.wordBadgeText}>
+                  {details.word ? details.word.charAt(0) : '?'}
+                </Text>
+              </View>
+              <Text style={styles.mainWord}>{details.word}</Text>
+              {hasValue(details.phonetic_transcription) && (
+                <Text style={styles.phonetic}>[{details.phonetic_transcription}]</Text>
+              )}
+            </View>
+          </AnimatedCard>
+
           {/* Categories, Meanings & Context */}
           {((details.categories && details.categories.length > 0) ||
             (details.meanings && details.meanings.filter(Boolean).filter(m => hasValue(m?.meaning)).length > 0) ||
@@ -398,35 +414,7 @@ const loadDetails = async () => {
               </AnimatedCard>
             )}
 
-          {/* 6. Meanings & Context */}
-          {details.meanings && details.meanings.length > 0 && (
-            <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-              <AnimatedTouchableOpacity
-                activeOpacity={0.95}
-                onPressIn={() => toggleHighlight("meanings")}
-                delayPressIn={0}
-                style={getAnimatedCardStyle("meanings")}
-              >
-                <Text style={styles.sectionTitle}>അർത്ഥങ്ങൾ & സന്ദർഭം / Meanings & Context</Text>
-                {details.meanings.map((m, idx) => (
-                  <View key={m.id || idx} style={styles.meaningItem}>
-                    <View style={styles.meaningNumberBox}>
-                      <Text style={styles.meaningNumber}>{idx + 1}</Text>
-                    </View>
-                    <View style={styles.meaningContent}>
-                      <Text style={styles.meaningText}>{m.meaning}</Text>
-                      {!!m.context_usage && (
-                        <Text style={styles.contextUsage}>
-                          <Text style={{ fontWeight: "700" }}>പ്രയോഗം: </Text>
-                          {m.context_usage}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                ))}
-              </AnimatedTouchableOpacity>
-            </AnimatedCard>
-          )}
+
 
           {/* 3. Gender */}
           {(hasValue(details.gender) || hasValue(details.metadata?.gender)) && (
@@ -458,20 +446,7 @@ const loadDetails = async () => {
             </AnimatedCard>
           )}
 
-          {/* 5. Phonetic transcription */}
-          {hasValue(details.phonetic_transcription) && (
-            <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-              <AnimatedTouchableOpacity
-                activeOpacity={0.95}
-                onPressIn={() => toggleHighlight("phonetic")}
-                delayPressIn={0}
-                style={getAnimatedCardStyle("phonetic")}
-              >
-                <Text style={styles.sectionTitle}>സ്വരസൂചിക / Phonetic Transcription</Text>
-                <Text style={styles.phonetic}>[{details.phonetic_transcription}]</Text>
-              </AnimatedTouchableOpacity>
-            </AnimatedCard>
-          )}
+
 
           {/* 7. Proverbs & Context */}
           {((details.proverbs && details.proverbs.filter(Boolean).length > 0) || hasValue(details.proverb)) && (
@@ -769,6 +744,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderLeftWidth: 4,
     borderLeftColor: "#43AC98",
+  },
+  wordBadge: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: "#2B2C51",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  wordBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 24,
+    fontWeight: "800",
+    fontFamily: "NotoSansMalayalam",
   },
   highlightedCard: {
     borderColor: "#2B2C51",

@@ -143,7 +143,7 @@ const fetchRecords = async (pageNum = 1) => {
     try {
       setLoading(true);
       const API_URL = `${
-        process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000"
+        process.env.EXPO_PUBLIC_API_URL ||  "http://192.168.3.148:5000"
       }/api/admin/dictionary/words?dictionary=${selectedDictionary}&page=${pageNum}&limit=10&search=${encodeURIComponent(
         searchQuery
       )}`;
@@ -311,7 +311,7 @@ const handleSaveEdit = async () => {
     try {
       setSaving(true);
       const API_URL = `${
-        process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000"
+        process.env.EXPO_PUBLIC_API_URL ||  "http://192.168.3.148:5000"
       }/api/admin/dictionary/words/${editingRecordId}`;
 
       const payload = {
@@ -389,7 +389,7 @@ const handleSaveEdit = async () => {
             try {
               setLoading(true);
               const API_URL = `${
-                process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000"
+                process.env.EXPO_PUBLIC_API_URL ||  "http://192.168.3.148:5000"
               }/api/admin/dictionary/words/${id}?dictionary=${selectedDictionary}`;
 
               const response = await fetch(API_URL, {

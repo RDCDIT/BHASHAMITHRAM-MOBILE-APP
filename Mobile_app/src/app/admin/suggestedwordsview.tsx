@@ -24,7 +24,7 @@ interface SuggestedWord {
   createdAt?: string;
 }
 
-const API_URL = `${process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/suggestions`;
+const API_URL = `${process.env.EXPO_PUBLIC_API_URL ||  "http://192.168.3.148:5000"}/api/admin/suggestions`;
 
 const SuggestedWordsScreen: React.FC = () => {
   const [suggestions, setSuggestions] = useState<SuggestedWord[]>([]);

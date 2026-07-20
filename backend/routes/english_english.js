@@ -18,6 +18,8 @@ const {
 
 router.get("/", getAllWords);
 
+router.get("/browse-english", getAllWords);
+
 router.get("/search", searchWord);
 
 router.get("/:id", getWordById);

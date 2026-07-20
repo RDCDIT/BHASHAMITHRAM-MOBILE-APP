@@ -49,9 +49,11 @@ const ProverbSchema = new mongoose.Schema(
 
 const MalayalamEnglishDictionarySchema = new mongoose.Schema(
   {
+    // Collection holds mixed _id types: numeric ids (MySQL migration) and
+    // ObjectIds (direct JSON uploads). Mixed type + no default prevents
+    // Mongoose from casting incoming numeric ids to ObjectId.
     _id: {
-      type: Number,
-      required: true,
+      type: mongoose.Schema.Types.Mixed,
     },
 
     word: {
@@ -99,6 +101,7 @@ const MalayalamEnglishDictionarySchema = new mongoose.Schema(
   {
     collection: "Malayalam_English_Dictionary",
     timestamps: true,
+    id: false, // disable virtual id getter — _id is Mixed, not ObjectId
   }
 );
 

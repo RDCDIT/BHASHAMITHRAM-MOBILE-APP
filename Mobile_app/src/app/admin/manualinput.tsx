@@ -149,7 +149,7 @@ const handleSave = async () => {
     try {
       setLoading(true);
 
-      const API_URL = `${process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/dictionary/import-manual`;
+      const API_URL = `${process.env.EXPO_PUBLIC_API_URL ||  "http://192.168.3.148:5000"}/api/admin/dictionary/import-manual`;
 
       const payload = {
         targetDictionary,

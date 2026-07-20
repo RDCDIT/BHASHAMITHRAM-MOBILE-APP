@@ -1,16 +1,10 @@
 /**
  * @file malayalam_malayalamcontroller.js
- * @description Express controller actions handling operations for malayalam_malayalamcontroller.
- */
-
-const MalayalamMalayalamDictionary = require(
-  "../models/malayalam_malayalam_dictionary"
-);
-
-/**
- * @file malayalam_malayalamcontroller.js
  * @description Controller actions for Malayalam-Malayalam dictionary operations.
  */
+
+const MalayalamMalayalamDictionary = require("../models/malayalam_malayalam_dictionary");
+const { idQuery } = require("../utils/idQuery");
 
 /**
  * Utility helper to parse and clean raw query entries into flat arrays of strings.
@@ -41,8 +35,11 @@ const parseStringArray = (input) => {
  */
 exports.getAllWords = async (req, res) => {
   try {
-    const words = await MalayalamMalayalamDictionary.find()
-      .sort({ word: 1 });
+    const words = await MalayalamMalayalamDictionary.find({})
+      .sort({ word: 1 })
+      .select('_id word meanings')
+      .limit(1000)
+      .lean();
 
     res.status(200).json(words);
   } catch (error) {
@@ -62,7 +59,13 @@ exports.getAllWords = async (req, res) => {
  */
 exports.getWordById = async (req, res) => {
   try {
-    const word = await MalayalamMalayalamDictionary.findById(req.params.id);
+    // Collections hold mixed numeric/ObjectId _id values — match either form
+    const query = idQuery(req.params.id);
+    if (!query) {
+      return res.status(400).json({ success: false, message: "Invalid word ID." });
+    }
+
+    const word = await MalayalamMalayalamDictionary.findOne(query);
 
     if (!word) {
       return res.status(404).json({
@@ -71,58 +74,7 @@ exports.getWordById = async (req, res) => {
       });
     }
 
-    const categoryValue = word.Category || word.category || [];
-
-    const formattedCategories = Array.isArray(categoryValue)
-      ? categoryValue.map((cat, categoryIndex) => ({
-          id: categoryIndex + 1,
-          category: cat.category || "",
-          meanings: cat.meanings || cat.meaning || "",
-          context: cat.context || cat.context_usage || "",
-        }))
-      : [];
-
-    if (formattedCategories.length === 0 && word.meanings && word.meanings.length > 0) {
-      word.meanings.forEach((m, idx) => {
-        formattedCategories.push({
-          id: idx + 1,
-          category: "",
-          meanings: m.meaning || "",
-          context: m.context_usage || ""
-        });
-      });
-    }
-
-    const genderValue = word.Gender || word.gender || "";
-
-    const formattedWord = {
-      ...word.toObject(),
-
-      _id: word._id,
-      id: word._id,
-
-      gender: genderValue,
-
-      categories: formattedCategories,
-
-      synonyms: parseStringArray(word.synonyms),
-      antonyms: parseStringArray(word.antonyms),
-      similar_word: parseStringArray(word.similar_word),
-      novel_words: parseStringArray(word.novel_words),
-      dialects: parseStringArray(word.dialects),
-      cross_reference: parseStringArray(word.cross_reference),
-      inflections: parseStringArray(word.inflections),
-
-      proverbs: (word.proverbs || []).map((p, index) => ({
-        id: index + 1,
-        proverb: p.proverb,
-        context_usage: p.context_usage || "",
-      })),
-
-      images: word.images || [],
-    };
-
-    res.status(200).json(formattedWord);
+    res.status(200).json(word);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -143,11 +95,10 @@ exports.searchWord = async (req, res) => {
     const { q } = req.query;
 
     const words = await MalayalamMalayalamDictionary.find({
-      word: {
-        $regex: q,
-        $options: "i",
-      },
-    }).limit(50);
+      word: { $regex: q, $options: 'i' }
+    })
+    .limit(50)
+    .lean();
 
     res.status(200).json(words);
   } catch (error) {
@@ -187,8 +138,12 @@ exports.createWord = async (req, res) => {
  */
 exports.updateWord = async (req, res) => {
   try {
-    const word = await MalayalamMalayalamDictionary.findByIdAndUpdate(
-      req.params.id,
+    const query = idQuery(req.params.id);
+    if (!query) {
+      return res.status(400).json({ success: false, message: "Invalid word ID." });
+    }
+    const word = await MalayalamMalayalamDictionary.findOneAndUpdate(
+      query,
       req.body,
       {
         new: true,
@@ -213,9 +168,11 @@ exports.updateWord = async (req, res) => {
  */
 exports.deleteWord = async (req, res) => {
   try {
-    await MalayalamMalayalamDictionary.findByIdAndDelete(
-      req.params.id
-    );
+    const query = idQuery(req.params.id);
+    if (!query) {
+      return res.status(400).json({ success: false, message: "Invalid word ID." });
+    }
+    await MalayalamMalayalamDictionary.findOneAndDelete(query);
 
     res.status(200).json({
       success: true,

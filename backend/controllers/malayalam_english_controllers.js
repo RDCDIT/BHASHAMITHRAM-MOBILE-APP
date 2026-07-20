@@ -4,6 +4,7 @@
  */
 
 const Dictionary = require('../models/malayalam_english_dictionary');
+const { idQuery } = require('../utils/idQuery');
 
 // @desc    Get all dictionary entries (with optional search filter & pagination)
 // @route   GET /api/dictionary
@@ -58,67 +59,21 @@ const getWords = async (req, res) => {
  */
 const getWordById = async (req, res) => {
   try {
-    const queryId = !isNaN(Number(req.params.id))
-      ? Number(req.params.id)
-      : req.params.id;
-
-    const wordEntry = await Dictionary.findById(queryId);
-
-    if (!wordEntry) {
-      return res.status(404).json({
-        message: "Word not found",
-      });
+    // Collections hold mixed numeric/ObjectId _id values — match either form
+    const query = idQuery(req.params.id);
+    if (!query) {
+      return res.status(400).json({ message: "Invalid word ID." });
     }
 
-    const categoryValue = wordEntry.Category || wordEntry.category || [];
+    const word = await Dictionary.findOne(query);
 
-    const formattedCategories = Array.isArray(categoryValue)
-      ? categoryValue.map((cat, categoryIndex) => ({
-          id: categoryIndex + 1,
-          category: cat.category || "",
-          meanings: cat.meanings || cat.meaning || "",
-          context: cat.context || cat.context_usage || "",
-        }))
-      : [];
-
-    if (formattedCategories.length === 0 && wordEntry.meanings && wordEntry.meanings.length > 0) {
-      wordEntry.meanings.forEach((m, idx) => {
-        formattedCategories.push({
-          id: idx + 1,
-          category: "",
-          meanings: m.meaning || "",
-          context: m.context_usage || ""
-        });
-      });
+    if (!word) {
+      return res.status(404).json({ message: "Word not found" });
     }
 
-    const genderValue = wordEntry.gender || wordEntry.Gender || "";
-
-    const formattedWord = {
-      ...wordEntry.toObject(),
-
-      _id: wordEntry._id,
-      id: wordEntry._id,
-
-      gender: genderValue,
-
-      categories: formattedCategories,
-
-      proverbs: (wordEntry.proverbs || []).map((p, index) => ({
-        id: index + 1,
-        proverb: p.proverb,
-        context_usage: p.context_usage || "",
-      })),
-
-      images: wordEntry.images || [],
-    };
-
-    res.status(200).json(formattedWord);
+    res.status(200).json(word);
   } catch (error) {
-    res.status(500).json({
-      message: "Server Error",
-      error: error.message,
-    });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
@@ -133,27 +88,34 @@ const getWordById = async (req, res) => {
 const browseMalayalamWords = async (req, res) => {
   try {
     const { query = "" } = req.query;
-    const filter = {};
-    
+    // Base filter: always exclude empty-word artifact rows
+    let searchQuery = { word: { $exists: true, $ne: "" } };
+
     if (query && query.trim() !== "") {
       const trimmedQuery = query.trim();
       const isEnglish = /^[A-Za-z]/.test(trimmedQuery);
+
       if (isEnglish) {
-        filter['meanings.meaning'] = { $regex: trimmedQuery, $options: 'i' };
+        searchQuery = { 'meanings.meaning': { $regex: `^${trimmedQuery}`, $options: 'i' } };
       } else {
-        const searchRegex = trimmedQuery === "അ"
-          ? new RegExp("^അ(?!ം)", "i")
-          : new RegExp("^" + trimmedQuery, "i");
-        filter.word = searchRegex;
+        searchQuery.word = trimmedQuery === 'അ'
+          ? { $regex: '^അ(?!ം)', $options: 'i' }
+          : { $regex: `^${trimmedQuery}`, $options: 'i' };
       }
     }
 
-    const words = await Dictionary.find(filter)
-      .select("word meanings")
-      .sort({ word: 1 });
+    // No artificial limit — return ALL words matching the letter/query
+    const words = await Dictionary.find(searchQuery)
+      .sort({ word: 1 })
+      .select('_id word meanings images')
+      .lean();
 
-    res.status(200).json(words);
+    // Strip any remaining empty-word artifact rows
+    const filtered = words.filter(w => w.word && w.word.trim().length > 0);
+
+    res.status(200).json(filtered);
   } catch (error) {
+    console.error('MongoDB Error:', error);
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
@@ -186,8 +148,12 @@ const createWord = async (req, res) => {
  */
 const updateWord = async (req, res) => {
   try {
-    const updatedWord = await Dictionary.findByIdAndUpdate(
-      req.params.id,
+    const query = idQuery(req.params.id);
+    if (!query) {
+      return res.status(400).json({ message: 'Invalid word ID.' });
+    }
+    const updatedWord = await Dictionary.findOneAndUpdate(
+      query,
       req.body,
       { new: true, runValidators: true }
     );
@@ -210,7 +176,11 @@ const updateWord = async (req, res) => {
  */
 const deleteWord = async (req, res) => {
   try {
-    const deletedWord = await Dictionary.findByIdAndDelete(req.params.id);
+    const query = idQuery(req.params.id);
+    if (!query) {
+      return res.status(400).json({ message: 'Invalid word ID.' });
+    }
+    const deletedWord = await Dictionary.findOneAndDelete(query);
     if (!deletedWord) {
       return res.status(404).json({ message: 'Word not found' });
     }

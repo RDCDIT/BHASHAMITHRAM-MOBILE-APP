@@ -88,7 +88,7 @@ const handleStartMigration = async () => {
       setLoading(true);
       setMigrationReport(null);
 
-      const API_URL = `${process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/migrate`;
+      const API_URL = `${process.env.EXPO_PUBLIC_API_URL ||  "http://192.168.3.148:5000"}/api/admin/migrate`;
 
       let response;
 

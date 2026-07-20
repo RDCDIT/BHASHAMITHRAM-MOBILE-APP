@@ -9,6 +9,7 @@ const mongoose = require("mongoose");
 
 const MalayalamMalayalamDictionary = require("../models/malayalam_malayalam_dictionary");
 const EnglishDictionary = require("../models/english-english-dictionary");
+const { idQuery } = require("../utils/idQuery");
 
 const {
   suggestWord,
@@ -33,26 +34,25 @@ router.get("/browse-malayalam", async (req, res) => {
   console.log(`\n📥 [Incoming Request] GET /api/words/browse-malayalam | Query: "${query || 'undefined'}"`);
 
   try {
-    const searchCriteria = {
-      $or: [
-        { 'status.approved': true },
-        { 'status': { $exists: false } }
-      ]
-    };
+    const searchCriteria = { word: { $exists: true, $ne: "" } };
     if (query && query.trim() !== '') {
       const trimmedQuery = query.trim();
-      const searchRegex = trimmedQuery === 'അ' 
-        ? new RegExp('^അ(?!ം)', 'i') 
+      const searchRegex = trimmedQuery === 'അ'
+        ? new RegExp('^അ(?!ം)', 'i')
         : new RegExp(`^${trimmedQuery}`, 'i');
       searchCriteria.word = searchRegex;
     }
-    
+
+    // No artificial limit — return ALL words for the given letter/query
     const list = await MalayalamMalayalamDictionary.find(
       searchCriteria,
       { _id: 1, equivalents: 1, word: 1, meanings: 1 }
     ).sort({ word: 1 });
 
-    const formattedList = list.map(item => ({
+    // Strip empty-word artifact rows from the source DB
+    const formattedList = list
+      .filter(item => item.word && item.word.trim().length > 0)
+      .map(item => ({
       _id: item._id,
       id: item._id,
       english_equivalent: item.equivalents?.english || '',
@@ -78,10 +78,6 @@ router.get("/browse-synonyms", async (req, res) => {
 
   try {
     const searchCriteria = { 
-      $or: [
-        { 'status.approved': true },
-        { 'status': { $exists: false } }
-      ],
       synonyms: { $exists: true, $ne: [] } 
     };
     if (query && query.trim() !== '') {
@@ -122,10 +118,6 @@ router.get("/browse-nanaarth", async (req, res) => {
 
   try {
     const searchCriteria = {
-      $or: [
-        { 'status.approved': true },
-        { 'status': { $exists: false } }
-      ],
       'meanings.1': { $exists: true } // word has multiple meanings
     };
 
@@ -175,37 +167,16 @@ router.get("/details/:id", async (req, res) => {
     let categoryNames = [];
 
     if (type === 'english') {
-      wordDetails = await EnglishDictionary.findOne({ 
-        _id: Number(id), 
-        $or: [
-          { 'status.approved': true },
-          { 'status': { $exists: false } }
-        ]
-      });
-      if (wordDetails) {
-        const categoryIds = wordDetails.categories || [];
-        if (categoryIds.length > 0) {
-          try {
-            const categoriesList = await mongoose.connection.db.collection('Category_english')
-              .find({ _id: { $in: categoryIds.map(Number) } })
-              .toArray();
-            categoryNames = categoriesList.map(c => c.category);
-          } catch (err) {
-            console.error("Failed to fetch Category_english:", err);
-          }
-        }
+      const numericId = Number(id);
+      if (isNaN(numericId)) {
+        return res.status(400).json({ message: "Invalid word ID." });
       }
+      wordDetails = await EnglishDictionary.findOne({ _id: numericId });
     } else {
-      const queryId = mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id;
-      wordDetails = await MalayalamMalayalamDictionary.findOne({ 
-        _id: queryId, 
-        $or: [
-          { 'status.approved': true },
-          { 'status': { $exists: false } }
-        ]
-      });
-      if (wordDetails && wordDetails.category) {
-        categoryNames = [wordDetails.category];
+      // Collections hold mixed numeric/ObjectId _id values — match either form
+      const query = idQuery(id);
+      if (query) {
+        wordDetails = await MalayalamMalayalamDictionary.findOne(query);
       }
     }
 

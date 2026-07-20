@@ -1,11 +1,13 @@
 /**
  * @file malayalam_synonym.tsx
- * @description Application route screen component for malayalam_synonym.
+ * @description Malayalam Synonyms (നാനാർഥം) browse screen.
+ *              Letter filtering is done server-side — clicking a letter fetches
+ *              only that letter's synonym entries from the backend.
  */
 
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
+  Animated,
   FlatList,
   Platform,
   StyleSheet,
@@ -13,7 +15,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Animated,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -32,48 +33,43 @@ type SynonymEntry = {
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
+   "http://192.168.3.148:5000",
 ].filter((value): value is string => Boolean(value));
 
-const MALAYALAM_ALPHABET = [
+const MALAYALAM_ALPHABET = Object.freeze([
   "അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "എ", "ഏ", "ഐ", "ഒ", "ഓ", "ഔ", "അം",
   "ക", "ഖ", "ഗ", "ഘ", "ങ", "ച", "ഛ", "ജ", "ഝ", "ഞ",
   "ട", "ഠ", "ഡ", "ഢ", "ണ", "ത", "ഥ", "ദ", "ധ", "ന",
   "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര", "ല", "വ", "ശ",
-  "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
-];
+  "ഷ", "സ", "ഹ", "ള", "ഴ", "റ",
+]);
 
-/**
- * Renders and manages the MalayalamSynonymScreen component/view.
- *
- * @returns {React.JSX.Element} The rendered React component.
- */
 export default function MalayalamSynonymScreen() {
   const [selectedLetter, setSelectedLetter] = useState("");
   const [searchText, setSearchText] = useState("");
   const [allEntries, setAllEntries] = useState<SynonymEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [scrollY] = useState(() => new Animated.Value(0));
 
-  const [scrollY] = React.useState(() => new Animated.Value(0));
-
-
-
-  /**
- * Asynchronous controller/helper function: loadEntries.
- */
-const loadEntries = async () => {
+  // Fetch synonym entries for a given letter from the backend (server-side filtering).
+  // Pass search=LETTER so the backend regex-matches words starting with that letter.
+  // limit=0 is intentionally omitted — the backend now returns all matches for a letter.
+  const loadEntries = useCallback(async (letterQuery: string = "") => {
     try {
-      if (!isRefreshing) setIsLoading(true);
+      setIsLoading(true);
       setErrorMessage("");
       let lastError: unknown = null;
 
       for (const apiBaseUrl of API_BASE_URLS) {
         try {
-          console.log(`[Synonyms Browse] Fetching all entries from ${apiBaseUrl}`);
-          const response = await fetch(
-            `${apiBaseUrl}/api/synonyms?search=&limit=1000`
-          );
+          const encodedSearch = encodeURIComponent(letterQuery);
+          // When no letter is selected, load the first 500 entries for a quick preview
+          const url = letterQuery
+            ? `${apiBaseUrl}/api/synonyms?search=${encodedSearch}`
+            : `${apiBaseUrl}/api/synonyms?limit=500`;
+
+          const response = await fetch(url);
 
           if (!response.ok) {
             const responseText = await response.text();
@@ -81,15 +77,18 @@ const loadEntries = async () => {
           }
 
           const data = await response.json();
-          const recordsList = data && Array.isArray(data.records) ? data.records : [];
-          setAllEntries(recordsList);
+          // getSynonyms returns { records: [...], totalEntries, ... }
+          const records = Array.isArray(data.records) ? data.records : [];
+          setAllEntries(records);
           return;
         } catch (error) {
           lastError = error;
         }
       }
 
-      throw lastError instanceof Error ? lastError : new Error("Could not reach the dictionary backend.");
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Could not reach the dictionary backend.");
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "വാക്കുകൾ ലോഡ് ചെയ്യാൻ സാധിച്ചില്ല."
@@ -97,41 +96,37 @@ const loadEntries = async () => {
       setAllEntries([]);
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
-  };
-
-  // Load entries once on mount
-  useEffect(() => {
-    void loadEntries();
   }, []);
 
-  // Save search queries with a debounce
+  // Load initial entries on mount
+  useEffect(() => {
+    void loadEntries("");
+  }, [loadEntries]);
+
+  // Re-fetch from backend whenever selected letter changes
+  useEffect(() => {
+    void loadEntries(selectedLetter);
+  }, [selectedLetter, loadEntries]);
+
+  // Save search text for recent activity
   useEffect(() => {
     if (searchText.trim().length > 1) {
-      const delayDebounceFn = setTimeout(() => {
+      const timer = setTimeout(() => {
         void saveRecentSearch(searchText.trim(), "synonym");
       }, 1000);
-      return () => clearTimeout(delayDebounceFn);
+      return () => clearTimeout(timer);
     }
   }, [searchText]);
 
-  // Client-side real-time filtering
+  // Client-side text search only (letter filtering is done server-side)
   const filteredEntries = useMemo(() => {
     if (searchText.trim()) {
-      const query = searchText.trim().toLowerCase();
-      return allEntries.filter((entry) =>
-        (entry.word || "").toLowerCase().includes(query)
-      );
-    }
-    if (selectedLetter) {
-      const letter = selectedLetter;
-      return allEntries.filter((entry) =>
-        (entry.word || "").startsWith(letter)
-      );
+      const q = searchText.trim().toLowerCase();
+      return allEntries.filter((e) => (e.word || "").toLowerCase().includes(q));
     }
     return allEntries;
-  }, [allEntries, searchText, selectedLetter]);
+  }, [allEntries, searchText]);
 
   const handleCardPress = (id: string | number) => {
     router.push({
@@ -142,13 +137,21 @@ const loadEntries = async () => {
 
   const renderAlphabetItem = ({ item }: { item: string }) => (
     <TouchableOpacity
-      style={[styles.letterTab, selectedLetter === item && !searchText.trim() && styles.activeLetterTab]}
+      style={[
+        styles.letterTab,
+        selectedLetter === item && !searchText.trim() && styles.activeLetterTab,
+      ]}
       onPress={() => {
         setSearchText("");
         setSelectedLetter(item);
       }}
     >
-      <Text style={[styles.letterText, selectedLetter === item && !searchText.trim() && styles.activeLetterText]}>
+      <Text
+        style={[
+          styles.letterText,
+          selectedLetter === item && !searchText.trim() && styles.activeLetterText,
+        ]}
+      >
         {item}
       </Text>
     </TouchableOpacity>
@@ -156,8 +159,14 @@ const loadEntries = async () => {
 
   const renderEntry = ({ item, index }: { item: SynonymEntry; index: number }) => {
     const synonymsList = Array.isArray(item.synonyms)
-      ? item.synonyms.flat(Infinity).map((s) => typeof s === "string" ? s.trim() : String(s).trim()).filter(Boolean)
-      : (item.synonyms ? String(item.synonyms).split(",").map((s) => s.trim()).filter(Boolean) : []);
+      ? item.synonyms
+          .flat(Infinity)
+          .map((s) => (typeof s === "string" ? s.trim() : String(s).trim()))
+          .filter(Boolean)
+      : String(item.synonyms || "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
 
     return (
       <AnimatedCard index={index} scrollY={scrollY}>
@@ -192,6 +201,7 @@ const loadEntries = async () => {
 
   return (
     <View style={styles.screen}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()}>
@@ -202,6 +212,7 @@ const loadEntries = async () => {
         </View>
       </View>
 
+      {/* Alphabet strip */}
       <View style={styles.alphabetContainer}>
         <TouchableOpacity
           style={[
@@ -229,6 +240,7 @@ const loadEntries = async () => {
         />
       </View>
 
+      {/* Search bar */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -237,18 +249,25 @@ const loadEntries = async () => {
           onChangeText={setSearchText}
           placeholderTextColor="#898683"
         />
-        <TouchableOpacity onPress={() => void loadEntries()} style={styles.searchButton}>
+        <TouchableOpacity
+          onPress={() => void loadEntries(selectedLetter)}
+          style={styles.searchButton}
+        >
           <Ionicons name="search" size={18} color="white" />
         </TouchableOpacity>
       </View>
 
+      {/* Content */}
       {isLoading ? (
         <SkeletonLoader />
       ) : errorMessage ? (
         <View style={styles.stateContainer}>
           <Text style={styles.stateTitle}>കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല</Text>
           <Text style={styles.stateText}>{errorMessage}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => void loadEntries()}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => void loadEntries(selectedLetter)}
+          >
             <Text style={styles.retryButtonText}>വീണ്ടും ശ്രമിക്കുക</Text>
           </TouchableOpacity>
         </View>
@@ -261,16 +280,18 @@ const loadEntries = async () => {
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
           onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { useNativeDriver: true }
-            )}
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
           ListEmptyComponent={
             <View style={styles.stateContainer}>
               <Text style={styles.stateTitle}>വാക്കുകൾ കണ്ടെത്തിയില്ല</Text>
               <Text style={styles.stateText}>
                 {searchText.trim()
                   ? `"${searchText}" എന്ന വാക്കിന് പര്യായപദങ്ങൾ കണ്ടെത്താൻ സാധിച്ചില്ല.`
-                  : `"${selectedLetter}" എന്ന അക്ഷരത്തിൽ തുടങ്ങുന്ന പര്യായപദങ്ങൾ നിലവിലില്ല.`}
+                  : selectedLetter
+                  ? `"${selectedLetter}" എന്ന അക്ഷരത്തിൽ തുടങ്ങുന്ന പര്യായപദങ്ങൾ നിലവിലില്ല.`
+                  : "ഒരു അക്ഷരം തിരഞ്ഞെടുക്കുക."}
               </Text>
             </View>
           }
@@ -281,10 +302,7 @@ const loadEntries = async () => {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
+  screen: { flex: 1, backgroundColor: "transparent" },
   header: {
     height: Platform.OS === "android" ? 75 : 95,
     backgroundColor: "#2B2C51",
@@ -310,9 +328,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
   },
-  alphabetFlatList: {
-    flex: 1,
-  },
+  alphabetFlatList: { flex: 1 },
   clearFilterButton: {
     width: 42,
     height: 42,
@@ -329,12 +345,8 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  clearFilterButtonDisabled: {
-    opacity: 0.5,
-  },
-  alphabetList: {
-    paddingHorizontal: 4,
-  },
+  clearFilterButtonDisabled: { opacity: 0.5 },
+  alphabetList: { paddingHorizontal: 4 },
   letterTab: {
     width: 42,
     height: 42,
@@ -363,9 +375,7 @@ const styles = StyleSheet.create({
     color: "#2B2C51",
     fontFamily: "NotoSansMalayalam",
   },
-  activeLetterText: {
-    color: "#FFFFFF",
-  },
+  activeLetterText: { color: "#FFFFFF" },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -392,10 +402,6 @@ const styles = StyleSheet.create({
     padding: 0,
     fontFamily: "NotoSansMalayalam",
   },
-  micButton: {
-    padding: 8,
-    marginRight: 4,
-  },
   searchButton: {
     width: 42,
     height: 42,
@@ -404,10 +410,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  listContent: {
-    padding: 16,
-    paddingBottom: 24,
-  },
+  listContent: { padding: 16, paddingBottom: 24 },
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
@@ -427,9 +430,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 12,
   },
-  cardHeaderText: {
-    flex: 1,
-  },
+  cardHeaderText: { flex: 1 },
   malayalamWord: {
     color: "#1F2330",
     fontSize: 20,
@@ -438,7 +439,7 @@ const styles = StyleSheet.create({
   },
   definitionBox: {
     backgroundColor: "#F7F7F9",
-    borderLeftColor: "#43AC98",
+    borderLeftColor: "#9333EA",
     borderLeftWidth: 4,
     borderRadius: 14,
     padding: 14,
@@ -451,6 +452,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+    fontFamily: "NotoSansMalayalam",
   },
   definitionText: {
     color: "#4E473E",
@@ -486,9 +488,5 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
   },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
+  retryButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
 });
