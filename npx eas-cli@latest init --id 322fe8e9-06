@@ -1,0 +1,6 @@
+npx eas-cli@latest init --id 322fe8e9-06f7-47c1-8bd1-7aa6d55b68e3
+
+npx eas-cli@latest build --profile production // both android and ios
+
+
+eas build --platform android --profile production // for android apk installation

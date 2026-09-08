@@ -1,0 +1,55 @@
+CREATE TABLE `contacts` (
+  `serial` integer NOT NULL
+,  `email` varchar(100) NOT NULL
+,  `seat` varchar(50) NOT NULL
+,  `status` integer NOT NULL
+);
+CREATE TABLE `engtemp` (
+  `serial` integer NOT NULL
+,  `user` varchar(100) NOT NULL
+,  `eng_word` varchar(100) NOT NULL
+,  `mal_word` varchar(200) NOT NULL
+,  `status` integer NOT NULL
+,  `querystatus` integer NOT NULL
+);
+CREATE TABLE `login` (
+  `serial` integer NOT NULL
+,  `username` varchar(50) NOT NULL
+,  `password` varchar(200) NOT NULL
+,  `seat` varchar(50) NOT NULL
+,  `status` integer NOT NULL
+);
+CREATE TABLE `maltemp` (
+  `serial` integer NOT NULL
+,  `user` varchar(100) NOT NULL
+,  `mal_word` varchar(200) NOT NULL
+,  `eng_word` varchar(200) NOT NULL
+,  `status` integer NOT NULL
+,  `querystatus` integer NOT NULL
+);
+CREATE TABLE `newtabword` (
+  `serialno` integer NOT NULL
+,  `mal_word` varchar(200) NOT NULL
+,  `category` varchar(50) NOT NULL
+,  `eng_word` varchar(255) DEFAULT NULL
+);
+CREATE TABLE `reports` (
+  `serial` integer NOT NULL
+,  `username` varchar(100) NOT NULL
+,  `seat` varchar(50) NOT NULL
+,  `date` datetime NOT NULL
+);
+CREATE TABLE `tabword` (
+  `id` integer NOT NULL
+,  `eng_word` varchar(100) DEFAULT NULL
+,  `mal_word` longtext
+);
+CREATE TABLE `thesaurus` (
+  `id` integer NOT NULL
+,  `word` varchar(200) NOT NULL
+,  `category` varchar(50) NOT NULL
+,  `meanings` longtext NOT NULL
+,  `example` longtext NOT NULL
+,  `lookup` longtext NOT NULL
+,  `antonym` varchar(200) NOT NULL
+);

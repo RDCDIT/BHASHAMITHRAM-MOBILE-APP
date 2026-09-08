@@ -1,0 +1,33 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "postinstall": "node -e \"if (process.platform !== 'win32') require('child_process').execSync('npm rebuild sqlite3 --build-from-source', {stdio: 'inherit'})\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google-cloud/speech": "^7.5.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "gtts": "^0.2.1",
+    "mongodb": "^7.5.0",
+    "mongoose": "^9.6.3",
+    "multer": "^2.2.0",
+    "mysql2": "^3.22.6",
+    "nodemailer": "^9.0.1",
+    "sequelize": "^6.37.8",
+    "sqlite3": "^6.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

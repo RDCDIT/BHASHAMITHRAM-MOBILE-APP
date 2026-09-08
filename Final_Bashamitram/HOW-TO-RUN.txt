@@ -1,0 +1,238 @@
+================================================================================
+  BHASHAMITHRAM APP — HOW TO RUN
+  ഭാഷാമിത്രം ആപ്പ് — പ്രവർത്തിപ്പിക്കുന്ന വിധം
+================================================================================
+
+PROJECT STRUCTURE
+-----------------
+Final_Bashamitram/
+├── backend/          ← Node.js / Express API server
+└── Mobile_app/       ← Expo React Native frontend
+
+
+REQUIREMENTS (Pre-requisites)
+------------------------------
+  • Node.js  v18 or above  (current: v20.20.2)
+  • npm      v9 or above
+  • Expo CLI (installed automatically via npx)
+  • A device/browser on the SAME Wi-Fi network as this machine
+
+
+================================================================================
+STEP 1 — CHECK / UPDATE THE IP ADDRESS IN .env
+================================================================================
+
+The frontend must know the machine's LAN IP to reach the backend.
+
+1. Find your current LAN IP:
+     ip addr show | grep "inet " | grep -v 127
+
+2. Open:
+     Final_Bashamitram/Mobile_app/.env
+
+3. Make sure the value matches your current IP, for example:
+     EXPO_PUBLIC_API_URL=http://192.168.3.148:5000
+
+   ⚠️  Your IP changes when you connect to a different network or reboot.
+       Always check this before starting the app.
+
+
+================================================================================
+STEP 2 — START THE BACKEND SERVER
+================================================================================
+
+Open a terminal and run:
+
+    cd Final_Bashamitram/backend
+    npm install          # only needed the first time
+    node server.js
+
+Expected output:
+    ✅ MongoDB Connected: ...
+    🌐 Microservice listening on port: 5000
+
+Keep this terminal open while using the app.
+
+To verify the backend is working:
+    curl http://localhost:5000/api/malayalam-malayalam/browse-malayalam?query=
+
+
+================================================================================
+STEP 3 — START THE FRONTEND (Expo)
+================================================================================
+
+Open a SECOND terminal and run:
+
+    cd Final_Bashamitram/Mobile_app
+    npm install          # only needed the first time
+    npx expo start --web --port 8083
+
+Expected output:
+    Web Bundled ... node_modules/expo-router/entry.js
+    › Web: http://localhost:8083
+
+Then open your browser at:
+    http://localhost:8083
+
+
+--- For mobile (Android / iOS via Expo Go) ---
+
+Run without --web flag:
+    npx expo start
+
+Then scan the QR code with:
+  • Android: Expo Go app
+  • iOS:     Camera app → tap the link
+
+Make sure the mobile device is on the SAME Wi-Fi as this machine.
+
+
+================================================================================
+STEP 4 — USING THE APP
+================================================================================
+
+Home screen shows 5 dictionary cards:
+  1. മലയാളം - മലയാളം    (111,000+ words)
+  2. മലയാളം - ഇംഗ്ലീഷ്  (32,000+ words)
+  3. ഇംഗ്ലീഷ് - മലയാളം  (98,000+ words)
+  4. മലയാളം നാനാത്ഥം    (7,300+ synonym entries)
+  5. സമീപകാല തിരച്ചിലുകൾ (recent searches)
+
+How letter browsing works:
+  • Tap any letter in the alphabet strip at the top
+  • The app fetches ALL words for that letter directly from the database
+  • No artificial word limit — you see every word in the DB for that letter
+  • Tap the funnel icon (🔴) to clear the letter filter
+
+Search:
+  • Type in the search box to filter the currently loaded words
+  • The search box works in real time (client-side on loaded results)
+
+
+================================================================================
+STEP 5 — EMAIL CONFIGURATION (for word suggestions)
+================================================================================
+
+When a user submits a word suggestion, a confirmation email is sent from:
+    cditresearch@gmail.com
+
+To make this work, the Gmail account must have an App Password set up:
+
+  1. Go to: https://myaccount.google.com/security
+  2. Enable 2-Step Verification (if not already on)
+  3. Under "2-Step Verification" → scroll down → click "App passwords"
+  4. Create a new App Password (name it "Bhashamithram")
+  5. Copy the 16-character password
+
+  6. Open: Final_Bashamitram/backend/.env
+  7. Update this line with the App Password:
+       EMAIL_PASS = xxxx xxxx xxxx xxxx
+
+  ⚠️  Do NOT use your regular Gmail password here — use only an App Password.
+  ⚠️  Do NOT commit the .env file to git.
+
+
+================================================================================
+STEP 6 — STOPPING THE SERVERS
+================================================================================
+
+In each terminal press:  Ctrl + C
+
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+PROBLEM: App shows "Failed to fetch" or "കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല"
+FIX:
+  1. Make sure the backend is running (Step 2)
+  2. Check that EXPO_PUBLIC_API_URL in Mobile_app/.env matches your current IP
+  3. Restart Expo after changing .env:  Ctrl+C → npx expo start --web --port 8083
+
+PROBLEM: Backend port 5000 already in use
+FIX:
+  pkill -f "node server.js"
+  Then restart: node server.js
+
+PROBLEM: Expo port 8083 already in use
+FIX:
+  pkill -f "expo"
+  Then restart: npx expo start --web --port 8083
+
+PROBLEM: Browser shows blank page or old version
+FIX:
+  Hard-reload: Ctrl + Shift + R  (clears browser cache)
+  Or use: npx expo start --web --port 8083 --clear
+
+PROBLEM: No words appear after selecting a letter
+FIX:
+  • Confirm the backend returned data:
+      curl "http://localhost:5000/api/malayalam-malayalam/browse-malayalam?query=%E0%B4%95"
+  • If empty, check the backend terminal for MongoDB errors
+
+PROBLEM: Emails not sending after word suggestion
+FIX:
+  • Set a Gmail App Password in .env → EMAIL_PASS (see Step 5)
+  • Restart the backend after changing .env
+
+
+================================================================================
+QUICK REFERENCE — ALL COMMANDS
+================================================================================
+
+Terminal 1 (Backend):
+    cd /home/c-dit/INTERNSHIP_2026/dictionary_mobileApp/BHASHAMITHRAM_APP/Final_Bashamitram/backend
+    node server.js
+
+Terminal 2 (Frontend):
+    cd /home/c-dit/INTERNSHIP_2026/dictionary_mobileApp/BHASHAMITHRAM_APP/Final_Bashamitram/Mobile_app
+    npx expo start --web --port 8083
+
+Browser:
+    http://localhost:8083
+
+Backend health check:
+    curl http://localhost:5000/api/malayalam-malayalam/browse-malayalam?query=
+
+
+================================================================================
+API ENDPOINTS (for reference / testing)
+================================================================================
+
+  GET /api/malayalam-malayalam/browse-malayalam?query=<letter>
+      → Malayalam-Malayalam words starting with <letter>
+
+  GET /api/malayalam-english/browse-malayalam?query=<letter>
+      → Malayalam-English words starting with <letter>
+
+  GET /api/english-malayalam/browse-english?query=<letter>
+      → English-Malayalam words starting with <letter>
+
+  GET /api/synonyms?search=<letter>
+      → Synonym entries starting with <letter>
+
+  GET /api/words/details/:id
+      → Full word details (meanings, proverbs, equivalents, etc.)
+
+  POST /api/words/suggest
+      → Submit a new word suggestion (triggers confirmation email)
+
+
+================================================================================
+DATABASE — MongoDB Atlas
+================================================================================
+
+  Cluster:    BHASHAMITHRAM (Atlas free tier M0)
+  Connection: see MONGO_URI in backend/.env
+
+  Collections and document counts:
+    malayalam_malayalam_dictionary   — 111,283 docs
+    English-malayalam_dictionary     — 98,944  docs
+    Malayalam_English_Dictionary     — 32,570  docs
+    Malayalam_Synonyms               — 7,349   docs
+    Suggested_words                  — (user submissions)
+
+  ⚠️  Free tier storage limit: 512 MB
+      Current usage: ~145 MB (well within limit)
+
+================================================================================

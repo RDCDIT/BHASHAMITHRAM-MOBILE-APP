@@ -1,0 +1,14 @@
+{
+  "plugins": [
+    "expo-sqlite",
+    "expo-asset"
+  ],
+  "android": {
+    "package": "com.rdcdit.bhashamithram_app"
+  },
+  "extra": {
+    "eas": {
+      "projectId": "f2107d82-cd78-41d5-adc2-5c1a9a6f1523"
+    }
+  }
+}

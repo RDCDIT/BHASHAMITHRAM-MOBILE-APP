@@ -1,0 +1,14 @@
+backend/.gitignore
+.env
+.env*.local
+node_modules/
+dist/
+build/
+.expo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+backend/.env
+backend/.env

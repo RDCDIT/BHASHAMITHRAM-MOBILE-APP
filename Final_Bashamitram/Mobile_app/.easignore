@@ -1,0 +1,49 @@
+# EAS Build ignore file
+# Prevents EAS from uploading unnecessary files that cause
+# filename-casing errors and bloat the archive.
+
+# JS dependencies (restored on EAS servers via npm install)
+node_modules/
+
+# Expo / Metro cache
+.expo/
+.metro-health-check*
+dist/
+web-build/
+
+# Android build outputs
+android/build/
+android/app/build/
+android/.gradle/
+android/.idea/
+
+# iOS build outputs
+ios/build/
+ios/Pods/
+ios/DerivedData/
+
+# Keys and secrets
+*.jks
+*.p8
+*.p12
+*.key
+*.keystore
+*.mobileprovision
+.env
+.env.*
+
+# System / editor files
+.DS_Store
+.idea/
+.vscode/
+*.orig.*
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Large unused local folders
+android-studio/
+src.zip
+mongo_upload/

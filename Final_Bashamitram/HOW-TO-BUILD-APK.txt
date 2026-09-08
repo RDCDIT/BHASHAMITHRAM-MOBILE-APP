@@ -1,0 +1,195 @@
+================================================================================
+  BHASHAMITHRAM — HOW TO BUILD AN ANDROID APK
+================================================================================
+
+IMPORTANT NOTE BEFORE BUILDING
+-------------------------------
+The app talks to a backend server (Node.js on port 5000).
+
+For the APK to work on users' phones, the backend MUST be deployed
+to a PUBLIC URL on the internet — not localhost.
+
+Your options:
+  A) Deploy backend to Render.com (free, easy, recommended)
+  B) Deploy backend to Railway.app (free tier available)
+  C) Self-host on a server with a public IP
+
+Step 1 below covers deploying the backend. If you already have a public URL,
+skip to Step 2.
+
+
+================================================================================
+STEP 1 — DEPLOY THE BACKEND TO RENDER.COM (free)
+================================================================================
+
+1. Go to https://render.com and sign up / log in.
+
+2. Click "New" → "Web Service"
+
+3. Connect your GitHub account and push the backend folder:
+   OR use "Deploy from a public Git repo"
+
+4. Set these fields:
+     Name:         bhashamithram-backend
+     Root Dir:     Final_Bashamitram/backend
+     Runtime:      Node
+     Build Command: npm install
+     Start Command: node server.js
+
+5. Add Environment Variables (from backend/.env):
+     MONGO_URI  = (your full MongoDB Atlas URI)
+     PORT       = 10000
+     EMAIL_USER = cditresearch@gmail.com
+     EMAIL_PASS = (your Gmail App Password)
+
+6. Click "Deploy Web Service"
+
+7. After deployment, Render gives you a URL like:
+     https://bhashamithram-backend.onrender.com
+
+8. Update Mobile_app/.env:
+     EXPO_PUBLIC_API_URL=https://bhashamithram-backend.onrender.com
+
+9. Done — proceed to Step 2.
+
+
+================================================================================
+STEP 2 — SET UP EXPO ACCOUNT (free)
+================================================================================
+
+EAS Build requires a free Expo account to build the APK in the cloud.
+
+1. Sign up at: https://expo.dev/signup  (free, no credit card)
+
+2. In your terminal:
+     eas login
+   Enter your Expo username and password.
+
+3. Link the project to your Expo account:
+     cd Final_Bashamitram/Mobile_app
+     eas init
+
+   When asked for project name, enter: bhashamithram
+
+
+================================================================================
+STEP 3 — BUILD THE APK
+================================================================================
+
+Make sure you are in the Mobile_app folder:
+
+    cd Final_Bashamitram/Mobile_app
+
+Run the build command:
+
+    eas build --platform android --profile preview
+
+What this does:
+  - Uploads your code to Expo's build servers
+  - Builds a signed .apk file in the cloud (free tier: 30 builds/month)
+  - Takes about 5–15 minutes
+
+When finished, the terminal shows a download link like:
+    https://expo.dev/artifacts/eas/xxxxxx.apk
+
+Download and install it on any Android phone.
+
+
+================================================================================
+STEP 4 — INSTALL THE APK ON ANDROID
+================================================================================
+
+Method 1 — Direct download on the phone:
+  1. Open the download link on the Android phone browser
+  2. Tap the downloaded .apk file
+  3. If prompted, enable "Install from unknown sources" in Settings
+  4. Tap Install
+
+Method 2 — Transfer via USB:
+  1. Connect phone to computer via USB
+  2. Copy the .apk file to the phone's Downloads folder
+  3. Open a file manager on the phone
+  4. Tap the .apk and install it
+
+Method 3 — Using adb (command line):
+  adb install bhashamithram.apk
+
+
+================================================================================
+ALTERNATIVE — LOCAL BUILD WITHOUT EXPO ACCOUNT (needs Android SDK)
+================================================================================
+
+If you want to build the APK entirely on this machine:
+
+1. Install Android Studio:
+     https://developer.android.com/studio
+
+2. Set environment variables:
+     export ANDROID_HOME=$HOME/Android/Sdk
+     export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools
+
+3. Install SDK tools via Android Studio:
+     API Level 34, Build Tools 34.0.0
+
+4. In Mobile_app folder:
+     npx expo run:android --variant release
+
+   This builds the APK locally and outputs to:
+     android/app/build/outputs/apk/release/app-release.apk
+
+
+================================================================================
+TROUBLESHOOTING APK BUILD
+================================================================================
+
+ERROR: "You need to be logged in"
+FIX:   eas login
+
+ERROR: "Project not found"
+FIX:   eas init  (in the Mobile_app folder)
+
+ERROR: App shows "Failed to fetch" on the phone after install
+FIX:   The EXPO_PUBLIC_API_URL is pointing to localhost or a LAN IP.
+       Deploy the backend to Render/Railway and update .env before building.
+
+ERROR: "Gradle build failed"
+FIX:   Check that app.json has a valid Android package name:
+         "package": "org.cdit.bhashamithram"
+       The package name must be unique and follow reverse-domain format.
+
+ERROR: Build quota exceeded (30 builds/month)
+FIX:   Wait for the monthly reset, or use a local build (see Alternative section above).
+
+
+================================================================================
+CURRENT APP CONFIG
+================================================================================
+
+  App name:       bhashamitram
+  Package:        org.cdit.bhashamithram
+  Version:        1.0.0
+  EAS profile:    preview (outputs .apk)
+  Min Android:    API 21 (Android 5.0)
+
+  Backend URL:    Set in Final_Bashamitram/Mobile_app/.env
+                  → EXPO_PUBLIC_API_URL=...
+
+
+================================================================================
+QUICK COMMANDS SUMMARY
+================================================================================
+
+  # Login to Expo
+  eas login
+
+  # Build APK (cloud)
+  cd Final_Bashamitram/Mobile_app
+  eas build --platform android --profile preview
+
+  # Check build status
+  eas build:list
+
+  # Download built APK
+  # (link shown in terminal output after build completes)
+
+================================================================================

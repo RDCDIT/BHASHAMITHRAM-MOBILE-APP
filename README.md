@@ -1,2 +1,0 @@
-# INTERNSHIP
-Bhashamithram Mobile App

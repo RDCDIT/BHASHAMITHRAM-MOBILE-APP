@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Bhashamitharam2",
+    "slug": "bhashamitharam2",
+    "version": "1.0.0",
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/images/logo.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/logo.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "org.cdit.bhashamithram2",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ],
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
+      "allowBackup": false,
+      "minSdkVersion": 29
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#2B2C51",
+          "android": {
+            "image": "./assets/images/logo.png",
+            "imageWidth": 120
+          }
+        }
+      ],
+      "expo-image",
+      "expo-audio",
+      "expo-asset",
+      "expo-font",
+      "expo-status-bar",
+      "expo-sqlite"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f1c4f77d-def1-4cba-be69-c697afbbc8bf"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "org.cdit.bhashamithram2"
+    }
+  }
+}
