@@ -1,0 +1,74 @@
+[
+  {
+    "_id": 1,
+    "word": "മഴവില്ല്",
+    "language_type": "malayalam",
+    "root": "വില്ല്",
+    "etymology": "മഴ + വില്ല്",
+    "cultural_note": "കേരളീയ സാഹിത്യത്തിലും കവിതകളിലും വർണ്ണാഭമായ പ്രകൃതി സൗന്ദര്യത്തിന്റെ പ്രതീകം",
+    "synonyms": "ഇന്ദ്രധനുസ്സ്, കാമുകവില്ല്, മേഘധനുസ്സ്",
+    "antonyms": "",
+    "dialects": "",
+    "proverb": "",
+    "similar_word": "മേഘവില്ല്",
+    "novel_words": "",
+    "cross_reference": "",
+    "inflections": "",
+    "gender": "നപുംസകലിംഗം",
+    "phonetic_transcription": "mazhavillu",
+    "pronunciation": "",
+    "equivalents": {
+      "kannada": "ಕಾಮನಬಿಲ್ಲು (kamanabillu)",
+      "tamil": "வானவில் (vaanavil)",
+      "telugu": "ఇంద్రధనస్సు (indradhanassu)",
+      "tulu": "",
+      "english": "rainbow, celestial arch of spectral colors"
+    },
+    "equivalent_languages": [],
+    "meanings": [],
+    "status": "pending",
+    "contributor": {
+      "name": "Dr. Radhakrishnan",
+      "email": "radhakrishnan@keralauniversity.ac.in",
+      "receive_emails": true
+    },
+    "saved_at": "2026-10-01T08:00:00.000Z",
+    "meaning": "മഴയോടൊപ്പം വെയിൽ തെളിയുമ്പോൾ ആകാശത്ത് പ്രകാശത്തിന്റെ പ്രകീർണ്ണനം മൂലം രൂപപ്പെടുന്ന സപ്തവർണ്ണ അർദ്ധവൃത്തം."
+  },
+  {
+    "_id": 2,
+    "word": "വിണ്ണരങ്ങ്",
+    "language_type": "malayalam",
+    "root": "വിണ്ണ്",
+    "etymology": "വിണ്ണ് (ആകാശം) + അരങ്ങ് (വേദി)",
+    "cultural_note": "സന്ധ്യാസമയത്തോ രാത്രിയിലോ നക്ഷത്രങ്ങളും ഗ്രഹങ്ങളും നിറഞ്ഞ ആകാശത്തെ കാവ്യഭാഷയിൽ വിശേഷിപ്പിക്കുന്നത്",
+    "synonyms": "ആകാശവേദി, നഭോമണ്ഡലം",
+    "antonyms": "പാതാളം",
+    "dialects": "",
+    "proverb": "",
+    "similar_word": "വിണ്ണാറ്",
+    "novel_words": "",
+    "cross_reference": "",
+    "inflections": "",
+    "gender": "നപുംസകലിംഗം",
+    "phonetic_transcription": "vinnarangngu",
+    "pronunciation": "",
+    "equivalents": {
+      "kannada": "",
+      "tamil": "விண்மேடை",
+      "telugu": "",
+      "tulu": "",
+      "english": "celestial stage, expanse of the open night sky"
+    },
+    "equivalent_languages": [],
+    "meanings": [],
+    "status": "pending",
+    "contributor": {
+      "name": "Anoop S.",
+      "email": "anoop.malayalam@gmail.com",
+      "receive_emails": true
+    },
+    "saved_at": "2026-10-01T08:30:00.000Z",
+    "meaning": "നക്ഷത്രങ്ങളും ഗ്രഹങ്ങളും ജ്വലിച്ചുനിൽക്കുന്ന അതിവിശാലമായ ആകാശ വേദി."
+  }
+]

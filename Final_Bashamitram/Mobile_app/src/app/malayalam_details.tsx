@@ -21,11 +21,15 @@ const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpaci
 
 import AnimatedCard from "../components/AnimatedCard";
 import SkeletonLoader from "../components/SkeletonLoader";
+import SpeakButton from "../components/SpeakButton";
+import FavoriteButton from "../components/FavoriteButton";
+import FloatingLettersBackground from "../components/FloatingLettersBackground";
 import { saveRecentOpening } from "../utils/recentActivity";
 
 import type { DictionaryEntry } from "../database/types";
 
 import { getMalayalamWord } from "../database/dictionaryService";
+import { useResponsive } from "../utils/responsive";
 
 
 /**
@@ -34,6 +38,18 @@ import { getMalayalamWord } from "../database/dictionaryService";
  * @returns {React.JSX.Element} The rendered React component.
  */
 export default function MalayalamWordDetailsScreen() {
+  const {
+    headerHeight,
+    headerTitleFontSize,
+    detailWordCardPadding,
+    detailSectionPadding,
+    detailWordFontSize,
+    cardMarginBottom,
+    dictCardRadius,
+    horizontalPadding,
+    isSmallPhone,
+  } = useResponsive();
+
   const { word } = useLocalSearchParams<{ word: string }>();
   const [details, setDetails] = useState<DictionaryEntry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,6 +101,11 @@ export default function MalayalamWordDetailsScreen() {
     return [
       isSection ? styles.section : styles.wordCard,
       isHighlighted && (isSection ? styles.highlightedSection : styles.highlightedCard),
+      {
+        padding: isSection ? detailSectionPadding : detailWordCardPadding,
+        marginBottom: cardMarginBottom,
+        borderRadius: dictCardRadius,
+      },
       { transform: [{ scale }] },
     ];
   };
@@ -120,7 +141,7 @@ setDetails(data);
 
     setDetails(data);
 
-    void saveRecentOpening(data.id ?? 0, data.word);
+    void saveRecentOpening(data.id ?? 0, data.word, "malayalam_malayalam");
 
   } catch (error) {
     setDetails(null);
@@ -215,24 +236,42 @@ setDetails(data);
   };
 
 
+  const primaryMeaning =
+    details?.meanings?.[0]?.meaning ||
+    (details?.categories?.[0]?.meanings as string) ||
+    "";
+
   return (
     <View style={styles.screen}>
-      {/* Header */}
-      <View style={styles.header}>
+      <FloatingLettersBackground />
+      {/* Header (Matching Screen 3) */}
+      <View style={[styles.header, { height: headerHeight }]}>
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => {
-                if (router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace("/");
-                }
-              }}>
-            <Ionicons name="chevron-back" size={27} color="white" />
+          <TouchableOpacity
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/");
+              }
+            }}
+            style={styles.headerBackButton}
+            activeOpacity={0.7}
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={24} color="#0F172A" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {isLoading ? "വിവരങ്ങൾ" : details?.word || "വിവരങ്ങൾ"}
-          </Text>
-          <View style={{ width: 27 }} />
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { fontSize: headerTitleFontSize }]} numberOfLines={1}>
+              ഭാഷാമിത്രം II
+            </Text>
+            <Text style={styles.headerSubtitle}>പദവിവരണം (Word Details)</Text>
+          </View>
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.headerEmblem}
+            resizeMode="contain"
+          />
         </View>
       </View>
 
@@ -249,7 +288,13 @@ setDetails(data);
         </View>
       ) : (
         <Animated.ScrollView
-          contentContainerStyle={styles.scrollContainer}
+          contentContainerStyle={[
+            styles.scrollContainer,
+            {
+              padding: horizontalPadding,
+              paddingBottom: Math.round(cardMarginBottom * 2.5),
+            },
+          ]}
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           onScroll={Animated.event(
@@ -257,19 +302,43 @@ setDetails(data);
             { useNativeDriver: true }
           )}
         >
-
-          {/* Word Title Card */}
+          {/* Word Hero Card (Matching Screen 3) */}
           <AnimatedCard index={cardIndex++} scrollY={scrollY}>
-            <View style={styles.wordCard}>
+            <View
+              style={[
+                styles.wordCard,
+                {
+                  padding: detailWordCardPadding,
+                  marginBottom: cardMarginBottom,
+                  borderRadius: dictCardRadius,
+                },
+              ]}
+            >
               <View style={styles.wordBadge}>
                 <Text style={styles.wordBadgeText}>
-                  {details.word ? details.word.charAt(0) : '?'}
+                  {details.word ? details.word.charAt(0) : "?"}
                 </Text>
               </View>
-              <Text style={styles.mainWord}>{details.word}</Text>
+
+              <Text style={[styles.mainWord, { fontSize: detailWordFontSize }]}>
+                {details.word}
+              </Text>
+
               {hasValue(details.phonetic_transcription) && (
                 <Text style={styles.phonetic}>[{details.phonetic_transcription}]</Text>
               )}
+
+              {/* Action Buttons Row */}
+              <View style={styles.heroActionsRow}>
+                <SpeakButton word={details.word} lang="ml" />
+                <FavoriteButton
+                  word={details.word}
+                  dictionaryType="malayalam-malayalam"
+                  meaning={primaryMeaning}
+                  phonetic={details.phonetic_transcription}
+                  size={36}
+                />
+              </View>
             </View>
           </AnimatedCard>
 
@@ -285,9 +354,7 @@ setDetails(data);
                   style={getAnimatedCardStyle("categories")}
                 >
                   <Text style={styles.sectionTitle}>
-                    {details.categories && details.categories.length === 1
-                      ? "വ്യാകരണവിഭാഗം / Category"
-                      : "വ്യാകരണവിഭാഗം, അർത്ഥം, പ്രയോഗം / Categories, Meaning and Context"}
+                    അർത്ഥങ്ങൾ / Meanings & Context
                   </Text>
 
                   {/* 1. Display structured Categories if available */}
@@ -642,53 +709,91 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   header: {
-    height: Platform.OS === "android" ? 65 : 95,
-    backgroundColor: "#2B2C51",
+    height: Platform.OS === "android" ? 82 : 100,
+    backgroundColor: "#FFFFFF",
     justifyContent: "flex-end",
-    paddingBottom: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
+  },
+  headerBackButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitleContainer: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "700",
+    color: "#0F172A",
+    fontSize: 16,
+    fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
-    flex: 1,
     textAlign: "center",
+  },
+  headerSubtitle: {
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "500",
+    fontFamily: "NotoSansMalayalam",
+    textAlign: "center",
+    marginTop: 1,
+  },
+  headerEmblem: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   scrollContainer: {
     padding: 16,
     paddingBottom: 40,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
   },
   wordCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 24,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F0ECE6",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    borderColor: "#E2E8F0",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 2,
     marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: "#43AC98",
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
   },
   wordBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
-    backgroundColor: "#2B2C51",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#2563EB",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 12,
+    shadowColor: "#2563EB",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 3,
   },
   wordBadgeText: {
     color: "#FFFFFF",
@@ -697,49 +802,59 @@ const styles = StyleSheet.create({
     fontFamily: "NotoSansMalayalam",
   },
   highlightedCard: {
-    borderColor: "#2B2C51",
+    borderColor: "#2563EB",
     borderWidth: 1.5,
   },
   mainWord: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "800",
-    color: "#2B2C51",
+    color: "#0F172A",
     fontFamily: "NotoSansMalayalam",
     textAlign: "center",
   },
   phonetic: {
-    fontSize: 16,
-    color: "#7C736B",
-    marginTop: 6,
+    fontSize: 15,
+    color: "#64748B",
+    marginTop: 4,
     fontFamily: "Roboto",
+  },
+  heroActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginTop: 14,
   },
   section: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 16,
+    padding: 18,
     borderWidth: 1,
-    borderColor: "#F0ECE6",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    borderColor: "#E2E8F0",
+    marginBottom: 14,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 5,
     elevation: 2,
-    borderLeftColor: "#43AC98",
-    borderLeftWidth: 4,
+    borderLeftColor: "#2563EB",
+    borderLeftWidth: 3.5,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
   },
   highlightedSection: {
-    borderColor: "#2B2C51",
+    borderColor: "#2563EB",
     borderLeftWidth: 4,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "800",
-    color: "#2B2C51",
+    color: "#0F172A",
     fontFamily: "NotoSansMalayalam",
-    marginBottom: 14,
-    borderBottomWidth: 2,
-    borderBottomColor: "#F4EEE7",
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
     paddingBottom: 6,
   },
   meaningItem: {
@@ -766,7 +881,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   meaningText: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#333333",
     lineHeight: 22,
     fontFamily: "NotoSansMalayalam",

@@ -1,377 +1,534 @@
 /**
  * @file index.tsx
- * @description Application route screen component for index.
+ * @description Modern, fully responsive Home Dashboard for Bhashamithram II.
+ * Adaptive to all screen sizes: Small phones, Standard/Large phones, Tablets, Laptops, and Desktops.
+ * Features:
+ *  - Fresh light pastel theme with organic wave accents & floating Malayalam characters
+ *  - Sleek top navigation bar with Menu button, C-DIT official logo, and Settings button
+ *  - Prominent Bhashamithram II circular emblem & bilingual typography lockup
+ *  - 5 standalone modern floating card navigation items with custom pastel badges and chevrons
+ *  - Official C-DIT institutional attribution footer
+ *  - Fluid responsive container based on device viewport
  */
 
-import SideMenu from "../components/side-menu";
-import AnimatedCard from "../components/AnimatedCard";
-import FloatingLettersBackground from "../components/FloatingLettersBackground";
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Animated,
   Platform,
-  StatusBar,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
-import type { ImageSourcePropType } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+
+import SideMenu from "../components/side-menu";
+import FloatingLettersBackground from "../components/FloatingLettersBackground";
+import BottomTabBar from "../components/BottomTabBar";
+import { useResponsive } from "../utils/responsive";
 
 interface MenuItem {
   id: string;
   title: string;
-  subtitle: string;
-  badgeImage?: ImageSourcePropType;
-  badgeIcon?: keyof typeof Ionicons.glyphMap;
-  color: string;
-  bgColor: string;
+  iconType: "search" | "text_A" | "book" | "pricetag" | "time";
+  iconColor: string;
+  badgeBg: string;
   onPress: () => void;
 }
 
-/**
- * HomeScreen aggregates primary navigation paths, quick-access dictionary cards,
- * recent lookup histories, and drawer elements.
- * 
- * @returns {React.JSX.Element} Main dashboard screen layout.
- */
 export default function HomeScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const router = useRouter();
-  const [scrollY] = useState(() => new Animated.Value(0));
+
+  const {
+    isSmallPhone,
+    isTallPhone,
+    isTablet,
+    isDesktop,
+    containerMaxWidth,
+    containerPadding,
+    homeEmblemSize,
+    homeTitleFontSize,
+    homeSubtitleFontSize,
+    homeTaglineFontSize,
+    homeCardHeight,
+    homeCardMargin,
+    homeCardPaddingH,
+    homeItemTitleFontSize,
+    homeBadgeSize,
+    homeIconSize,
+    homeChevronSize,
+  } = useResponsive();
 
   const menuItems: MenuItem[] = [
     {
-      id: "3",
-      title: "ഇംഗ്ലീഷ് - മലയാളം നിഘണ്ടു",
-      subtitle: "നിഘണ്ടു",
-      badgeImage: require("../../assets/Icons/ME.gif"),
-      color: "#2B2C51",
-      bgColor: "#F5F3FF",
+      id: "1",
+      title: "ഇംഗ്ലീഷ് - മലയാളം പദസേതു",
+      iconType: "search",
+      iconColor: "#059669",
+      badgeBg: "#D1FAE5",
       onPress: () => router.push("./english_malayalam"),
     },
-
     {
       id: "2",
-      title: "മലയാളം - ഇംഗ്ലീഷ് നിഘണ്ടു",
-      subtitle: "നിഘണ്ടു",
-      badgeImage: require("../../assets/Icons/ME.gif"),
-      color: "#2B2C51",
-      bgColor: "#F5F3FF",
+      title: "മലയാളം - ഇംഗ്ലീഷ് ഭാഷാസേതു",
+      iconType: "text_A",
+      iconColor: "#2563EB",
+      badgeBg: "#DBEAFE",
       onPress: () => router.push("./malayalam_english"),
     },
-
     {
-      id: "4",
-      title: "മലയാളം നാനാർത്ഥ നിഘണ്ടു",
-      subtitle: "നിഘണ്ടു",
-      badgeImage: require("../../assets/Icons/MT.gif"),
-      color: "#2B2C51",
-      bgColor: "#FDF2F8",
+      id: "3",
+      title: "മലയാളം നാനാർത്ഥ വാക്കറിവ്",
+      iconType: "book",
+      iconColor: "#0D9488",
+      badgeBg: "#CCFBF1",
       onPress: () => router.push("./malayalam_synonym"),
     },
-
     {
-      id: "1",
-      title: "മലയാളം - മലയാളം നിഘണ്ടു",
-      subtitle: "നിഘണ്ടു",
-      badgeImage: require("../../assets/Icons/MM.gif"),
-      color: "#2B2C51",
-      bgColor: "#F5F3FF",
+      id: "4",
+      title: "മലയാളം - മലയാളം പദമിത്രം",
+      iconType: "pricetag",
+      iconColor: "#0284C7",
+      badgeBg: "#E0F2FE",
       onPress: () => router.push("./malayalam-malayalam"),
     },
-
     {
       id: "5",
       title: "സമീപകാല തിരയലുകൾ",
-      subtitle: "തിരച്ചിലുകൾ",
-      badgeImage: require("../../assets/Icons/savishesha_thirayal.gif"),
-      color: "#2B2C51",
-      bgColor: "#F3F4F6",
+      iconType: "time",
+      iconColor: "#7C3AED",
+      badgeBg: "#EDE9FE",
       onPress: () => router.push("./savishesha_thirayal"),
     },
   ];
 
-  const colors = {
-    headerBg: "#2B2C51",
-    containerBg: "#F9F6F1",
-    cardText: "#1F2937",
-    subtitleText: "#6B7280",
-  };
-
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.headerBg }]}
-      edges={["top", "left", "right"]}
-    >
-      <StatusBar backgroundColor={colors.headerBg} barStyle="light-content" />
+    <SafeAreaView style={styles.safeContainer} edges={["top", "bottom", "left", "right"]}>
+      <StatusBar style="dark" />
 
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.headerBg }]}>
-        <TouchableOpacity
-          onPress={() => setDrawerVisible(true)}
-          style={styles.headerButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="menu" size={26} color="#FFFFFF" />
-        </TouchableOpacity>
+      {/* Floating Animated Malayalam letters & soft organic waves */}
+      <FloatingLettersBackground />
 
-        <View style={styles.headerCenter}>
-          <Image
-            source={require("../../assets/images/cdit_logo.png")} // <-- replace with your logo
-            style={styles.headerLogo}
-            contentFit="contain"
-          />
+      <View style={styles.mainWrapper}>
+        {/* ===================== TOP NAVIGATION BAR ===================== */}
+        <View style={[styles.navBar, { maxWidth: containerMaxWidth as any }]}>
+          <TouchableOpacity
+            onPress={() => setDrawerVisible(true)}
+            style={styles.navIconButton}
+            activeOpacity={0.7}
+            accessibilityLabel="Open side menu"
+          >
+            <Ionicons name="menu" size={24} color="#0F172A" />
+          </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>ഭാഷാമിത്രം II</Text>
+          {/* Official C-DIT Logo in Navigation Bar */}
+          <View style={styles.navCenterContainer}>
+            <Image
+              source={require("../../assets/images/cdit_logo.png")}
+              style={[
+                styles.navCditLogo,
+                { width: isSmallPhone ? 76 : isTablet ? 105 : 90 },
+              ]}
+              contentFit="contain"
+            />
+          </View>
 
-          <Text style={styles.headerSubtitle}>
-            Centre for Development of Imaging Technology {"\n"}(C-DIT)
-          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("./settings")}
+            style={styles.navIconButton}
+            activeOpacity={0.7}
+            accessibilityLabel="Settings"
+          >
+            <Ionicons name="settings-outline" size={22} color="#0F172A" />
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          onPress={() => router.push("./settings")}
-          style={styles.headerButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Scrollable content area with floating background */}
-      <View style={{ flex: 1, backgroundColor: colors.containerBg }}>
-        {/* Floating Malayalam letters background layer */}
-        <FloatingLettersBackground />
-
-        <Animated.ScrollView
+        <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          scrollEventThrottle={16}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
-          )}
+          bounces={false}
+          scrollEnabled={isSmallPhone}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              flexGrow: 1,
+              justifyContent: "space-between",
+              maxWidth: containerMaxWidth as any,
+              paddingHorizontal: containerPadding,
+            },
+          ]}
         >
-          {/* Menu Items */}
-          {menuItems.map((item, index) => (
-            <AnimatedCard key={item.id} index={index} scrollY={scrollY}>
-              <View style={styles.card}>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={item.onPress}
-                  style={styles.cardTouchTarget}
-                >
-                  {/* Badge Indicator */}
-                  <View
-                    style={[
-                      styles.badgeContainer,
-                      { borderColor: item.color + "30", backgroundColor: item.bgColor },
-                    ]}
-                  >
-                    {item.badgeImage ? (
-                      <Image
-                        source={item.badgeImage}
-                        style={styles.badgeImage}
-                        contentFit="contain"
-                        transition={150}
-                      />
-                    ) : (
-                      <Ionicons
-                        name={item.badgeIcon as any}
-                        size={26}
-                        color={item.color}
-                      />
-                    )}
-                  </View>
+          {/* ===================== BRAND HERO HEADER ===================== */}
+          <View style={styles.brandHeroCard}>
+            {/* Left Circular Emblem */}
+            <View
+              style={[
+                styles.emblemContainer,
+                {
+                  width: homeEmblemSize,
+                  height: homeEmblemSize,
+                  borderRadius: homeEmblemSize / 2,
+                },
+              ]}
+            >
+              <Image
+                source={require("../../assets/images/logo.png")}
+                style={styles.emblemImage}
+                contentFit="contain"
+                transition={200}
+              />
+            </View>
 
-                  {/* Label and Info */}
-                  <View style={styles.textContainer}>
-                    <Text style={[styles.cardTitle, { color: colors.cardText }]}>
-                      {item.title}
-                    </Text>
-                  </View>
+            {/* Right Brand Typography */}
+            <View style={styles.brandInfoCol}>
+              <Text
+                style={[
+                  styles.brandTitle,
+                  { fontSize: homeTitleFontSize },
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
+                ഭാഷാമിത്രം-II
+              </Text>
 
-                  {/* Right Action Chevron */}
-                  <View
-                    style={[
-                      styles.chevronContainer,
-                      { backgroundColor: item.bgColor },
-                    ]}
-                  >
-                    <Ionicons
-                      name="chevron-forward"
-                      size={16}
-                      color={item.color}
-                    />
-                  </View>
-                </TouchableOpacity>
+              {/* Decorative Leaf Line Divider */}
+              <View style={styles.leafDividerRow}>
+                <View style={styles.leafLine} />
+                <Text style={styles.leafEmoji}>🍃</Text>
+                <View style={styles.leafLine} />
               </View>
-            </AnimatedCard>
-          ))}
-        </Animated.ScrollView>
+
+              <Text
+                style={[
+                  styles.brandSubtitle,
+                  { fontSize: homeSubtitleFontSize },
+                ]}
+                numberOfLines={2}
+              >
+                MALAYALAM ENGLISH{"\n"}BILINGUAL DICTIONARY
+              </Text>
+
+              <View style={styles.taglineWrap}>
+                <Text
+                  style={[
+                    styles.brandTagline,
+                    { fontSize: homeTaglineFontSize },
+                  ]}
+                >
+                  Words Build Bridges
+                </Text>
+                <View style={styles.taglineUnderline} />
+              </View>
+            </View>
+          </View>
+
+          {/* ===================== 5 STANDALONE MENU CARDS ===================== */}
+          <View style={styles.menuList}>
+            {menuItems.map((item, index) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[
+                  styles.menuItemCard,
+                  {
+                    height: homeCardHeight,
+                    marginBottom: index === menuItems.length - 1 ? 0 : homeCardMargin,
+                    paddingHorizontal: homeCardPaddingH,
+                  },
+                ]}
+                activeOpacity={0.8}
+                onPress={item.onPress}
+              >
+                {/* Left Colored Circular Badge */}
+                <View
+                  style={[
+                    styles.menuBadge,
+                    {
+                      width: homeBadgeSize,
+                      height: homeBadgeSize,
+                      borderRadius: homeBadgeSize / 2,
+                      backgroundColor: item.badgeBg,
+                    },
+                  ]}
+                >
+                  {item.iconType === "text_A" ? (
+                    <Text
+                      style={[
+                        styles.badgeLetterA,
+                        {
+                          color: item.iconColor,
+                          fontSize: Math.round(homeIconSize * 1.15),
+                        },
+                      ]}
+                    >
+                      A
+                    </Text>
+                  ) : (
+                    <Ionicons
+                      name={
+                        item.iconType === "search"
+                          ? "search"
+                          : item.iconType === "book"
+                          ? "book-outline"
+                          : item.iconType === "pricetag"
+                          ? "pricetag-outline"
+                          : "time-outline"
+                      }
+                      size={homeIconSize}
+                      color={item.iconColor}
+                    />
+                  )}
+                </View>
+
+                {/* Malayalam Dictionary Title */}
+                <Text
+                  style={[
+                    styles.menuItemTitle,
+                    { fontSize: homeItemTitleFontSize },
+                  ]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.82}
+                >
+                  {item.title}
+                </Text>
+
+                {/* Right Action Chevron Pill */}
+                <View
+                  style={[
+                    styles.chevronPill,
+                    {
+                      width: homeChevronSize,
+                      height: homeChevronSize,
+                      borderRadius: homeChevronSize / 2,
+                    },
+                  ]}
+                >
+                  <Ionicons name="chevron-forward" size={isTablet ? 18 : 16} color="#64748B" />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
       </View>
 
-
-
+      {/* Slide-out Navigation Drawer */}
       <SideMenu
         visible={drawerVisible}
         onClose={() => setDrawerVisible(false)}
       />
+
+      {/* ===================== BOTTOM NAVIGATION TAB BAR ===================== */}
+      <BottomTabBar activeTab="dictionary" />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeContainer: {
     flex: 1,
+    backgroundColor: "transparent",
   },
-  /*header: {
-    height: Platform.OS === "android" ? 65 : 75,
+  mainWrapper: {
+    flex: 1,
+    position: "relative",
+  },
+  navBar: {
+    width: "100%",
+    alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-  },*/
-  header: {
-    height: Platform.OS === "android" ? 155 : 170,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingTop: Platform.OS === "android" ? 6 : 4,
+    paddingBottom: 8,
+    zIndex: 10,
   },
-
-  headerButton: {
-    width: 40,
-    height: 40,
+  navIconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  headerTitle: {
-    textAlign: "center",
-    color: "#13bca9ff",
-    fontSize: 30,
-    fontWeight: "800",
-    fontFamily: "NotoSansMalayalam",
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 32,
-  },
-  card: {
-    height: 125,
-    marginTop: 8,
-    borderRadius: 16,
-    marginBottom: 16,
     borderWidth: 1,
+    borderColor: "rgba(226, 232, 240, 0.9)",
     ...Platform.select({
-      android: {
-        // elevation bleeds through transparent backgrounds on Android — use border instead
-        backgroundColor: "rgba(255, 255, 255, 0.30)",
-        borderColor: "rgba(43, 44, 81, 0.18)",
-        elevation: 0,
-      },
       ios: {
-        backgroundColor: "rgba(255, 255, 255, 0.30)",
-        borderColor: "rgba(255, 255, 255, 0.5)",
-        shadowColor: "#000000",
+        shadowColor: "#0F172A",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.10,
+        shadowOpacity: 0.06,
         shadowRadius: 6,
       },
-      web: {
-        backgroundColor: "rgba(255, 255, 255, 0.30)",
-        borderColor: "rgba(255, 255, 255, 0.5)",
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.06)",
+      android: {
+        elevation: 2,
       },
       default: {
-        backgroundColor: "rgba(255, 255, 255, 0.30)",
-        borderColor: "rgba(255, 255, 255, 0.5)",
-        shadowColor: "#000000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.10,
-        shadowRadius: 6,
+        boxShadow: "0 2px 8px rgba(15, 23, 42, 0.06)",
       },
     }),
   },
-  cardTouchTarget: {
+  navCenterContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+  navCditLogo: {
+    height: 32,
+    width: 86,
+  },
+  scrollContent: {
+    width: "100%",
+    alignSelf: "center",
+    paddingTop: 4,
+    paddingBottom: 6,
+  },
+  brandHeroCard: {
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    height: "100%",
-    width: "100%",
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    marginBottom: 4,
   },
-  badgeContainer: {
-    width: 58,
-    height: 58,
-    borderRadius: 16,
+  emblemContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
     borderWidth: 1.5,
+    borderColor: "rgba(167, 243, 208, 0.7)",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#059669",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 4,
+      },
+      default: {
+        boxShadow: "0 4px 14px rgba(5, 150, 105, 0.12)",
+      },
+    }),
+  },
+  emblemImage: {
+    width: "100%",
+    height: "100%",
+  },
+  brandInfoCol: {
+    flex: 1,
+    marginLeft: 14,
+    justifyContent: "center",
+  },
+  brandTitle: {
+    fontFamily: "NotoSansMalayalam",
+    fontWeight: "800",
+    color: "#03506B",
+    letterSpacing: -0.3,
+    marginBottom: 2,
+  },
+  leafDividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 3,
+    width: "90%",
+  },
+  leafLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: "rgba(52, 211, 153, 0.55)",
+    borderRadius: 1,
+  },
+  leafEmoji: {
+    fontSize: 11,
+    marginHorizontal: 4,
+  },
+  brandSubtitle: {
+    fontWeight: "800",
+    color: "#059669",
+    letterSpacing: 0.5,
+    lineHeight: 13,
+    marginBottom: 3,
+  },
+  taglineWrap: {
+    alignSelf: "flex-start",
+    marginTop: 1,
+  },
+  brandTagline: {
+    fontStyle: "italic",
+    fontWeight: "600",
+    color: "#1E40AF",
+    letterSpacing: 0.2,
+  },
+  taglineUnderline: {
+    position: "absolute",
+    bottom: -2,
+    left: 0,
+    right: 0,
+    height: 1.5,
+    backgroundColor: "rgba(30, 64, 175, 0.35)",
+    borderRadius: 1,
+  },
+  menuList: {
+    width: "100%",
+    flex: 1,
+    justifyContent: "center",
+    marginVertical: 4,
+  },
+  menuItemCard: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(226, 232, 240, 0.95)",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#0F172A",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2.5,
+      },
+      default: {
+        boxShadow: "0 3px 12px rgba(15, 23, 42, 0.06)",
+      },
+    }),
+  },
+  menuBadge: {
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
-    overflow: "hidden",
   },
-  badgeImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+  badgeLetterA: {
+    fontWeight: "900",
+    fontFamily: Platform.OS === "ios" ? "System" : "sans-serif-black",
   },
-  textContainer: {
+  menuItemTitle: {
     flex: 1,
-    justifyContent: "center",
-  },
-  cardTitle: {
-    fontSize: 16,
+    fontFamily: "NotoSansMalayalam",
     fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
-    marginBottom: 2,
+    color: "#0F172A",
+    letterSpacing: -0.2,
+    marginRight: 8,
   },
-  /*cardSubtitle: {
-    fontSize: 13,
-    fontWeight: "500",
-    fontFamily: "NotoSansMalayalam",
-  },*/
-  chevronContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  chevronPill: {
+    backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 12,
-  },
-
-  /*headerLogo: {
-    width: 40,
-    height: 40,
-    marginBottom: 4,
-  },*/
-
-  headerLogo: {
-    width: 52,
-    height: 52,
-    marginBottom: 6,
-  },
-
-  headerSubtitle: {
-    color: "rgba(255,255,255,0.92)",
-    fontSize: 16,
-    textAlign: "center",
-    lineHeight: 22,
-    paddingHorizontal: 10,
-    fontWeight: "500",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginLeft: 10,
   },
 });
-

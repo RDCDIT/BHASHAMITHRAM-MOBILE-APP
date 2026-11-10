@@ -1,0 +1,35 @@
+diff --git a/node_modules/expo-file-system/android/src/main/java/expo/modules/filesystem/FileSystemFile.kt b/node_modules/expo-file-system/android/src/main/java/expo/modules/filesystem/FileSystemFile.kt
+index 815f3b5..377ba3a 100644
+--- a/node_modules/expo-file-system/android/src/main/java/expo/modules/filesystem/FileSystemFile.kt
++++ b/node_modules/expo-file-system/android/src/main/java/expo/modules/filesystem/FileSystemFile.kt
+@@ -160,7 +160,7 @@ class FileSystemFile(uri: Uri) : FileSystemPath(uri) {
+     val bufferSize = 65536
+ 
+     validatePermission(FilePermissionService.Permission.READ)
+-    val md = MessageDigest.getInstance("MD5")
++    val md = MessageDigest.getInstance("SHA-256")
+     file.inputStream().use { stream ->
+       val buffer = ByteArray(bufferSize)
+       var bytesRead: Int
+diff --git a/node_modules/expo-file-system/android/src/main/java/expo/modules/filesystem/legacy/FileSystemLegacyModule.kt b/node_modules/expo-file-system/android/src/main/java/expo/modules/filesystem/legacy/FileSystemLegacyModule.kt
+index 4626dac..1d7576c 100644
+--- a/node_modules/expo-file-system/android/src/main/java/expo/modules/filesystem/legacy/FileSystemLegacyModule.kt
++++ b/node_modules/expo-file-system/android/src/main/java/expo/modules/filesystem/legacy/FileSystemLegacyModule.kt
+@@ -163,7 +163,7 @@ open class FileSystemLegacyModule : Module() {
+             //       more reliable than querying `OpenableColumns.SIZE` in practice in tests ¯\_(ツ)_/¯
+             putDouble("size", inputStream.available().toDouble())
+             if (options.md5 == true) {
+-              val md5bytes = DigestUtils.md5(inputStream)
++              val md5bytes = DigestUtils.sha256(inputStream)
+               putString("md5", String(Hex.encodeHex(md5bytes)))
+             }
+           }
+@@ -1006,7 +1006,7 @@ open class FileSystemLegacyModule : Module() {
+   private fun md5(file: File): String {
+     val inputStream: InputStream = FileInputStream(file)
+     return inputStream.use {
+-      val md5bytes = DigestUtils.md5(it)
++      val md5bytes = DigestUtils.sha256(it)
+       String(Hex.encodeHex(md5bytes))
+     }
+   }

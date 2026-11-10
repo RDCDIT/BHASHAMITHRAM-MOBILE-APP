@@ -5,7 +5,12 @@
 
 const path = require('path');
 const fs = require('fs');
-const sqlite3 = require('sqlite3').verbose();
+let sqlite3 = null;
+try {
+  sqlite3 = require('sqlite3').verbose();
+} catch (e) {
+  console.warn('⚠️ [SQLite] Native sqlite3 module not loaded:', e.message);
+}
 
 // Resolve local SQLite database file path
 const DB_PATHS = [
@@ -18,6 +23,7 @@ let sqliteDb = null;
 
 function initSqlite() {
   if (sqliteDb) return sqliteDb;
+  if (!sqlite3) return null;
 
   for (const dbPath of DB_PATHS) {
     if (fs.existsSync(dbPath)) {

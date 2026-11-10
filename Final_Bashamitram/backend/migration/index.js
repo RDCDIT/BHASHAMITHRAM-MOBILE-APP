@@ -1,7 +1,12 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const path = require('path');
 const fs = require('fs');
-const sqlite3 = require('sqlite3').verbose();
+let sqlite3 = null;
+try {
+  sqlite3 = require('sqlite3').verbose();
+} catch (e) {
+  console.warn('⚠️ [Migration] sqlite3 module not loaded:', e.message);
+}
 const connectDB = require('../config/db');
 const MigrationReporter = require('./reporter');
 

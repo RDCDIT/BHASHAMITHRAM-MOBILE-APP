@@ -29,6 +29,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
     ex.autolinkLibrariesFromCommand(expoAutolinking.rnConfigCommand)
   }
 }
+expoAutolinking.exclude = ["@expo/dom-webview", "@expo/log-box"]
 expoAutolinking.useExpoModules()
 
 rootProject.name = 'BHASHAMITHRAM_APP'

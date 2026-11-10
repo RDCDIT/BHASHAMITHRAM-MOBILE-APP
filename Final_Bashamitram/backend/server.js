@@ -1,21 +1,77 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
-const connectDB = require('./config/db');
+const { connectMySQL } = require('./config/mysql');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
+
+// Prevent server crash on unhandled async rejections or exceptions
+process.on('uncaughtException', (err) => {
+  console.error('🚨 [Server Error Handled - Uncaught Exception]:', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('🚨 [Server Error Handled - Unhandled Rejection]:', reason);
+});
+
+// Security & Rate Limiting Middleware
+const suggestionRateLimits = new Map();
+const suggestionRateLimiter = (req, res, next) => {
+  if (req.method === 'POST' && (req.originalUrl.includes('/api/words/suggest') || req.originalUrl.includes('/api/words/dataview') || req.originalUrl.includes('/api/suggest-word'))) {
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const windowMs = 15 * 60 * 1000; // 15 minutes window
+    const maxRequests = 25; // max 25 suggestions per 15 minutes per IP
+
+    const record = suggestionRateLimits.get(clientIp) || { count: 0, resetTime: now + windowMs };
+    if (now > record.resetTime) {
+      record.count = 1;
+      record.resetTime = now + windowMs;
+    } else {
+      record.count++;
+    }
+    suggestionRateLimits.set(clientIp, record);
+
+    if (record.count > maxRequests) {
+      console.warn(`🚨 [Security Alert] IP ${clientIp} exceeded suggestion submission rate limit.`);
+      return res.status(429).json({
+        error: "Too many suggestions submitted. Please wait 15 minutes before trying again."
+      });
+    }
+  }
+  next();
+};
 
 // Middleware
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-signature', 'x-timestamp'],
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(suggestionRateLimiter);
 app.use('/public', express.static(path.join(__dirname, 'public')));
+
+// Root health-check endpoint for Cloudflare / Render load balancers
+app.get(['/', '/health'], (req, res) => {
+  res.status(200).json({
+    status: 'online',
+    app: 'Bhashamithram II API',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Public Privacy Policy Endpoint for Google Play Store / App Store compliance
+app.get(['/privacy', '/privacy-policy'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
+});
+
+// Suggested Words Administration Web Portal
+app.get(['/suggestions', '/admin/suggestions', '/suggestions.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'suggestions.html'));
+});
 
 // Request logger middleware
 app.use((req, res, next) => {
@@ -36,6 +92,11 @@ const suggestedWordRoute = require('./routes/adminRoutes/suggestedWordRoute');
 const migrationRoute = require('./routes/adminRoutes/migrationRoute');
 const pronunciationRoutes = require('./routes/pronunciationRoutes');
 const dictionaryAdminRoute = require('./routes/adminRoutes/dictionaryAdminRoute');
+const { suggestWord, getSuggestions } = require('./controllers/suggest_word');
+
+// Direct endpoints for Mobile App Word Suggestion & Web Management
+app.post(['/api/suggest-word', '/api/words/suggest'], suggestWord);
+app.get(['/api/suggest-word', '/api/words/suggestions'], getSuggestions);
 
 // Mount routes
 app.use('/api/words', wordRoutes);
@@ -63,31 +124,26 @@ app.use((err, req, res, next) => {
 
 
 // ------------------------------------------------------------
-// 1. DATABASE CONNECTIVITY LOGS
+// 1. DATABASE CONNECTIVITY (MySQL Primary Engine + Local SQLite Fallback)
 // ------------------------------------------------------------
 const { initSqlite } = require('./config/dbService');
 
 // Initialize local SQLite fallback database
 initSqlite();
 
-connectDB()
-  .then(() => {
-    console.log('✅ [Database] MongoDB Atlas connection established successfully.');
+// Connect to MySQL database
+connectMySQL()
+  .then((connected) => {
+    if (connected) {
+      console.log('✅ [Database] MySQL connection established successfully.');
+    } else {
+      console.warn('💡 [Database] Running in Resilient Local SQLite Fallback Mode.');
+    }
   })
   .catch((err) => {
-    console.warn('⚠️ [Database] Could not connect to MongoDB Atlas cluster.');
-    console.warn(`Reason: ${err.message}`);
-    console.warn('💡 [Database] Running in Local SQLite Fallback Mode.');
+    console.warn('⚠️ [Database] MySQL connection error:', err.message);
+    console.warn('💡 [Database] Running in Resilient Local SQLite Fallback Mode.');
   });
-
-// Monitor running connection states dynamically
-mongoose.connection.on('disconnected', () => {
-  console.log('⚠️ [Database] Connection dropped. Attempting automated reconnection...');
-});
-
-mongoose.connection.on('error', (err) => {
-  console.error(`🚨 [Database] Runtime exception encountered: ${err.message}`);
-});
 
 // ------------------------------------------------------------
 // 2. SERVER PORT BOUNDARY LOGS

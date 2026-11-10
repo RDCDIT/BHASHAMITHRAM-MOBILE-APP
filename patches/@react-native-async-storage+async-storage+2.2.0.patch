@@ -1,0 +1,13 @@
+diff --git a/node_modules/@react-native-async-storage/async-storage/android/src/main/java/com/reactnativecommunity/asyncstorage/AsyncLocalStorageUtil.java b/node_modules/@react-native-async-storage/async-storage/android/src/main/java/com/reactnativecommunity/asyncstorage/AsyncLocalStorageUtil.java
+index 689901f..ccc8976 100644
+--- a/node_modules/@react-native-async-storage/async-storage/android/src/main/java/com/reactnativecommunity/asyncstorage/AsyncLocalStorageUtil.java
++++ b/node_modules/@react-native-async-storage/async-storage/android/src/main/java/com/reactnativecommunity/asyncstorage/AsyncLocalStorageUtil.java
+@@ -168,7 +168,7 @@ public class AsyncLocalStorageUtil {
+ 
+     try {
+       ReactDatabaseSupplier supplier = ReactDatabaseSupplier.getInstance(ctx);
+-      supplier.get().rawQuery("PRAGMA wal_checkpoint", null).close();
++      supplier.get().execSQL("PRAGMA wal_checkpoint");
+       supplier.closeDatabase();
+       Log.i("AsyncStorage_Next", "Forcing SQLite checkpoint successful.");
+     } catch (Exception e) {

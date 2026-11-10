@@ -1,0 +1,2207 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ഭാഷാമിത്രം II - പദ നിർദ്ദേശ മാനേജ്‌മെന്റ് പോർട്ടൽ (Word Suggestions Portal)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Malayalam:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2B2C51;
+      --primary-light: #3B3D6B;
+      --primary-dark: #1E1F3D;
+      --accent: #2563EB;
+      --accent-hover: #1D4ED8;
+      --bg: #F4F6F9;
+      --card-bg: #FFFFFF;
+      --text-main: #1F2937;
+      --text-muted: #6B7280;
+      --border: #E5E7EB;
+      --success: #10B981;
+      --success-bg: #ECFDF5;
+      --warning: #F59E0B;
+      --warning-bg: #FEF3C7;
+      --danger: #EF4444;
+      --danger-bg: #FEE2E2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', 'Noto Sans Malayalam', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #1E1F3D 0%, #2B2C51 100%);
+      color: #FFFFFF;
+      padding: 18px 28px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-container {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo-badge {
+      background: #F59E0B;
+      color: #1E1F3D;
+      font-weight: 800;
+      font-size: 1.4rem;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.82rem;
+      color: #D1D5DB;
+      font-weight: 400;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.12);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: #E0E7FF;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #10B981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10B981;
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 98%;
+      width: 98%;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.06);
+    }
+
+    .stat-info h4 {
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-info .stat-number {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    .icon-all { background: #EEF2FF; color: #4F46E5; }
+    .icon-pending { background: #FEF3C7; color: #D97706; }
+    .icon-approved { background: #ECFDF5; color: #059669; }
+    .icon-rejected { background: #FEE2E2; color: #DC2626; }
+
+    /* Controls Bar */
+    .controls-bar {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 16px 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 260px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 10px 16px 10px 40px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    .filter-tabs {
+      display: flex;
+      background: var(--bg);
+      padding: 4px;
+      border-radius: 10px;
+      gap: 4px;
+    }
+
+    .filter-tab {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .filter-tab.active {
+      background: var(--card-bg);
+      color: var(--primary);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #FFFFFF;
+    }
+    .btn-primary:hover {
+      background: var(--primary-light);
+    }
+
+    .btn-outline {
+      background: #FFFFFF;
+      color: var(--text-main);
+      border: 1.5px solid var(--border);
+    }
+    .btn-outline:hover {
+      background: var(--bg);
+    }
+
+    /* Table Container */
+    .table-container {
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    thead {
+      background: #F8FAFC;
+      border-bottom: 2px solid var(--border);
+    }
+
+    th {
+      padding: 14px 18px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover {
+      background: #F9FAFB;
+    }
+
+    td {
+      padding: 16px 18px;
+      font-size: 0.92rem;
+      vertical-align: middle;
+    }
+
+    .word-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .word-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .word-lang-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #EFF6FF;
+      color: #2563EB;
+      padding: 2px 8px;
+      border-radius: 6px;
+      width: fit-content;
+      text-transform: capitalize;
+    }
+
+    .meaning-text {
+      max-width: 320px;
+      color: #374151;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .contributor-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .contributor-name {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .contributor-email {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-pending {
+      background: var(--warning-bg);
+      color: #B45309;
+    }
+
+    .badge-approved {
+      background: var(--success-bg);
+      color: #047857;
+    }
+
+    .badge-rejected {
+      background: var(--danger-bg);
+      color: #B91C1C;
+    }
+
+    .action-buttons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-btn {
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+
+    .action-edit {
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border-color: #BFDBFE;
+    }
+    .action-edit:hover {
+      background: #DBEAFE;
+    }
+
+    .action-approve {
+      background: #ECFDF5;
+      color: #047857;
+      border-color: #A7F3D0;
+    }
+    .action-approve:hover {
+      background: #D1FAE5;
+    }
+
+    .action-reject {
+      background: #FFFBEB;
+      color: #B45309;
+      border-color: #FDE68A;
+    }
+    .action-reject:hover {
+      background: #FEF3C7;
+    }
+
+    .action-delete {
+      background: #FEF2F2;
+      color: #B91C1C;
+      border-color: #FECACA;
+    }
+    .action-delete:hover {
+      background: #FEE2E2;
+    }
+
+    .action-merge {
+      background: #F3E8FF;
+      color: #6B21A8;
+      border-color: #D8B4FE;
+    }
+    .action-merge:hover {
+      background: #E9D5FF;
+    }
+
+    .action-compare {
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border-color: #BFDBFE;
+    }
+    .action-compare:hover {
+      background: #DBEAFE;
+    }
+
+    /* DB Status Indicators & Comparison */
+    .db-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      margin-top: 4px;
+      width: fit-content;
+    }
+    .db-tag-exists {
+      background: #FEF3C7;
+      color: #92400E;
+      border: 1px solid #FCD34D;
+    }
+    .db-tag-new {
+      background: #ECFDF5;
+      color: #065F46;
+      border: 1px solid #A7F3D0;
+    }
+
+    .diff-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+    .diff-badge-new {
+      background: #EEF2FF;
+      color: #4338CA;
+      border: 1px solid #C7D2FE;
+    }
+    .diff-badge-same {
+      background: #F3F4F6;
+      color: #4B5563;
+      border: 1px solid #E5E7EB;
+    }
+
+    .db-compare-cell {
+      max-width: 280px;
+      font-size: 0.8rem;
+      color: #374151;
+      background: #F8FAFC;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid #E2E8F0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* Dictionary Type Badges */
+    .dtype-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 5px;
+      white-space: nowrap;
+    }
+    .dtype-mm { background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
+    .dtype-me { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+    .dtype-em { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+    .dtype-thesaurus { background: #F3E8FF; color: #6B21A8; border: 1px solid #E9D5FF; }
+
+    /* Interactive Dictionary Type Checkbox Card */
+    .dtype-selector-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .dtype-select-card {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      background: #FFFFFF;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .dtype-select-card:hover {
+      border-color: var(--accent);
+      background: #F8FAFC;
+    }
+    .dtype-select-card.active {
+      border-color: #2563EB;
+      background: #EFF6FF;
+      box-shadow: 0 0 0 1px #2563EB;
+    }
+    .dtype-select-card input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      accent-color: #2563EB;
+      cursor: pointer;
+      margin: 0;
+    }
+    .dtype-card-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .dtype-card-title {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .dtype-card-subtitle {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+    .dtype-card-status {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .dtype-card-status.enrolled {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+    .dtype-card-status.not-enrolled {
+      background: #F3F4F6;
+      color: #6B7280;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+
+    .empty-state h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+
+    .empty-state p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /* Modal Styles */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(18, 18, 38, 0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      padding: 16px;
+    }
+
+    .modal-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: #FFFFFF;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 680px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+      overflow: hidden;
+      transform: scale(0.95);
+      transition: transform 0.25s ease;
+    }
+
+    .modal-backdrop.active .modal-card {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      background: #F8FAFC;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.4rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      background: #F8FAFC;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      background: #1F2937;
+      color: #FFFFFF;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast-success { background: #065F46; }
+    .toast-error { background: #991B1B; }
+    .toast-warning { background: #92400E; }
+
+    /* Navigation Notification Icon & Dropdown for Workflow Guide */
+    .nav-notification-wrapper {
+      position: relative;
+    }
+
+    .nav-notification-btn {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1.5px solid rgba(255, 255, 255, 0.22);
+      border-radius: 12px;
+      width: 40px;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      color: #FFFFFF;
+      font-size: 1.22rem;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    .nav-notification-btn:hover,
+    .nav-notification-btn.active {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.5);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #EF4444;
+      color: #FFFFFF;
+      font-size: 0.68rem;
+      font-weight: 800;
+      border-radius: 20px;
+      padding: 0 5px;
+      min-width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #1E1F3D;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      animation: pulseBadge 2.5s infinite;
+    }
+
+    @keyframes pulseBadge {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+    }
+
+    .notification-dropdown {
+      position: absolute;
+      top: calc(100% + 12px);
+      right: 0;
+      width: 420px;
+      max-width: calc(100vw - 28px);
+      background: #FFFFFF;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(0,0,0,0.04);
+      z-index: 1100;
+      overflow: hidden;
+      transform: translateY(-10px) scale(0.96);
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .notification-dropdown.active {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+    }
+
+    .dropdown-header {
+      padding: 14px 18px;
+      background: #F8FAFC;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dropdown-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .dropdown-title .msg-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 6px #10B981;
+    }
+
+    .dropdown-close-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.35rem;
+      line-height: 1;
+      color: #9CA3AF;
+      cursor: pointer;
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .dropdown-close-btn:hover {
+      background: #E5E7EB;
+      color: #1F2937;
+    }
+
+    .dropdown-body {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    .dropdown-footer {
+      padding: 10px 16px;
+      background: #F8FAFC;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 0.76rem;
+      color: #6B7280;
+      font-weight: 500;
+    }
+
+    .msg-bubble {
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      border-left: 4px solid transparent;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .msg-bubble .msg-icon {
+      font-size: 1.25rem;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .msg-bubble .msg-title {
+      font-weight: 700;
+      font-size: 0.82rem;
+      margin-bottom: 3px;
+    }
+
+    .msg-bubble .msg-text {
+      color: #4B5563;
+      font-size: 0.77rem;
+      line-height: 1.35;
+    }
+
+    .msg-bubble-new {
+      background: #F0FDF4;
+      border-left-color: #10B981;
+    }
+    .msg-bubble-new .msg-title { color: #065F46; }
+
+    .msg-bubble-merge {
+      background: #FAF5FF;
+      border-left-color: #8B5CF6;
+    }
+    .msg-bubble-merge .msg-title { color: #5B21B6; }
+
+    .msg-bubble-reject {
+      background: #FEF2F2;
+      border-left-color: #EF4444;
+    }
+    .msg-bubble-reject .msg-title { color: #991B1B; }
+
+    /* Interactive Pagination Bar */
+    .pagination-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 14px 20px;
+      background: #F8FAFC;
+      border-top: 1px solid var(--border);
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .pagination-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .page-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 32px;
+      padding: 0 8px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .page-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #FFFFFF;
+      cursor: default;
+    }
+
+    .page-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .page-ellipsis {
+      padding: 0 4px;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .page-size-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+    }
+
+    .page-size-select {
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #FFFFFF;
+      font-size: 0.82rem;
+      outline: none;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .filter-tabs {
+        overflow-x: auto;
+      }
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      thead {
+        display: none;
+      }
+      tbody tr {
+        margin-bottom: 16px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+      }
+      td {
+        padding: 8px 0;
+      }
+      .action-buttons {
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand-container">
+      <div class="brand-logo-badge">ഭാ</div>
+      <div>
+        <div class="brand-title">ഭാഷാമിത്രം II </div>
+        <div class="brand-subtitle">Word Suggestions Management & Editorial Admin</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <!-- Workflow Guide Notification Button & Dropdown -->
+      <div class="nav-notification-wrapper">
+        <button class="nav-notification-btn" id="guideNotificationBtn" onclick="toggleWorkflowGuideDropdown(event)" title="എഡിറ്റോറിയൽ ഗൈഡ് (Workflow Guide)">
+          <span>🔔</span>
+          <span class="notification-badge">3</span>
+        </button>
+
+        <!-- Notification Dropdown Menu -->
+        <div class="notification-dropdown" id="workflowGuideDropdown">
+          <div class="dropdown-header">
+            <div class="dropdown-title">
+              <span class="msg-indicator"></span>
+              <span>💬 എഡിറ്റോറിയൽ ഗൈഡ് (Workflow Guide)</span>
+            </div>
+            <button class="dropdown-close-btn" onclick="closeWorkflowGuideDropdown(event)" title="Close">&times;</button>
+          </div>
+          <div class="dropdown-body">
+            <div class="msg-bubble msg-bubble-new">
+              <div class="msg-icon">✨</div>
+              <div>
+                <div class="msg-title">പുതിയ വാക്ക് (New Word → DB Added)</div>
+                <div class="msg-text">നിഘണ്ടുവിൽ ഇല്ലാത്തതാണെങ്കിൽ, അംഗീകരിക്കുമ്പോൾ (Approve) പ്രധാന നിഘണ്ടുവിൽ പുതിയ പദമായി നേരിട്ട് ചേർക്കും.</div>
+              </div>
+            </div>
+            <div class="msg-bubble msg-bubble-merge">
+              <div class="msg-icon">🔀</div>
+              <div>
+                <div class="msg-title">നിലവിലുള്ള വാക്ക് (Existing Word → Merge)</div>
+                <div class="msg-text">നിഘണ്ടുവിൽ ഉള്ളതാണെങ്കിൽ, പുതിയ അർത്ഥം നിലവിലുള്ള വാക്കിന്റെ അർത്ഥങ്ങളോടൊപ്പം ലയിപ്പിക്കും (Merge).</div>
+              </div>
+            </div>
+            <div class="msg-bubble msg-bubble-reject">
+              <div class="msg-icon">❌</div>
+              <div>
+                <div class="msg-title">നിരസിക്കൽ (Rejection → Not in DB)</div>
+                <div class="msg-text">Reject ചെയ്യുമ്പോൾ വാക്ക് നിഘണ്ടുവിൽ ചേർക്കപ്പെടില്ല. സ്പാമോ തെറ്റായ വിവരങ്ങളോ തടയാൻ സഹായിക്കും.</div>
+              </div>
+            </div>
+          </div>
+          <div class="dropdown-footer">
+            <span>നിഘണ്ടു മാനേജ്‌മെന്റ് &amp; അഡ്മിൻ ഗൈഡ്‌ലൈൻസ്</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span id="apiStatusText">Connected</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-info">
+          <h4>ആകെ നിർദ്ദേശങ്ങൾ (Total)</h4>
+          <div class="stat-number" id="statTotal">0</div>
+        </div>
+        <div class="stat-icon icon-all">📚</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-info">
+          <h4>പരിശോധനയിൽ (Pending)</h4>
+          <div class="stat-number" id="statPending">0</div>
+        </div>
+        <div class="stat-icon icon-pending">⏳</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-info">
+          <h4>അംഗീകരിച്ചവ (Approved)</h4>
+          <div class="stat-number" id="statApproved">0</div>
+        </div>
+        <div class="stat-icon icon-approved">✅</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-info">
+          <h4>നിരസിച്ചവ (Rejected)</h4>
+          <div class="stat-number" id="statRejected">0</div>
+        </div>
+        <div class="stat-icon icon-rejected">❌</div>
+      </div>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="വാക്ക്, അർത്ഥം, അല്ലെങ്കിൽ പേര് നൽകി തിരയുക (Search)..." oninput="onSearchInput()">
+      </div>
+
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all" onclick="setFilter('all')">എല്ലാം (All)</button>
+        <button class="filter-tab" data-filter="pending" onclick="setFilter('pending')">Pending</button>
+        <button class="filter-tab" data-filter="approved" onclick="setFilter('approved')">Approved</button>
+        <button class="filter-tab" data-filter="rejected" onclick="setFilter('rejected')">Rejected</button>
+        <button class="filter-tab" data-filter="exists" onclick="setFilter('exists')" style="color: #92400E;">⚠️ DB-യിലുള്ളവ (In DB)</button>
+        <button class="filter-tab" data-filter="new_word" onclick="setFilter('new_word')" style="color: #065F46;">✨ പുതിയ വാക്കുകൾ (New)</button>
+      </div>
+
+      <button class="btn btn-outline" onclick="fetchSuggestions()">
+        🔄 റീഫ്രഷ് (Refresh)
+      </button>
+    </div>
+
+    <!-- Table Container (Expanded Width & Full Responsiveness) -->
+    <div class="table-container">
+      <div style="overflow-x: auto; width: 100%;">
+        <table style="width: 100%; min-width: 1100px;">
+          <thead>
+            <tr>
+              <th style="width: 45px;">#</th>
+              <th style="width: 220px;">വാക്ക് (Word &amp; DB Status)</th>
+              <th>നിർദ്ദേശിച്ച അർത്ഥം (Suggested Meaning)</th>
+              <th style="width: 320px;">ഡിക്ഷണറി ഒത്തുനോക്കൽ &amp; ലയനം (DB Compare &amp; Action)</th>
+              <th>കോൺട്രിബ്യൂട്ടർ (Contributor)</th>
+              <th>സ്ഥിതി (Status)</th>
+              <th style="text-align: right; min-width: 220px;">പ്രവർത്തനങ്ങൾ (Actions)</th>
+            </tr>
+          </thead>
+          <tbody id="suggestionsTableBody">
+            <!-- Rows will be injected here via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <div class="empty-state-icon">📝</div>
+        <h3>പദ നിർദ്ദേശങ്ങളൊന്നും കണ്ടെത്തിയില്ല</h3>
+        <p>നിങ്ങൾ തിരഞ്ഞ ഫിൽട്ടറിന് അനുസൃതമായ വാക്കുകൾ ലഭ്യമല്ല.</p>
+      </div>
+
+      <!-- Interactive Pagination Bar -->
+      <div class="pagination-bar" id="paginationBar">
+        <div class="pagination-info" id="paginationInfo">
+          <!-- Injected by JavaScript -->
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+          <div class="page-size-selector">
+            <label for="pageSizeSelect">പേജ് ഒന്നിന്:</label>
+            <select id="pageSizeSelect" class="page-size-select" onchange="changePageSize(this.value)">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+          <div class="pagination-controls" id="paginationControls">
+            <!-- Injected by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Edit & Update Modal -->
+  <div class="modal-backdrop" id="editModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalHeading">✏️ നിർദ്ദേശിച്ച വാക്ക് തിരുത്തുക (Edit Word)</h3>
+        <button class="modal-close-btn" onclick="closeEditModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editWordId">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>വാക്ക് (Word) *</label>
+            <input type="text" id="editWord" required placeholder="വാക്ക് നൽകുക">
+          </div>
+          <div class="form-group">
+            <label>ഭാഷാ വിഭാഗം (Language Type)</label>
+            <select id="editLanguageType">
+              <option value="malayalam">മലയാളം (Malayalam)</option>
+              <option value="english">ഇംഗ്ലീഷ് (English)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>അർത്ഥം (Meaning) *</label>
+          <textarea id="editMeaning" required placeholder="വാക്കിന്റെ അർത്ഥം നൽകുക"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>ധാതു (Root Word)</label>
+            <input type="text" id="editRoot" placeholder="Root word">
+          </div>
+          <div class="form-group">
+            <label>വാക്കിന്റെ ഉത്ഭവം (Etymology)</label>
+            <input type="text" id="editEtymology" placeholder="Etymology">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>ഉച്ചാരണ രീതി (Phonetic Transcription)</label>
+            <input type="text" id="editPhonetic" placeholder="Phonetic transcription">
+          </div>
+          <div class="form-group">
+            <label>ലിംഗം (Gender)</label>
+            <select id="editGender">
+              <option value="">തിരഞ്ഞെടുക്കുക (None)</option>
+              <option value="പുല്ലിംഗം">പുല്ലിംഗം (Masculine)</option>
+              <option value="സ്ത്രീലിംഗം">സ്ത്രീലിംഗം (Feminine)</option>
+              <option value="നപുംസകലിംഗം">നപുംസകലിംഗം (Neuter)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>സാംസ്കാരിക കുറിപ്പ് (Cultural Note)</label>
+          <textarea id="editCulturalNote" placeholder="സാംസ്കാരിക പ്രാധാന്യം"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>അംഗീകാര സ്ഥിതി (Moderation Status)</label>
+          <select id="editStatus">
+            <option value="pending">പരിശോധനയിൽ (Pending)</option>
+            <option value="approved">അംഗീകരിച്ചു (Approved)</option>
+            <option value="rejected">നിരസിച്ചു (Rejected)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeEditModal()">റദ്ദാക്കുക (Cancel)</button>
+        <button class="btn btn-primary" onclick="saveWordChanges()">💾 മാറ്റങ്ങൾ സേവ് ചെയ്യുക (Save Changes)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Word Comparison & Merge Preview Modal -->
+  <div class="modal-backdrop" id="compareModal">
+    <div class="modal-card" style="max-width: 860px;">
+      <div class="modal-header">
+        <h3 id="compareModalTitle">🔍 ഡിക്ഷണറി ഒത്തുനോക്കൽ (Word vs Database Comparison)</h3>
+        <button class="modal-close-btn" onclick="closeCompareModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="compareModalBody">
+        <!-- Content will be injected via openCompareModal() -->
+      </div>
+      <div class="modal-footer" id="compareModalFooter">
+        <button class="btn btn-outline" onclick="closeCompareModal()">അടയ്ക്കുക (Close)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dictionary Type Selector & Approval Modal -->
+  <div class="modal-backdrop" id="dictTypeModal">
+    <div class="modal-card" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 id="dictTypeModalTitle">📖 നിഘണ്ടു വിഭാഗം തിരഞ്ഞെടുക്കുക (Select Dictionary Type)</h3>
+        <button class="modal-close-btn" onclick="closeDictTypeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="dictTypeModalBody">
+        <!-- Injected via openDictTypeModal() -->
+      </div>
+      <div class="modal-footer" id="dictTypeModalFooter">
+        <button class="btn btn-outline" onclick="closeDictTypeModal()">റദ്ദാക്കുക (Cancel)</button>
+        <button class="btn btn-primary" id="btnConfirmApproveWithTypes" onclick="submitApprovalWithTypes()">
+          ✅ സ്ഥിരീകരിക്കുക (Confirm &amp; Apply)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    let allSuggestions = [];
+    let currentFilter = 'all';
+    let currentPage = 1;
+    let pageSize = 10;
+    let filteredSuggestionsList = [];
+
+    // Workflow Guide Dropdown Controls
+    function toggleWorkflowGuideDropdown(e) {
+      if (e) {
+        e.stopPropagation();
+      }
+      const dropdown = document.getElementById('workflowGuideDropdown');
+      const btn = document.getElementById('guideNotificationBtn');
+      if (!dropdown) return;
+      const willBeActive = !dropdown.classList.contains('active');
+      dropdown.classList.toggle('active', willBeActive);
+      btn?.classList.toggle('active', willBeActive);
+    }
+
+    function closeWorkflowGuideDropdown(e) {
+      if (e) {
+        e.stopPropagation();
+      }
+      const dropdown = document.getElementById('workflowGuideDropdown');
+      const btn = document.getElementById('guideNotificationBtn');
+      dropdown?.classList.remove('active');
+      btn?.classList.remove('active');
+    }
+
+    // Close dropdown on click outside
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('workflowGuideDropdown');
+      const btn = document.getElementById('guideNotificationBtn');
+      if (dropdown && dropdown.classList.contains('active')) {
+        if (!dropdown.contains(e.target) && !btn?.contains(e.target)) {
+          closeWorkflowGuideDropdown();
+        }
+      }
+    });
+
+    // Close dropdown on ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeWorkflowGuideDropdown();
+      }
+    });
+
+    // Show Toast
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      let icon = '✅';
+      let cls = 'toast-success';
+      if (type === 'error') {
+        icon = '⚠️';
+        cls = 'toast-error';
+      } else if (type === 'warning') {
+        icon = '❌';
+        cls = 'toast-warning';
+      }
+      toast.className = `toast ${cls}`;
+      toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.remove();
+      }, 4500);
+    }
+
+    // Fetch All Suggestions
+    async function fetchSuggestions() {
+      try {
+        const response = await fetch('/api/admin/suggestions');
+        if (!response.ok) throw new Error('Failed to fetch data');
+        const data = await response.json();
+        allSuggestions = Array.isArray(data) ? data : [];
+        updateStats();
+        filterSuggestions();
+        document.getElementById('apiStatusText').textContent = 'Connected';
+      } catch (err) {
+        console.error('Fetch error:', err);
+        showToast('സെർവറിൽ നിന്ന് ഡാറ്റ ലഭ്യമാക്കാൻ സാധിച്ചില്ല.', 'error');
+        document.getElementById('apiStatusText').textContent = 'Offline / Error';
+      }
+    }
+
+    // Update Stats Bar
+    function updateStats() {
+      const total = allSuggestions.length;
+      const pending = allSuggestions.filter(s => s.status === 'pending').length;
+      const approved = allSuggestions.filter(s => s.status === 'approved').length;
+      const rejected = allSuggestions.filter(s => s.status === 'rejected').length;
+
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statPending').textContent = pending;
+      document.getElementById('statApproved').textContent = approved;
+      document.getElementById('statRejected').textContent = rejected;
+    }
+
+    // Search Input Handler
+    function onSearchInput() {
+      currentPage = 1;
+      filterSuggestions();
+    }
+
+    // Filter Suggestions by Tab & Search
+    function setFilter(filter) {
+      currentFilter = filter;
+      currentPage = 1;
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.getAttribute('data-filter') === filter);
+      });
+      filterSuggestions();
+    }
+
+    function filterSuggestions() {
+      const query = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+      
+      filteredSuggestionsList = allSuggestions.filter(item => {
+        let matchesFilter = true;
+        const dbStatus = item.dbStatus || {};
+        const exists = !!dbStatus.existsInDb;
+
+        if (currentFilter === 'all') {
+          matchesFilter = true;
+        } else if (currentFilter === 'exists') {
+          matchesFilter = exists;
+        } else if (currentFilter === 'new_word') {
+          matchesFilter = !exists;
+        } else {
+          matchesFilter = (item.status === currentFilter);
+        }
+        
+        const wordMatch = (item.word || '').toLowerCase().includes(query);
+        const meaningMatch = (item.meaning || item.malayalamMeaning || '').toLowerCase().includes(query);
+        const nameMatch = (item.contributor?.name || '').toLowerCase().includes(query);
+        const emailMatch = (item.contributor?.email || '').toLowerCase().includes(query);
+
+        return matchesFilter && (wordMatch || meaningMatch || nameMatch || emailMatch);
+      });
+
+      renderCurrentPage();
+    }
+
+    // Render Current Page
+    function renderCurrentPage() {
+      const total = filteredSuggestionsList.length;
+      const totalPages = Math.ceil(total / pageSize) || 1;
+
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      const startIndex = (currentPage - 1) * pageSize;
+      const pageItems = filteredSuggestionsList.slice(startIndex, startIndex + pageSize);
+
+      renderTable(pageItems, startIndex);
+      renderPagination(total, startIndex, pageItems.length, totalPages);
+    }
+
+    // Page Change
+    function changePage(newPage) {
+      const totalPages = Math.ceil(filteredSuggestionsList.length / pageSize) || 1;
+      if (newPage < 1 || newPage > totalPages) return;
+      currentPage = newPage;
+      renderCurrentPage();
+      document.querySelector('.table-container')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Page Size Change
+    function changePageSize(newSize) {
+      pageSize = parseInt(newSize, 10) || 10;
+      currentPage = 1;
+      renderCurrentPage();
+    }
+
+    // Render Interactive Pagination Controls
+    function renderPagination(total, startIndex, countOnPage, totalPages) {
+      const infoEl = document.getElementById('paginationInfo');
+      const controlsEl = document.getElementById('paginationControls');
+      const paginationBar = document.getElementById('paginationBar');
+
+      if (!paginationBar || !infoEl || !controlsEl) return;
+
+      if (total === 0) {
+        paginationBar.style.display = 'none';
+        return;
+      }
+      paginationBar.style.display = 'flex';
+
+      const from = startIndex + 1;
+      const to = startIndex + countOnPage;
+      infoEl.innerHTML = `<span>കാണിക്കുന്നത് <strong>${from} - ${to}</strong> / ആകെ <strong>${total}</strong> നിർദ്ദേശങ്ങൾ (Showing ${from}-${to} of ${total})</span>`;
+
+      let controlsHtml = '';
+
+      // First & Prev buttons
+      const isFirstDisabled = currentPage === 1;
+      controlsHtml += `
+        <button class="page-btn" onclick="changePage(1)" ${isFirstDisabled ? 'disabled' : ''} title="First Page">⏮</button>
+        <button class="page-btn" onclick="changePage(${currentPage - 1})" ${isFirstDisabled ? 'disabled' : ''} title="Previous Page">◀</button>
+      `;
+
+      // Page numbers logic (max 7 buttons)
+      const maxButtons = 7;
+      let startPage = 1;
+      let endPage = totalPages;
+
+      if (totalPages > maxButtons) {
+        const half = Math.floor(maxButtons / 2);
+        if (currentPage <= half + 1) {
+          startPage = 1;
+          endPage = maxButtons - 1;
+        } else if (currentPage >= totalPages - half) {
+          startPage = totalPages - (maxButtons - 2);
+          endPage = totalPages;
+        } else {
+          startPage = currentPage - 2;
+          endPage = currentPage + 2;
+        }
+      }
+
+      if (startPage > 1) {
+        controlsHtml += `<button class="page-btn" onclick="changePage(1)">1</button>`;
+        if (startPage > 2) {
+          controlsHtml += `<span class="page-ellipsis">…</span>`;
+        }
+      }
+
+      for (let p = startPage; p <= endPage; p++) {
+        const isActive = (p === currentPage);
+        controlsHtml += `
+          <button class="page-btn ${isActive ? 'active' : ''}" onclick="changePage(${p})">${p}</button>
+        `;
+      }
+
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          controlsHtml += `<span class="page-ellipsis">…</span>`;
+        }
+        controlsHtml += `<button class="page-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
+      }
+
+      // Next & Last buttons
+      const isLastDisabled = currentPage === totalPages;
+      controlsHtml += `
+        <button class="page-btn" onclick="changePage(${currentPage + 1})" ${isLastDisabled ? 'disabled' : ''} title="Next Page">▶</button>
+        <button class="page-btn" onclick="changePage(${totalPages})" ${isLastDisabled ? 'disabled' : ''} title="Last Page">⏭</button>
+      `;
+
+      controlsEl.innerHTML = controlsHtml;
+    }
+
+    // Render Table Rows
+    function renderTable(items, startIndex = 0) {
+      const tbody = document.getElementById('suggestionsTableBody');
+      const emptyState = document.getElementById('emptyState');
+
+      if (!items || items.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+
+      tbody.innerHTML = items.map((item, index) => {
+        const id = item._id;
+        const word = escapeHtml(item.word || 'Untitled');
+        const lang = escapeHtml(item.language_type || 'malayalam');
+        const meaning = escapeHtml(item.meaning || item.malayalamMeaning || 'No meaning provided');
+        const contributorName = escapeHtml(item.contributor?.name || 'Anonymous');
+        const contributorEmail = escapeHtml(item.contributor?.email || '');
+        const status = item.status || 'pending';
+
+        const dbStatus = item.dbStatus || {};
+        const existsInDb = !!dbStatus.existsInDb;
+        const existingMeanings = dbStatus.existingMeanings || [];
+        const isNewMeaning = dbStatus.isNewMeaning;
+
+        let badgeClass = 'badge-pending';
+        let statusLabel = '⏳ Pending';
+        let dbSubtext = '<span style="font-size: 0.72rem; color: #B45309; font-weight: 600; display: block; margin-top: 3px;">പരിശോധന കാക്കുന്നു</span>';
+
+        if (status === 'approved') {
+          badgeClass = 'badge-approved';
+          statusLabel = '✅ Approved';
+          dbSubtext = '<span style="font-size: 0.72rem; color: #047857; font-weight: 700; display: block; margin-top: 3px;">💾 Added to Dictionary DB</span>';
+        } else if (status === 'rejected') {
+          badgeClass = 'badge-rejected';
+          statusLabel = '❌ Rejected';
+          dbSubtext = '<span style="font-size: 0.72rem; color: #B91C1C; font-weight: 700; display: block; margin-top: 3px;">🚫 Not in Dictionary</span>';
+        }
+
+        // DB Status Presence Tag
+        const dbPresenceTag = existsInDb
+          ? `<span class="db-tag db-tag-exists">⚠️ DB-യിൽ ഉണ്ട്</span>`
+          : `<span class="db-tag db-tag-new">✨ പുതിയ വാക്ക്</span>`;
+
+        const existingTypes = dbStatus.existingTypes || [];
+        const enrolledTypeKeys = dbStatus.enrolledTypeKeys || [];
+
+        // Dictionary Type Badges for Existing Word (Compact)
+        const dtypeBadgesHtml = existingTypes.length > 0
+          ? `<div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              ${existingTypes.map(t => {
+                let cls = 'dtype-mm';
+                if (t.type === 'malayalam_english') cls = 'dtype-me';
+                else if (t.type === 'english_malayalam') cls = 'dtype-em';
+                else if (t.type === 'malayalam_thesaurus') cls = 'dtype-thesaurus';
+                return `<span class="dtype-badge ${cls}" title="${escapeHtml(t.enLabel)}">${t.icon} ${t.label} (${t.meaningCount})</span>`;
+              }).join('')}
+            </div>`
+          : '';
+
+        // DB Meaning Comparison Column Content (Minimized & Concise)
+        let compareColumnHtml = '';
+        if (existsInDb) {
+          const diffBadge = isNewMeaning
+            ? `<span class="diff-badge diff-new" style="margin: 0; padding: 1px 6px; font-size: 0.68rem;">➕ പുതിയ അർത്ഥം</span>`
+            : `<span class="diff-badge diff-same" style="margin: 0; padding: 1px 6px; font-size: 0.68rem;">🔁 സമാനം</span>`;
+
+          compareColumnHtml = `
+            <div class="db-compare-cell">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+                <span style="font-weight: 700; color: #1E1F3D; font-size: 0.78rem;">📚 ${existingMeanings.length} അർത്ഥങ്ങൾ</span>
+                <button class="action-btn action-compare" style="padding: 2px 7px; font-size: 0.7rem; white-space: nowrap;" onclick="openCompareModal('${id}')">👁️ ഒത്തുനോക്കുക</button>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; flex-wrap: wrap;">
+                ${dtypeBadgesHtml}
+                ${diffBadge}
+              </div>
+            </div>
+          `;
+        } else {
+          compareColumnHtml = `
+            <div class="db-compare-cell" style="background: #F0FDF4; border-color: #BBF7D0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+                <span class="diff-badge diff-new" style="background: #DCFCE7; color: #166534; border-color: #86EFAC; margin: 0; padding: 2px 6px; font-size: 0.72rem;">✨ പുതിയ എൻട്രി</span>
+                <button class="action-btn action-approve" style="padding: 2px 7px; font-size: 0.7rem; white-space: nowrap;" onclick="openDictTypeModal('${id}')">📖 വിഭാഗം</button>
+              </div>
+            </div>
+          `;
+        }
+
+        return `
+          <tr>
+            <td style="color: #6B7280; font-weight: 600;">${startIndex + index + 1}</td>
+            <td>
+              <div class="word-cell">
+                <span class="word-title">${word}</span>
+                <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 2px;">
+                  <span class="word-lang-tag">${lang}</span>
+                  ${dbPresenceTag}
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="meaning-text">${meaning}</div>
+            </td>
+            <td>
+              ${compareColumnHtml}
+            </td>
+            <td>
+              <div class="contributor-info">
+                <span class="contributor-name">${contributorName}</span>
+                <span class="contributor-email">${contributorEmail}</span>
+              </div>
+            </td>
+            <td>
+              <span class="badge ${badgeClass}">${statusLabel}</span>
+              ${dbSubtext}
+            </td>
+            <td style="text-align: right;">
+              <div class="action-buttons" style="justify-content: flex-end;">
+                <button class="action-btn action-edit" onclick="openEditModal('${id}')">
+                  ✏️ Edit
+                </button>
+                ${status !== 'approved' ? (
+                  existsInDb ? `
+                    <button class="action-btn action-merge" onclick="openDictTypeModal('${id}')" title="വാക്ക് നിലവിൽ ഉള്ളതാണ്. നിഘണ്ടു വിഭാഗം പരിശോധിച്ച് പുതിയ അർത്ഥം ലയിപ്പിക്കുക">
+                      🔀 Approve &amp; Merge
+                    </button>
+                  ` : `
+                    <button class="action-btn action-approve" onclick="openDictTypeModal('${id}')" title="നിഘണ്ടു വിഭാഗം തിരഞ്ഞെടുത്ത് പുതിയ വാക്കായി ചേർക്കുക">
+                      ✅ Approve &amp; Add
+                    </button>
+                  `
+                ) : ''}
+                ${status !== 'rejected' ? `
+                  <button class="action-btn action-reject" onclick="rejectWord('${id}')" title="Reject and do not add to Dictionary">
+                    ❌ Reject
+                  </button>
+                ` : ''}
+                <button class="action-btn action-delete" onclick="deleteWord('${id}')">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Modal Operations
+    function openEditModal(id) {
+      const item = allSuggestions.find(s => String(s._id) === String(id));
+      if (!item) return;
+
+      document.getElementById('editWordId').value = id;
+      document.getElementById('editWord').value = item.word || '';
+      document.getElementById('editLanguageType').value = item.language_type || 'malayalam';
+      document.getElementById('editMeaning').value = item.meaning || item.malayalamMeaning || '';
+      document.getElementById('editRoot').value = item.root || '';
+      document.getElementById('editEtymology').value = item.etymology || '';
+      document.getElementById('editPhonetic').value = item.phonetic_transcription || '';
+      document.getElementById('editGender').value = item.gender || '';
+      document.getElementById('editCulturalNote').value = item.cultural_note || '';
+      document.getElementById('editStatus').value = item.status || 'pending';
+
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('active');
+    }
+
+    // Dictionary Type Meta Info
+    const DICTIONARY_TYPE_INFO = {
+      malayalam_malayalam: {
+        key: 'malayalam_malayalam',
+        label: 'മലയാളം - മലയാളം',
+        enLabel: 'Malayalam - Malayalam',
+        icon: '📘',
+        description: 'മലയാള പദങ്ങളുടെ സമഗ്ര മലയാള അർത്ഥങ്ങൾ'
+      },
+      malayalam_english: {
+        key: 'malayalam_english',
+        label: 'മലയാളം - ഇംഗ്ലീഷ്',
+        enLabel: 'Malayalam - English',
+        icon: '📗',
+        description: 'മലയാള പദങ്ങളുടെ ഇംഗ്ലീഷ് തർജ്ജമയും അർത്ഥങ്ങളും'
+      },
+      english_malayalam: {
+        key: 'english_malayalam',
+        label: 'ഇംഗ്ലീഷ് - മലയാളം',
+        enLabel: 'English - Malayalam',
+        icon: '📙',
+        description: 'ഇംഗ്ലീഷ് വാക്കുകളുടെ മലയാള അർത്ഥങ്ങൾ'
+      },
+      malayalam_thesaurus: {
+        key: 'malayalam_thesaurus',
+        label: 'മലയാളം പര്യായനിഘണ്ടു',
+        enLabel: 'Malayalam Thesaurus',
+        icon: '📚',
+        description: 'പര്യായപദങ്ങളും സമാനപദങ്ങളും'
+      }
+    };
+
+    let currentCompareWordId = null;
+
+    // Comparison & Dictionary Selection Modal
+    function openCompareModal(id) {
+      const item = allSuggestions.find(s => String(s._id) === String(id));
+      if (!item) return;
+
+      currentCompareWordId = id;
+      const word = escapeHtml(item.word || '');
+      const suggestedMeaning = escapeHtml(item.meaning || item.malayalamMeaning || 'നൽകിയിട്ടില്ല');
+      const dbStatus = item.dbStatus || {};
+      const exists = dbStatus.existsInDb;
+      const existingMeanings = dbStatus.existingMeanings || [];
+      const existingTypes = dbStatus.existingTypes || [];
+      const enrolledKeys = new Set(dbStatus.enrolledTypeKeys || existingTypes.map(t => t.type));
+      const isNewMeaning = dbStatus.isNewMeaning;
+      const isEnglish = (item.language_type === 'english') || /^[A-Za-z\s]+$/.test(item.word || '');
+
+      document.getElementById('compareModalTitle').textContent = exists
+        ? `🔍 ഡിക്ഷണറി താരതമ്യവും ലയനവും: "${word}"`
+        : `✨ ഡിക്ഷണറി താരതമ്യവും പുതിയ വാക്ക് ചേർക്കലും: "${word}"`;
+
+      // Generate the 4 Dictionary Checkbox Cards (Compact)
+      const cardsHtml = Object.keys(DICTIONARY_TYPE_INFO).map(key => {
+        const info = DICTIONARY_TYPE_INFO[key];
+        const typeData = existingTypes.find(t => t.type === key);
+        const isEnrolled = enrolledKeys.has(key);
+
+        let isChecked = false;
+        if (exists) {
+          isChecked = isEnrolled;
+        } else {
+          isChecked = isEnglish ? (key === 'english_malayalam') : (key === 'malayalam_malayalam');
+        }
+
+        let statusBadgeHtml = '';
+        if (isEnrolled && typeData) {
+          statusBadgeHtml = `<span class="dtype-card-status enrolled">✓ നിലവിലുണ്ട് (${typeData.meaningCount || typeData.meanings?.length || 1})</span>`;
+        } else {
+          statusBadgeHtml = `<span class="dtype-card-status not-enrolled">+ ചേർക്കുക</span>`;
+        }
+
+        return `
+          <div class="dtype-select-card ${isChecked ? 'active' : ''}" id="card_cmp_${key}" onclick="toggleCompareDtypeCard('${key}')">
+            <input type="checkbox" id="chk_cmp_${key}" value="${key}" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); syncCompareCard('${key}')">
+            <div class="dtype-card-content">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                <div class="dtype-card-title">
+                  <span>${info.icon}</span>
+                  <span>${info.label}</span>
+                </div>
+                ${statusBadgeHtml}
+              </div>
+              <div class="dtype-card-subtitle">${info.enLabel}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      let contentHtml = `
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Word Header Banner -->
+          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.15rem; font-weight: 800; color: #1E1F3D;">${word}</span>
+              <span class="word-lang-tag">${item.language_type || 'malayalam'}</span>
+            </div>
+            <div>
+              ${exists 
+                ? '<span class="db-tag db-tag-exists" style="font-size: 0.78rem; padding: 3px 8px;">⚠️ DB-യിൽ ഉണ്ട്</span>'
+                : '<span class="db-tag db-tag-new" style="font-size: 0.78rem; padding: 3px 8px;">✨ പുതിയ വാക്ക്</span>'}
+            </div>
+          </div>
+
+          <!-- Comparison Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;">
+            <!-- Left: Current DB Details -->
+            <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px; padding: 12px; max-height: 180px; overflow-y: auto;">
+              <div style="font-size: 0.86rem; font-weight: 700; color: #92400E; margin-bottom: 6px;">
+                📚 DB വിവരങ്ങൾ (${existingMeanings.length} അർത്ഥങ്ങൾ)
+              </div>
+              ${exists ? `
+                ${existingTypes.length > 0 ? `
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    ${existingTypes.map(t => `
+                      <div style="background: #FFFFFF; border: 1px solid #FEF3C7; border-radius: 6px; padding: 6px 10px; font-size: 0.78rem;">
+                        <div style="font-weight: 700; color: #92400E; display: flex; align-items: center; gap: 4px;">
+                          <span>${t.icon}</span> <span>${t.label}</span>
+                          <span style="color: #78350F; font-weight: normal;">(${t.meanings.length})</span>
+                        </div>
+                        <div style="color: #451A03; margin-top: 3px; line-height: 1.35;">
+                          ${escapeHtml(t.meanings.slice(0, 4).join(', '))}${t.meanings.length > 4 ? '...' : ''}
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : `
+                  <div style="font-size: 0.82rem; color: #451A03; line-height: 1.4;">
+                    ${escapeHtml(existingMeanings.join(', '))}
+                  </div>
+                `}
+              ` : `
+                <p style="font-size: 0.82rem; color: #92400E; font-style: italic; margin: 0;">
+                  ഈ വാക്ക് നിലവിൽ നിഘണ്ടുവിൽ ലഭ്യമല്ല.
+                </p>
+              `}
+            </div>
+
+            <!-- Right: User Submission -->
+            <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="font-size: 0.86rem; font-weight: 700; color: #166534; margin-bottom: 6px;">
+                  💡 നിർദ്ദേശിച്ച അർത്ഥം:
+                </div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: #14532D; background: #FFFFFF; padding: 8px 10px; border-radius: 6px; border: 1px solid #DCFCE7; max-height: 100px; overflow-y: auto;">
+                  ${suggestedMeaning}
+                </div>
+              </div>
+              <div style="font-size: 0.75rem; color: #15803D; margin-top: 6px;">
+                <strong>സമർപ്പിച്ചത്:</strong> ${escapeHtml(item.contributor?.name || 'Anonymous')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Action & Difference Result Banner -->
+          <div style="background: ${exists ? (isNewMeaning ? '#EEF2FF' : '#F9FAFB') : '#ECFDF5'}; border: 1px solid ${exists ? (isNewMeaning ? '#C7D2FE' : '#E5E7EB') : '#A7F3D0'}; border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+            <div style="font-size: 0.82rem; font-weight: 700; color: ${exists ? (isNewMeaning ? '#3730A3' : '#374151') : '#065F46'}; display: flex; align-items: center; gap: 6px;">
+              <span>${exists ? (isNewMeaning ? '🔀' : '🔁') : '✨'}</span>
+              <span>${exists ? (isNewMeaning ? 'പുതിയ അർത്ഥം: തിരഞ്ഞെടുത്ത നിഘണ്ടുക്കളിൽ ലയിപ്പിക്കും (Merge)' : 'സമാന അർത്ഥം: ഉള്ളടക്കം പരിശോധിച്ച് പുതുക്കാം') : 'പുതിയ പദം: നിഘണ്ടു വിഭാഗം തിരഞ്ഞെടുക്കുക'}</span>
+            </div>
+          
+          </div>
+
+          <!-- Target Dictionary Selector Section -->
+          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px 14px;">
+            <div style="font-size: 0.84rem; font-weight: 700; color: #1E1F3D; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 5px;">
+                <span>📖</span> <span>ലക്ഷ്യ നിഘണ്ടുക്കൾ (Target Dictionaries):</span>
+              </span>
+              <span style="font-size: 0.72rem; color: #64748B;">ടിക്ക് ചെയ്തവയിൽ ചേർക്കും</span>
+            </div>
+            <div class="dtype-selector-grid" id="compareDtypeGrid" style="margin-top: 0; gap: 8px;">
+              ${cardsHtml}
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('compareModalBody').innerHTML = contentHtml;
+      
+      const footer = document.getElementById('compareModalFooter');
+      footer.innerHTML = `
+        <button class="btn btn-outline" onclick="closeCompareModal()">അടയ്ക്കുക (Close)</button>
+        ${item.status !== 'approved' ? `
+          <button class="btn btn-primary" id="btnCompareApprove" onclick="submitApprovalFromCompareModal('${id}')">
+            ${exists ? '🔀 തിരഞ്ഞെടുത്ത നിഘണ്ടുക്കളിൽ ലയിപ്പിക്കുക (Approve &amp; Merge)' : '✅ തിരഞ്ഞെടുത്ത നിഘണ്ടുക്കളിൽ ചേർക്കുക (Approve &amp; Add Word)'}
+          </button>
+        ` : '<span style="color: #059669; font-weight: 700; font-size: 0.88rem;">✅ ഈ വാക്ക് ഇതിനകം അംഗീകരിച്ചതാണ്</span>'}
+      `;
+
+      document.getElementById('compareModal').classList.add('active');
+    }
+
+    function toggleCompareDtypeCard(key) {
+      const chk = document.getElementById(`chk_cmp_${key}`);
+      if (chk) {
+        chk.checked = !chk.checked;
+        syncCompareCard(key);
+      }
+    }
+
+    function syncCompareCard(key) {
+      const chk = document.getElementById(`chk_cmp_${key}`);
+      const card = document.getElementById(`card_cmp_${key}`);
+      if (chk && card) {
+        card.classList.toggle('active', chk.checked);
+      }
+    }
+
+    function closeCompareModal() {
+      document.getElementById('compareModal').classList.remove('active');
+      currentCompareWordId = null;
+    }
+
+    async function submitApprovalFromCompareModal(id) {
+      const targetId = id || currentCompareWordId;
+      if (!targetId) return;
+
+      const checkboxes = document.querySelectorAll('#compareDtypeGrid input[type="checkbox"]:checked');
+      const selectedTypes = Array.from(checkboxes).map(c => c.value);
+
+      if (selectedTypes.length === 0) {
+        alert('ദയവായി കുറഞ്ഞത് ഒരു നിഘണ്ടു വിഭാഗമെങ്കിലും തിരഞ്ഞെടുക്കുക (Please select at least one dictionary type).');
+        return;
+      }
+
+      const item = allSuggestions.find(s => String(s._id) === String(targetId));
+      const wordName = item ? `"${item.word}"` : 'വാക്ക്';
+
+      const btn = document.getElementById('btnCompareApprove');
+      const originalText = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ പ്രോസസ്സ് ചെയ്യുന്നു...';
+      }
+
+      try {
+        const response = await fetch(`/api/admin/suggestions/${targetId}/approve`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetTypes: selectedTypes })
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Approval failed');
+
+        showToast(`✅ ${result.message || wordName + ' വിജയകരമായി അംഗീകരിച്ചു!'}`, 'success');
+        closeCompareModal();
+        fetchSuggestions();
+      } catch (err) {
+        console.error('Approve error:', err);
+        showToast('അംഗീകരിക്കാൻ സാധിച്ചില്ല. വീണ്ടും ശ്രമിക്കുക.', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+      }
+    }
+
+    // Direct approveWord and openDictTypeModal fallback to openCompareModal
+    function openDictTypeModal(id) {
+      openCompareModal(id);
+    }
+
+    function approveWord(id) {
+      openCompareModal(id);
+    }
+
+    // Save Word Changes (PUT /api/admin/suggestions/:id)
+    async function saveWordChanges() {
+      const id = document.getElementById('editWordId').value;
+      const word = document.getElementById('editWord').value.trim();
+      const meaning = document.getElementById('editMeaning').value.trim();
+      const language_type = document.getElementById('editLanguageType').value;
+      const root = document.getElementById('editRoot').value.trim();
+      const etymology = document.getElementById('editEtymology').value.trim();
+      const phonetic_transcription = document.getElementById('editPhonetic').value.trim();
+      const gender = document.getElementById('editGender').value;
+      const cultural_note = document.getElementById('editCulturalNote').value.trim();
+      const status = document.getElementById('editStatus').value;
+
+      if (!word) {
+        alert('വാക്ക് നൽകൽ നിർബന്ധമാണ് (Word is required).');
+        return;
+      }
+
+      const payload = {
+        word,
+        meaning,
+        language_type,
+        root,
+        etymology,
+        phonetic_transcription,
+        gender,
+        cultural_note,
+        status
+      };
+
+      try {
+        const response = await fetch(`/api/admin/suggestions/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error('Update failed');
+        }
+
+        const result = await response.json();
+        showToast('വാക്ക് വിജയകരമായി പുതുക്കി! (Word updated successfully)');
+        closeEditModal();
+        fetchSuggestions();
+      } catch (err) {
+        console.error('Update error:', err);
+        showToast('സേവ് ചെയ്യാൻ സാധിച്ചില്ല. വീണ്ടും ശ്രമിക്കുക.', 'error');
+      }
+    }
+
+    // Reject Word (PUT /api/admin/suggestions/:id/reject)
+    async function rejectWord(id) {
+      const item = allSuggestions.find(s => String(s._id) === String(id));
+      const wordName = item ? `"${item.word}"` : 'ഈ വാക്ക്';
+
+      const confirmed = confirm(
+        `${wordName} എന്ന വാക്ക് നിരസിക്കണമോ? ഈ വാക്ക് പ്രധാന നിഘണ്ടുവിൽ ചേർക്കപ്പെടില്ല.\n\n(Reject this word? It will NOT be added to the dictionary database.)`
+      );
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch(`/api/admin/suggestions/${id}/reject`, {
+          method: 'PUT'
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Rejection failed');
+
+        showToast(`❌ ${wordName} നിരസിച്ചു. നിഘണ്ടുവിൽ ചേർക്കപ്പെടില്ല.`, 'warning');
+        fetchSuggestions();
+      } catch (err) {
+        console.error('Reject error:', err);
+        showToast('നിരസിക്കാൻ സാധിച്ചില്ല.', 'error');
+      }
+    }
+
+    // Delete Word (DELETE /api/admin/suggestions/:id)
+    async function deleteWord(id) {
+      if (!confirm('ഈ വാക്ക് നിർദ്ദേശം പൂർണ്ണമായും നീക്കം ചെയ്യണമെന്ന് ഉറപ്പാണോ? (Are you sure you want to delete this suggestion?)')) {
+        return;
+      }
+      try {
+        const response = await fetch(`/api/admin/suggestions/${id}`, {
+          method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Deletion failed');
+        showToast('വാക്ക് നീക്കം ചെയ്തു. (Deleted successfully)');
+        fetchSuggestions();
+      } catch (err) {
+        console.error('Delete error:', err);
+        showToast('നീക്കം ചെയ്യാൻ സാധിച്ചില്ല.', 'error');
+      }
+    }
+
+    // Helper: Escape HTML
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Initial Load
+    document.addEventListener('DOMContentLoaded', fetchSuggestions);
+  </script>
+</body>
+</html>
+

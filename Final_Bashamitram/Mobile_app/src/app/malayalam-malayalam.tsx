@@ -8,19 +8,23 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import AnimatedCard from "../components/AnimatedCard";
 import SkeletonLoader from "../components/SkeletonLoader";
 import SpeakButton from "../components/SpeakButton";
+import FavoriteButton from "../components/FavoriteButton";
 import DictionarySearchBar from "../components/DictionarySearchBar";
+import FloatingLettersBackground from "../components/FloatingLettersBackground";
 
 import { saveRecentSearch } from "../utils/recentActivity";
 import { searchMalayalam } from "../database/dictionaryService";
 import type { DictionaryEntry } from "../database/types";
+import { useResponsive } from "../utils/responsive";
 
 type SearchResult = DictionaryEntry;
 
@@ -38,8 +42,25 @@ const MALAYALAM_ALPHABET = [
 ] as const;
 
 export default function MalayalamMalayalamScreen() {
-  const [selectedLetter, setSelectedLetter] = useState("അ");
-  const [searchText, setSearchText] = useState("");
+  const {
+    headerHeight,
+    headerTitleFontSize,
+    headerSubtitleFontSize,
+    dictCardPadding,
+    dictCardMargin,
+    dictCardRadius,
+    dictWordFontSize,
+    dictMeaningFontSize,
+    alphabetTabSize,
+    alphabetFontSize,
+    alphabetPadding,
+    horizontalPadding,
+    isSmallPhone,
+  } = useResponsive();
+
+  const { query } = useLocalSearchParams<{ query?: string }>();
+  const [selectedLetter, setSelectedLetter] = useState(query ? "" : "അ");
+  const [searchText, setSearchText] = useState(query || "");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -84,7 +105,7 @@ export default function MalayalamMalayalamScreen() {
   useEffect(() => {
     if (searchText.trim().length > 1) {
       const timer = setTimeout(() => {
-        void saveRecentSearch(searchText.trim(), "character");
+        void saveRecentSearch(searchText.trim(), "character", "malayalam_malayalam");
       }, 1000);
 
       return () => clearTimeout(timer);
@@ -120,6 +141,12 @@ export default function MalayalamMalayalamScreen() {
     <TouchableOpacity
       style={[
         styles.letterTab,
+        {
+          width: alphabetTabSize,
+          height: alphabetTabSize,
+          borderRadius: Math.round(alphabetTabSize / 2),
+          marginHorizontal: isSmallPhone ? 3 : 5,
+        },
         selectedLetter === item && !searchText.trim() && styles.activeLetterTab,
       ]}
       onPress={() => {
@@ -130,6 +157,7 @@ export default function MalayalamMalayalamScreen() {
       <Text
         style={[
           styles.letterText,
+          { fontSize: alphabetFontSize },
           selectedLetter === item && !searchText.trim() && styles.activeLetterText,
         ]}
       >
@@ -144,42 +172,71 @@ export default function MalayalamMalayalamScreen() {
   }: {
     item: SearchResult;
     index: number;
-  }) => (
-    <AnimatedCard index={index} scrollY={scrollY}>
-      <TouchableOpacity
-        activeOpacity={0.75}
-        style={styles.card}
-        onPress={() => handleCardPress(item.word ?? "")}
-      >
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderText}>
-            {/* Word */}
-            <Text style={styles.malayalamWord}>
-              {item.word}
-            </Text>
+  }) => {
+    const firstMeaning = item.meanings?.[0]?.meaning;
 
-            {/* Meaning */}
-            {item.meanings?.length ? (
-              <View style={styles.meaningContainer}>
+    return (
+      <AnimatedCard index={index} scrollY={scrollY}>
+        <TouchableOpacity
+          activeOpacity={0.75}
+          style={[
+            styles.card,
+            {
+              padding: dictCardPadding,
+              marginBottom: dictCardMargin,
+              borderRadius: dictCardRadius,
+            },
+          ]}
+          onPress={() => handleCardPress(item.word ?? "")}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderText}>
+              <Text style={[styles.malayalamWord, { fontSize: dictWordFontSize }]}>
+                {item.word}
+              </Text>
+            </View>
 
-                {item.meanings.slice(0, 3).map((m, idx) => (
-                  <Text key={idx} style={styles.meaningText}>
-                    • {m.meaning}
-                  </Text>
-                ))}
-              </View>
-            ) : null}
+            <View style={styles.cardActionRow}>
+              <SpeakButton word={item.word} lang="ml" />
+              <FavoriteButton
+                word={item.word}
+                dictionaryType="malayalam-malayalam"
+                meaning={firstMeaning}
+                size={32}
+              />
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+            </View>
           </View>
 
-          <SpeakButton word={item.word} lang="ml" />
-        </View>
-      </TouchableOpacity>
-    </AnimatedCard>
-  );
+          {/* Meaning Box */}
+          {item.meanings?.length ? (
+            <View style={[styles.meaningContainer, { marginTop: isSmallPhone ? 4 : 8 }]}>
+              {item.meanings.slice(0, 3).map((m, idx) => (
+                <Text
+                  key={idx}
+                  style={[
+                    styles.meaningText,
+                    {
+                      fontSize: dictMeaningFontSize,
+                      lineHeight: Math.round(dictMeaningFontSize * 1.45),
+                    },
+                  ]}
+                >
+                  • {m.meaning}
+                </Text>
+              ))}
+            </View>
+          ) : null}
+        </TouchableOpacity>
+      </AnimatedCard>
+    );
+  };
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
+      <FloatingLettersBackground />
+      {/* Header (Matching Screen 2) */}
+      <View style={[styles.header, { height: headerHeight }]}>
         <View style={styles.headerContent}>
           <TouchableOpacity
             onPress={() => {
@@ -189,25 +246,40 @@ export default function MalayalamMalayalamScreen() {
                 router.replace("/");
               }
             }}
+            style={styles.headerBackButton}
+            activeOpacity={0.7}
+            accessibilityLabel="Go back"
           >
-            <Ionicons
-              name="chevron-back"
-              size={27}
-              color="white"
-            />
+            <Ionicons name="arrow-back" size={24} color="#0F172A" />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>
-            മലയാളം - മലയാളം നിഘണ്ടു
-          </Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { fontSize: headerTitleFontSize }]}>
+              ഭാഷാമിത്രം II
+            </Text>
+            <Text style={[styles.headerSubtitle, { fontSize: headerSubtitleFontSize }]}>
+              മലയാളം - മലയാളം പദമിത്രം
+            </Text>
+          </View>
 
-          <View style={{ width: 27 }} />
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.headerEmblem}
+            resizeMode="contain"
+          />
         </View>
       </View>
 
-      <View style={styles.alphabetContainer}>
+      <View style={[styles.alphabetContainer, { paddingVertical: alphabetPadding, paddingHorizontal: horizontalPadding }]}>
         <TouchableOpacity
-          style={styles.clearFilterButton}
+          style={[
+            styles.clearFilterButton,
+            {
+              width: alphabetTabSize,
+              height: alphabetTabSize,
+              borderRadius: Math.round(alphabetTabSize / 2),
+            },
+          ]}
           onPress={() => {
             setSelectedLetter("");
             setSearchText("");
@@ -216,7 +288,7 @@ export default function MalayalamMalayalamScreen() {
         >
           <Ionicons
             name="funnel-outline"
-            size={18}
+            size={isSmallPhone ? 16 : 18}
             color="#EF4444"
           />
         </TouchableOpacity>
@@ -274,7 +346,13 @@ export default function MalayalamMalayalamScreen() {
                 : index.toString()
           }
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            {
+              padding: horizontalPadding,
+              paddingBottom: Math.round(dictCardMargin * 2.5),
+            },
+          ]}
           scrollEventThrottle={16}
           onScroll={Animated.event(
             [
@@ -328,173 +406,202 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "transparent",
   },
-
   header: {
-    height: Platform.OS === "android" ? 75 : 95,
-    backgroundColor: "#2B2C51",
+    height: Platform.OS === "android" ? 82 : 100,
+    backgroundColor: "#FFFFFF",
     justifyContent: "flex-end",
-    paddingBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
-
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
   },
-
+  headerBackButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitleContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
   headerTitle: {
-    color: "#FFF",
+    color: "#0F172A",
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
+    textAlign: "center",
   },
-
+  headerSubtitle: {
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "500",
+    fontFamily: "NotoSansMalayalam",
+    textAlign: "center",
+    marginTop: 1,
+  },
+  headerEmblem: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
   alphabetContainer: {
-    backgroundColor: "#F9F6F1",
+    backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
-
   alphabetFlatList: {
     flex: 1,
   },
-
   alphabetList: {
     paddingHorizontal: 4,
   },
-
   clearFilterButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFF",
+    backgroundColor: "#F1F5F9",
     borderWidth: 1,
-    borderColor: "#EAE6DF",
+    borderColor: "#E2E8F0",
     marginRight: 8,
   },
-
   letterTab: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    marginHorizontal: 5,
-    backgroundColor: "#FFF",
+    marginHorizontal: 4,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#EAE6DF",
+    borderColor: "#E2E8F0",
   },
-
   activeLetterTab: {
-    backgroundColor: "#2B2C51",
-    borderColor: "#2B2C51",
+    backgroundColor: "#2563EB",
+    borderColor: "#2563EB",
+    shadowColor: "#2563EB",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
-
   letterText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#2B2C51",
+    color: "#0F172A",
     fontFamily: "NotoSansMalayalam",
   },
-
   activeLetterText: {
-    color: "#FFF",
+    color: "#FFFFFF",
+    fontWeight: "800",
   },
-
   listContent: {
     padding: 16,
-    paddingBottom: 24,
+    paddingBottom: 32,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
   },
-
   card: {
-    backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#F0ECE6",
+    borderColor: "#E2E8F0",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
   },
-
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
-
   cardHeaderText: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 10,
   },
-
   malayalamWord: {
-    fontSize: 20,
-    color: "#1F2330",
+    fontSize: 18,
+    color: "#0F172A",
     fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
   },
-
+  cardActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  meaningContainer: {
+    marginTop: 10,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: "#2563EB",
+  },
+  meaningText: {
+    fontSize: 14,
+    color: "#334155",
+    lineHeight: 20,
+    fontFamily: "NotoSansMalayalam",
+  },
   stateContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
+    minHeight: 260,
   },
-
   stateTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1F2330",
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#0F172A",
     fontFamily: "NotoSansMalayalam",
-    marginBottom: 10,
+    marginBottom: 6,
   },
-
   stateText: {
     fontSize: 14,
-    color: "#666",
+    color: "#64748B",
     textAlign: "center",
     fontFamily: "NotoSansMalayalam",
-    lineHeight: 22,
+    lineHeight: 20,
   },
-
   retryButton: {
-    marginTop: 20,
-    backgroundColor: "#2B2C51",
+    marginTop: 14,
+    backgroundColor: "#2563EB",
     borderRadius: 12,
     paddingHorizontal: 18,
     paddingVertical: 10,
   },
-
   retryButtonText: {
-    color: "#FFF",
+    color: "#FFFFFF",
     fontWeight: "700",
     fontSize: 14,
   },
-  meaningContainer: {
-    marginTop: 14,
-    backgroundColor: "#F5F5F5",
-    borderRadius: 14,
-    padding: 14,
-    borderLeftWidth: 4,
-    borderLeftColor: "#43AC98",
-  },
-
-  meaningTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#2B2C51",
-    marginBottom: 8,
-  },
-
-  meaningText: {
-    fontSize: 15,
-    color: "#555",
-    lineHeight: 24,
-    fontFamily: "NotoSansMalayalam",
-  },
-
 });

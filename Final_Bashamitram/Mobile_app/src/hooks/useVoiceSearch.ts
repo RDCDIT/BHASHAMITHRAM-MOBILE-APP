@@ -1,40 +1,186 @@
 /**
  * @file useVoiceSearch.ts
- * @description Hook managing speech transcription using either HTML5 Speech Recognition (Web)
- * or expo-audio recorder with backend speech-to-text API calls (Native).
+ * @description Advanced speech recognition hook for dictionary word search.
+ * Uses native Android SpeechRecognizer (with automatic silence / break detection and auto-stop),
+ * Web Speech API for browsers, and expo-audio recording as fallback.
  */
 
-import { useState, useEffect, useRef } from "react";
-import { Platform } from "react-native";
-import { 
-  useAudioRecorder, 
-  RecordingPresets, 
-  getRecordingPermissionsAsync, 
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  Platform,
+  NativeModules,
+  DeviceEventEmitter,
+  PermissionsAndroid,
+} from "react-native";
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  getRecordingPermissionsAsync,
   requestRecordingPermissionsAsync,
-  setAudioModeAsync 
+  setAudioModeAsync,
 } from "expo-audio";
+
+const { SpeechRecognitionModule } = NativeModules;
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
 ].filter((value): value is string => Boolean(value));
 
+const GOOGLE_SPEECH_KEY =
+  process.env.EXPO_PUBLIC_GOOGLE_SPEECH_API_KEY ||
+  process.env.EXPO_PUBLIC_GOOGLE_API_KEY;
 
 /**
- * Custom hook tracking voice states, managing web APIs or device recording to produce transcriptions.
- * 
- * @param {(text: string) => void} onTranscript - Callback fired upon successfully receiving transcriptions.
- * @param {"en-US" | "ml-IN"} lang - Locale language constraint.
- * @returns {Object} Listening states, partial transcript, and start/stop controls.
+ * Cleans conversational speech patterns to extract dictionary search keywords.
+ * For example:
+ * "search for bhasha" -> "bhasha"
+ * "meaning of pusthakam" -> "pusthakam"
+ * "വാക്ക് മലയാളം" -> "മലയാളം"
+ * "അമ്മ അർത്ഥം" -> "അമ്മ"
  */
-export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-US" | "ml-IN" = "ml-IN") {
+export function cleanSearchKeyword(raw: string): string {
+  if (!raw) return "";
+
+  let text = raw.trim();
+
+  // Strip trailing/leading punctuation
+  text = text.replace(/^[.,!?;:'"“”‘’\s]+|[.,!?;:'"“”‘’\s]+$/g, "");
+
+  // English conversational phrases
+  const englishPrefixes = [
+    /^search\s+(for\s+)?/i,
+    /^find\s+(word\s+)?/i,
+    /^meaning\s+(of\s+)?/i,
+    /^what\s+is\s+(the\s+)?(meaning\s+of\s+)?/i,
+    /^define\s+/i,
+    /^definition\s+(of\s+)?/i,
+  ];
+
+  for (const regex of englishPrefixes) {
+    text = text.replace(regex, "");
+  }
+
+  // Malayalam conversational phrases
+  const malayalamPrefixes = [
+    /^വാക്ക്\s+/i,
+    /^അർത്ഥം\s+/i,
+    /^കണ്ടെത്തുക\s+/i,
+    /^തിരയുക\s+/i,
+  ];
+
+  for (const regex of malayalamPrefixes) {
+    text = text.replace(regex, "");
+  }
+
+  const malayalamSuffixes = [
+    /\s+വാക്ക്$/i,
+    /\s+അർത്ഥം$/i,
+    /\s+അർത്ഥം\s+എന്താണ്$/i,
+    /\s+എന്താണ്$/i,
+  ];
+
+  for (const regex of malayalamSuffixes) {
+    text = text.replace(regex, "");
+  }
+
+  return text.trim();
+}
+
+/**
+ * Custom hook tracking voice states, managing native speech recognition, web APIs, or device recording.
+ * Automatically stops when user pauses or finishes speaking.
+ *
+ * @param {(text: string) => void} onTranscript - Callback fired upon successfully receiving transcriptions.
+ * @param {"en-IN" | "ml-IN" | "en-US"} initialLang - Default language (defaults to "ml-IN").
+ */
+export function useVoiceSearch(
+  onTranscript: (text: string) => void,
+  initialLang: "en-IN" | "ml-IN" | "en-US" = "ml-IN"
+) {
+  const [lang, setLang] = useState<"en-IN" | "ml-IN" | "en-US">(initialLang);
   const [isListening, setIsListening] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [partialTranscript, setPartialTranscript] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
   const webRecognizerRef = useRef<any>(null);
-
-  // Initialize the expo-audio recorder hook (always called, unconditionally)
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const onTranscriptRef = useRef(onTranscript);
+  onTranscriptRef.current = onTranscript;
 
-  // 1. Setup Web Speech API Fallback for Web browser environments
+  // 1. Setup Android Native Speech Recognition Event Listeners
+  useEffect(() => {
+    if (Platform.OS !== "android" || !SpeechRecognitionModule) return;
+
+    const subStart = DeviceEventEmitter.addListener("onSpeechStart", () => {
+      setIsListening(true);
+      setIsProcessing(false);
+      setError(null);
+    });
+
+    const subPartial = DeviceEventEmitter.addListener(
+      "onSpeechPartialResults",
+      (data: { transcript?: string }) => {
+        const cleaned = cleanSearchKeyword(data?.transcript || "");
+        if (cleaned) {
+          setPartialTranscript(cleaned);
+        }
+      }
+    );
+
+    const subEnd = DeviceEventEmitter.addListener("onSpeechEnd", () => {
+      // Auto-stop triggered by Android OS when silence/break in speech is detected
+      setIsListening(false);
+      setIsProcessing(true);
+    });
+
+    const subResults = DeviceEventEmitter.addListener(
+      "onSpeechResults",
+      (data: { transcript?: string }) => {
+        setIsListening(false);
+        setIsProcessing(false);
+        const raw = data?.transcript || "";
+        const cleaned = cleanSearchKeyword(raw);
+        setPartialTranscript(cleaned);
+        if (cleaned) {
+          onTranscriptRef.current(cleaned);
+        }
+      }
+    );
+
+    const subError = DeviceEventEmitter.addListener(
+      "onSpeechError",
+      (data: { code?: number; message?: string }) => {
+        setIsListening(false);
+        setIsProcessing(false);
+        // Error codes 6 (SPEECH_TIMEOUT) and 7 (NO_MATCH) occur when user doesn't say anything
+        if (data?.code === 6 || data?.code === 7) {
+          return;
+        }
+        if (data?.message) {
+          console.warn("🎙️ [NativeSpeech] Recognition error:", data.message);
+          setError(
+            lang === "ml-IN"
+              ? "ശബ്ദം തിരിച്ചറിയാൻ സാധിച്ചില്ല. ദയവായി വീണ്ടും ശ്രമിക്കുക."
+              : "Could not recognize speech. Please try again."
+          );
+        }
+      }
+    );
+
+    return () => {
+      subStart.remove();
+      subPartial.remove();
+      subEnd.remove();
+      subResults.remove();
+      subError.remove();
+      if (SpeechRecognitionModule.cancelListening) {
+        SpeechRecognitionModule.cancelListening().catch(() => {});
+      }
+    };
+  }, [lang]);
+
+  // 2. Setup Web Speech API for Web / browser environments
   useEffect(() => {
     if (Platform.OS === "web" && typeof window !== "undefined") {
       const SpeechRecognition =
@@ -47,29 +193,47 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
 
         recognizer.onstart = () => {
           setIsListening(true);
+          setIsProcessing(false);
+          setError(null);
           setPartialTranscript("");
         };
 
         recognizer.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript || "";
-          setPartialTranscript(transcript);
-          onTranscript(transcript);
+          const raw = event.results[0]?.[0]?.transcript || "";
+          const cleaned = cleanSearchKeyword(raw);
+          setPartialTranscript(cleaned);
+          if (event.results[0]?.isFinal) {
+            setIsListening(false);
+            setIsProcessing(false);
+            if (cleaned) {
+              onTranscriptRef.current(cleaned);
+            }
+          }
         };
 
         recognizer.onerror = (event: any) => {
-          console.warn("Web Speech error:", event.error);
           setIsListening(false);
+          setIsProcessing(false);
           if (event.error === "network") {
-            alert("Network error: Speech recognition requires an active internet connection. Some browsers may block recognition requests or require a secure context (HTTPS).");
+            setError(
+              lang === "ml-IN"
+                ? "ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിക്കുക."
+                : "Check your internet connection."
+            );
           } else if (event.error === "not-allowed") {
-            alert("Microphone permission was denied.");
+            setError(
+              lang === "ml-IN"
+                ? "മൈക്രോഫോൺ അനുമതി നൽകുക."
+                : "Microphone permission denied."
+            );
           } else if (event.error !== "no-speech") {
-            alert(`Voice search error: ${event.error}`);
+            setError(`Error: ${event.error}`);
           }
         };
 
         recognizer.onend = () => {
           setIsListening(false);
+          setIsProcessing(false);
         };
 
         webRecognizerRef.current = recognizer;
@@ -78,12 +242,52 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
   }, [lang]);
 
   /**
- * Triggers speech recognition permissions check and starts audio captures or listeners.
- */
-  const startListening = async () => {
-    // Web Speech API
+   * Starts speech recognition with automatic pause/break detection.
+   */
+  const startListening = async (overrideLang?: "en-IN" | "ml-IN" | "en-US") => {
+    const targetLang = overrideLang || lang;
+    setError(null);
+    setPartialTranscript("");
+
+    // A. Native Android SpeechRecognizer
+    if (Platform.OS === "android" && SpeechRecognitionModule) {
+      try {
+        const alreadyGranted = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+        );
+        if (!alreadyGranted) {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+            {
+              title: "Microphone Permission",
+              message: "App requires microphone permission for voice search.",
+              buttonPositive: "Allow",
+            }
+          );
+
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            setError(
+              targetLang === "ml-IN"
+                ? "ശബ്ദം റെക്കോർഡ് ചെയ്യാൻ മൈക്രോഫോൺ അനുമതി ആവശ്യമാണ്."
+                : "Microphone permission is required."
+            );
+            return;
+          }
+        }
+
+        setIsListening(true);
+        setIsProcessing(false);
+        await SpeechRecognitionModule.startListening(targetLang);
+        return;
+      } catch (e: any) {
+        console.warn("🎙️ [NativeSpeech] Start failed, falling back to audio recorder:", e);
+      }
+    }
+
+    // B. Web Speech API
     if (Platform.OS === "web" && webRecognizerRef.current) {
       try {
+        webRecognizerRef.current.lang = targetLang;
         webRecognizerRef.current.start();
       } catch (e) {
         console.warn("Web Speech start failed:", e);
@@ -91,7 +295,7 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
       return;
     }
 
-    // Expo Go / Mobile native: Record audio using expo-audio and send to backend
+    // C. Native Recording via expo-audio (fallback if native speech module unavailable)
     try {
       const permission = await getRecordingPermissionsAsync();
       let granted = permission.granted;
@@ -100,7 +304,11 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
         granted = request.granted;
       }
       if (!granted) {
-        alert("Microphone permission is required for voice search.");
+        setError(
+          targetLang === "ml-IN"
+            ? "ശബ്ദം റെക്കോർഡ് ചെയ്യാൻ അനുമതി ആവശ്യമാണ്."
+            : "Microphone permission is required."
+        );
         return;
       }
 
@@ -109,38 +317,42 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
         playsInSilentMode: true,
       });
 
-      setPartialTranscript("Recording...");
       setIsListening(true);
+      setIsProcessing(false);
 
-      console.log("🎙️ [VoiceSearch] Audio recording starting...");
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
-      console.log("🎙️ [VoiceSearch] Audio recording started.");
-
-    } catch (error) {
-      console.error("🎙️ [VoiceSearch] Failed to start native recording:", error);
+    } catch (err) {
+      console.error("🎙️ [VoiceSearch] Start recording failed:", err);
       setIsListening(false);
-      setPartialTranscript("");
-      alert("🎙️ Failed to start voice recording.");
+      setIsProcessing(false);
+      setError("മൈക്രോഫോൺ ആരംഭിക്കാൻ സാധിച്ചില്ല.");
     }
   };
 
   /**
- * Stops ongoing voice captures and dispatches recorded bytes to transcribe services.
- */
+   * Stops listening.
+   */
   const stopListening = async () => {
-    // Web Speech API
-    if (Platform.OS === "web" && webRecognizerRef.current) {
+    // Android Native
+    if (Platform.OS === "android" && SpeechRecognitionModule) {
       try {
-        webRecognizerRef.current.stop();
-      } catch (e) {
-        console.warn("Web Speech stop failed:", e);
-      }
+        await SpeechRecognitionModule.stopListening();
+      } catch {}
       setIsListening(false);
       return;
     }
 
-    // Mobile Speech API via backend
+    // Web Speech API
+    if (Platform.OS === "web" && webRecognizerRef.current) {
+      try {
+        webRecognizerRef.current.stop();
+      } catch {}
+      setIsListening(false);
+      return;
+    }
+
+    // Fallback audio recorder
     const status = audioRecorder.getStatus();
     if (!status.isRecording) {
       setIsListening(false);
@@ -148,17 +360,13 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
     }
 
     try {
-      console.log("🎙️ [VoiceSearch] Stopping recording...");
-      setPartialTranscript("Processing speech...");
+      setIsListening(false);
+      setIsProcessing(true);
 
       await audioRecorder.stop();
       const uri = audioRecorder.uri;
-      
-      if (!uri) {
-        throw new Error("No recording URI found.");
-      }
+      if (!uri) return;
 
-      // Convert the local file URI to a blob and then to base64
       const fileResponse = await fetch(uri);
       const fileBlob = await fileResponse.blob();
 
@@ -167,70 +375,122 @@ export function useVoiceSearch(onTranscript: (text: string) => void, lang: "en-U
         try {
           const base64Data = (reader.result as string).split(",")[1];
           await transcribeAudio(base64Data);
-        } catch (err) {
-          console.error("🎙️ [VoiceSearch] Failed to process base64 conversion:", err);
-          setPartialTranscript("");
-          setIsListening(false);
+        } catch {
+          setIsProcessing(false);
         }
       };
       reader.readAsDataURL(fileBlob);
-
-    } catch (error) {
-      console.error("🎙️ [VoiceSearch] Failed to stop recording and transcribe:", error);
-      setPartialTranscript("");
+    } catch {
       setIsListening(false);
-      alert("🎙️ Voice search failed. Please try again.");
+      setIsProcessing(false);
     }
   };
 
   /**
- * Sends base64-encoded audio bytes to speech-to-text API endpoints.
- * 
- * @param {string} base64Audio - Binary audio chunk.
- */
+   * Cancels listening immediately without transcribing.
+   */
+  const cancelListening = async () => {
+    if (Platform.OS === "android" && SpeechRecognitionModule) {
+      try {
+        await SpeechRecognitionModule.cancelListening();
+      } catch {}
+    } else if (Platform.OS === "web" && webRecognizerRef.current) {
+      try {
+        webRecognizerRef.current.abort();
+      } catch {}
+    }
+    setIsListening(false);
+    setIsProcessing(false);
+    setPartialTranscript("");
+  };
+
+  /**
+   * Fallback transcription for expo-audio.
+   */
   const transcribeAudio = async (base64Audio: string) => {
-    let lastError: unknown = null;
+    if (GOOGLE_SPEECH_KEY) {
+      try {
+        const googleUrl = `https://speech.googleapis.com/v1/speech:recognize?key=${GOOGLE_SPEECH_KEY}`;
+        const resp = await fetch(googleUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            config: {
+              encoding: "ENCODING_UNSPECIFIED",
+              languageCode: lang,
+            },
+            audio: { content: base64Audio },
+          }),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          const transcript = data.results?.[0]?.alternatives?.[0]?.transcript || "";
+          if (transcript) {
+            const cleaned = cleanSearchKeyword(transcript);
+            setPartialTranscript(cleaned);
+            onTranscriptRef.current(cleaned);
+            setIsProcessing(false);
+            return;
+          }
+        }
+      } catch {}
+    }
 
     for (const apiBaseUrl of API_BASE_URLS) {
       try {
-        console.log(`🎙️ [VoiceSearch] Sending audio to backend: ${apiBaseUrl}/api/speech-to-text`);
-        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+
         const response = await fetch(`${apiBaseUrl}/api/speech-to-text`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
           body: JSON.stringify({
             audioContent: base64Audio,
             languageCode: lang,
           }),
         });
+        clearTimeout(timeoutId);
 
-        if (!response.ok) {
-          throw new Error(`Server returned status ${response.status}`);
+        if (response.ok) {
+          const data = await response.json();
+          const text = data.transcript || "";
+          if (text && !data.isMock) {
+            const cleaned = cleanSearchKeyword(text);
+            setPartialTranscript(cleaned);
+            onTranscriptRef.current(cleaned);
+            setIsProcessing(false);
+            return;
+          }
         }
-
-        const data = await response.json();
-        const text = data.transcript || "";
-        console.log(`🎙️ [VoiceSearch] Transcription result: "${text}"`);
-
-        setPartialTranscript(text);
-        onTranscript(text);
-        setIsListening(false);
-        return; // Success!
-
-      } catch (err) {
-        lastError = err;
-      }
+      } catch {}
     }
 
-    throw lastError || new Error("Failed to reach transcription servers.");
+    setIsProcessing(false);
+    setError(
+      lang === "ml-IN"
+        ? "ശബ്ദം തിരിച്ചറിയാൻ സാധിച്ചില്ല. വീണ്ടും ശ്രമിക്കുക."
+        : "Speech could not be recognized. Please try again."
+    );
   };
+
+  const resetVoice = useCallback(() => {
+    setIsListening(false);
+    setIsProcessing(false);
+    setPartialTranscript("");
+    setError(null);
+  }, []);
 
   return {
     isListening,
+    isProcessing,
     partialTranscript,
+    error,
+    lang,
+    setLang,
     startListening,
     stopListening,
+    cancelListening,
+    resetVoice,
   };
 }

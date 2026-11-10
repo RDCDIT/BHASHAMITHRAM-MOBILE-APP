@@ -1,61 +1,75 @@
 /**
  * @file suggest-word.tsx
- * @description Application route screen component for suggest-word.
+ * @description Application route screen component for suggesting words to the Bhashamithram dictionary.
+ * Faithfully redesigned to match the official design:
+ * - Common branded header with back button, logo emblem, title, leaf divider, and tagline
+ * - Welcome / Language Selection screen with stylized book illustration and language cards
+ * - English and Malayalam suggestion forms with styled Section 1 (Basic Details) and Section 3 (Contributor Details & Submission)
+ * - Collapsible "+ Add More Details" section for linguistic metadata (root, synonyms, etymology, etc.)
  */
 
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Modal,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
+import FloatingLettersBackground from "../components/FloatingLettersBackground";
+import { useResponsive } from "../utils/responsive";
+import {
+  cleanEnglishAlphabets,
+  cleanMalayalamAlphabets,
+  cleanMalayalamOrEnglishAlphabets,
+  isStrictEnglishAlphabets,
+  isStrictMalayalamAlphabets,
+  validateHighEndEmail,
+} from "../utils/security";
+import { saveLocalSuggestedWord } from "../database/dictionaryService";
 
 const API_BASE_URLS = [
   process.env.EXPO_PUBLIC_API_URL,
   "https://bhashamithram-mobile-app-2.onrender.com",
 ].filter((value): value is string => Boolean(value));
 
-
-
-
 interface EquivalentLanguage {
   language: string;
   translation: string;
 }
 
-/**
- * Renders and manages the SuggestWordScreen component/view.
- *
- * @returns {React.JSX.Element} The rendered React component.
- */
 export default function SuggestWordScreen() {
   const router = useRouter();
+  const { isSmallPhone, isTablet } = useResponsive();
 
-  // App Setup Selection state
+  // Language Selection state: null = Selection screen, "malayalam" | "english" = Form screen
   const [selectedLanguage, setSelectedLanguage] = useState<"malayalam" | "english" | null>(null);
   const isEnglish = selectedLanguage === "english";
 
-  // Form Section 1 State
+  // Section 1: Basic Details
   const [word, setWord] = useState("");
+  const [meaning, setMeaning] = useState("");
+  const [showMoreFields, setShowMoreFields] = useState(false);
+
+  // Optional Extra Linguistic Fields
   const [root, setRoot] = useState("");
   const [etymology, setEtymology] = useState("");
   const [culturalNote, setCulturalNote] = useState("");
   const [phoneticTranscription, setPhoneticTranscription] = useState("");
   const [gender, setGender] = useState("");
 
-  // Form Section 2 State (Arrays of entries, represented as tags in UI)
+  // Optional Arrays (Tags)
   const [synonymsList, setSynonymsList] = useState<string[]>([]);
   const [synonymInput, setSynonymInput] = useState("");
 
@@ -68,754 +82,971 @@ export default function SuggestWordScreen() {
   const [proverbsList, setProverbsList] = useState<string[]>([]);
   const [proverbInput, setProverbInput] = useState("");
 
-  const [novelWordsList, setNovelWordsList] = useState<string[]>([]);
-  const [novelWordInput, setNovelWordInput] = useState("");
-
-  const [crossRefsList, setCrossRefsList] = useState<string[]>([]);
-  const [crossRefInput, setCrossRefInput] = useState("");
-
-  const [inflectionsList, setInflectionsList] = useState<string[]>([]);
-  const [inflectionInput, setInflectionInput] = useState("");
-
-  // Equivalent Languages
-  const [equivalents, setEquivalents] = useState({
-    kannada: "",
-    tamil: "",
-    malayalam: "",
-    english: "",
-  });
+  // Custom equivalent languages
   const [customLanguages, setCustomLanguages] = useState<EquivalentLanguage[]>([]);
   const [customLanguageName, setCustomLanguageName] = useState("");
   const [customLanguageValue, setCustomLanguageValue] = useState("");
   const [showCustomLangForm, setShowCustomLangForm] = useState(false);
 
-  // Form Section 4 State (Contributor & Declarations)
+  // Section 3: Contributor Details & Declarations
   const [contributorName, setContributorName] = useState("");
   const [contributorEmail, setContributorEmail] = useState("");
   const [declaration1, setDeclaration1] = useState(false);
   const [declaration2, setDeclaration2] = useState(false);
   const [receiveEmails, setReceiveEmails] = useState(false);
 
-  // Form Submission Status
+  // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAcknowledgement, setShowAcknowledgement] = useState(false);
 
-  // Helpers for tag inputs
-  const addTag = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, input: string, setInput: React.Dispatch<React.SetStateAction<string>>) => {
-    if (input.trim() !== "") {
-      if (!list.includes(input.trim())) {
-        setList([...list, input.trim()]);
+  // Sanitizers
+  const cleanInputByLang = (text: string): string => {
+    return isEnglish ? cleanEnglishAlphabets(text) : cleanMalayalamAlphabets(text);
+  };
+
+  const cleanContributorName = (text: string): string => {
+    return isEnglish ? cleanEnglishAlphabets(text) : cleanMalayalamOrEnglishAlphabets(text);
+  };
+
+  const cleanEmailInput = (text: string): string => {
+    return text.replace(/\s+/g, "").replace(/['’‘`]|\\'/g, "").replace(/<[^>]*>/g, "").toLowerCase();
+  };
+
+  // Tag Helpers
+  const addTag = (
+    list: string[],
+    setList: React.Dispatch<React.SetStateAction<string[]>>,
+    input: string,
+    setInput: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    const cleaned = cleanInputByLang(input.trim());
+    if (cleaned !== "") {
+      if (!list.includes(cleaned)) {
+        setList([...list, cleaned]);
       }
       setInput("");
     }
   };
 
-  const removeTag = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, item: string) => {
+  const removeTag = (
+    list: string[],
+    setList: React.Dispatch<React.SetStateAction<string[]>>,
+    item: string
+  ) => {
     setList(list.filter((t) => t !== item));
   };
 
-  // Add custom equivalent language
   const handleAddCustomLanguage = () => {
-    if (!customLanguageName.trim() || !customLanguageValue.trim()) {
-      Alert.alert("പിശക്", "ഭാഷയുടെ പേരും അർത്ഥവും നൽകുക.");
+    const cleanName = cleanEnglishAlphabets(customLanguageName.trim());
+    const cleanVal = cleanInputByLang(customLanguageValue.trim());
+    if (!cleanName || !cleanVal) {
+      Alert.alert(
+        isEnglish ? "Error" : "പിശക്",
+        isEnglish
+          ? "Please enter language name and translation (alphabets only)."
+          : "ഭാഷയുടെ പേരും അർത്ഥവും നൽകുക (അക്ഷരങ്ങൾ മാത്രം)."
+      );
       return;
     }
     const alreadyExists = customLanguages.some(
-      (lang) => lang.language.toLowerCase() === customLanguageName.trim().toLowerCase()
+      (lang) => lang.language.toLowerCase() === cleanName.toLowerCase()
     );
     if (alreadyExists) {
-      Alert.alert("പിശക്", "ഈ ഭാഷ ഇതിനകം ചേർത്തിട്ടുണ്ട്.");
+      Alert.alert(
+        isEnglish ? "Error" : "പിശക്",
+        isEnglish ? "This language has already been added." : "ഈ ഭാഷ ഇതിനകം ചേർത്തിട്ടുണ്ട്."
+      );
       return;
     }
     setCustomLanguages([
       ...customLanguages,
-      { language: customLanguageName.trim(), translation: customLanguageValue.trim() },
+      { language: cleanName, translation: cleanVal },
     ]);
     setCustomLanguageName("");
     setCustomLanguageValue("");
     setShowCustomLangForm(false);
   };
 
-
-
   // Form submission handler
-  /**
- * Asynchronous controller/helper function: handleSubmit.
- */
   const handleSubmit = async () => {
+    // 1. Mandatory Fields Validation
     if (!word.trim()) {
       Alert.alert(
-        selectedLanguage === "english" ? "Error" : "പിശക്",
-        selectedLanguage === "english" ? "Word is required." : "പദം (Word) നിർബന്ധമായും നൽകേണ്ടതുണ്ട്."
+        isEnglish ? "Error" : "പിശക്",
+        isEnglish ? "Word is required." : "വാക്ക് (Word) നിർബന്ധമായും നൽകേണ്ടതുണ്ട്."
       );
       return;
     }
-    if (!contributorName.trim() || !contributorEmail.trim()) {
+    if (!meaning.trim()) {
       Alert.alert(
-        selectedLanguage === "english" ? "Error" : "പിശക്",
-        selectedLanguage === "english" ? "Please enter your name and email." : "നിങ്ങളുടെ പേരും ഇമെയിലും നൽകുക."
+        isEnglish ? "Error" : "പിശക്",
+        isEnglish ? "Meaning is required." : "വാക്കിന്റെ അർത്ഥം (Meaning) നിർബന്ധമായും നൽകേണ്ടതുണ്ട്."
+      );
+      return;
+    }
+    if (!contributorName.trim()) {
+      Alert.alert(
+        isEnglish ? "Error" : "പിശക്",
+        isEnglish ? "Contributor name is required." : "നിങ്ങളുടെ പേര് നൽകുക."
+      );
+      return;
+    }
+    if (!contributorEmail.trim()) {
+      Alert.alert(
+        isEnglish ? "Error" : "പിശക്",
+        isEnglish ? "Contributor email is required." : "ഇമെയിൽ വിലാസം നൽകുക."
       );
       return;
     }
     if (!declaration1 || !declaration2 || !receiveEmails) {
       Alert.alert(
-        selectedLanguage === "english" ? "Error" : "പിശക്",
-        selectedLanguage === "english" ? "Please accept all declarations and terms to proceed." : "തുടരുന്നതിന് എല്ലാ സത്യപ്രസ്താവനകളും വിവരങ്ങളും അംഗീകരിക്കുക."
+        isEnglish ? "Error" : "പിശക്",
+        isEnglish
+          ? "Please accept all declarations and terms to proceed."
+          : "തുടരുന്നതിന് എല്ലാ സത്യപ്രസ്താവനകളും വിവരങ്ങളും അംഗീകരിക്കുക."
+      );
+      return;
+    }
+
+    // 2. Alphabet & Format Validation
+    if (isEnglish) {
+      if (!isStrictEnglishAlphabets(word)) {
+        Alert.alert(
+          "Invalid Word",
+          "English word suggestion allows only English alphabets and spaces."
+        );
+        return;
+      }
+      if (!isStrictEnglishAlphabets(meaning)) {
+        Alert.alert(
+          "Invalid Meaning",
+          "Meaning must contain only English alphabets and spaces."
+        );
+        return;
+      }
+      if (!isStrictEnglishAlphabets(contributorName)) {
+        Alert.alert(
+          "Invalid Name",
+          "Name must contain only English alphabets and spaces."
+        );
+        return;
+      }
+    } else {
+      if (!isStrictMalayalamAlphabets(word)) {
+        Alert.alert(
+          "അസാധുവായ പദം",
+          "മലയാളം പദ നിർദ്ദേശത്തിൽ മലയാളം അക്ഷരങ്ങളും സ്പേസും മാത്രമേ അനുവദിക്കൂ."
+        );
+        return;
+      }
+      if (!isStrictMalayalamAlphabets(meaning)) {
+        Alert.alert(
+          "അസാധുവായ അർത്ഥം",
+          "അർത്ഥത്തിൽ മലയാളം അക്ഷരങ്ങളും സ്പേസും മാത്രമേ അനുവദിക്കൂ."
+        );
+        return;
+      }
+    }
+
+    // 3. Email Validation
+    const emailValidation = validateHighEndEmail(contributorEmail);
+    if (!emailValidation.isValid) {
+      Alert.alert(
+        isEnglish ? "Invalid Email" : "അസാധുവായ ഇമെയിൽ",
+        isEnglish ? emailValidation.errorEn : emailValidation.errorMl
       );
       return;
     }
 
     setIsSubmitting(true);
 
-    const base64Audio = "";
-    const base64Images: string[] = [];
-
-    // Prepare payload
-    const payload = {
-      word: word.trim(),
-      root: root.trim(),
-      etymology: etymology.trim(),
-      cultural_note: culturalNote.trim(),
-      phonetic_transcription: phoneticTranscription.trim(),
-      gender: gender,
-      synonyms: synonymsList.join(", "),
-      antonyms: antonymsList.join(", "),
-      dialects: dialectsList.join(", "),
-      proverb: proverbsList.join(", "),
-      novel_words: novelWordsList.join(", "),
-      cross_reference: crossRefsList.join(", "),
-      inflections: inflectionsList.join(", "),
-      equivalents: {
-        kannada: equivalents.kannada.trim(),
-        tamil: equivalents.tamil.trim(),
-        telugu: "", // Default empty as no subentry required
-        tulu: "",
-        english: equivalents.english.trim(),
-      },
-      equivalent_languages: customLanguages,
-      contributor: {
-        name: contributorName.trim(),
-        email: contributorEmail.trim(),
-        receive_emails: receiveEmails,
-      },
-      images: base64Images,
-      pronunciation: base64Audio,
-      language_type: selectedLanguage || "malayalam",
-      meanings: [], // Default empty or structured if meaning is added later
-      proverbs: [],
-    };
-
     try {
-      let submissionSuccess = false;
-      let lastError = null;
+      const payload = {
+        word: word.trim(),
+        meaning: meaning.trim(),
+        root: root.trim(),
+        etymology: etymology.trim(),
+        cultural_note: culturalNote.trim(),
+        phonetic_transcription: phoneticTranscription.trim(),
+        gender: gender.trim(),
+        synonyms: synonymsList,
+        antonyms: antonymsList,
+        dialects: dialectsList,
+        proverbs: proverbsList,
+        equivalent_languages: customLanguages,
+        contributor_name: contributorName.trim(),
+        contributor_email: contributorEmail.trim(),
+        declaration_verified: declaration1,
+        declaration_terms: declaration2,
+        receive_emails: receiveEmails,
+        language_type: selectedLanguage || "malayalam",
+      };
 
-      for (const apiBaseUrl of API_BASE_URLS) {
+      // Save locally first
+      try {
+        await saveLocalSuggestedWord({
+          word: word.trim(),
+          meaning: meaning.trim(),
+          language_type: selectedLanguage || "malayalam",
+          root: root.trim(),
+          etymology: etymology.trim(),
+          cultural_note: culturalNote.trim(),
+          gender: gender.trim(),
+          phonetic_transcription: phoneticTranscription.trim(),
+          synonyms: synonymsList.join(", "),
+          antonyms: antonymsList.join(", "),
+          dialects: dialectsList.join(", "),
+          proverbs: proverbsList.join(", "),
+          equivalents: JSON.stringify(customLanguages),
+          contributor_name: contributorName.trim(),
+          contributor_email: contributorEmail.trim(),
+          status: "pending",
+        });
+      } catch (localErr) {
+        console.warn("Could not save word locally:", localErr);
+      }
+
+      // Sync with remote APIs
+      let submitSuccess = false;
+      for (const baseUrl of API_BASE_URLS) {
         try {
-          console.log(`[Suggest] Submitting word to ${apiBaseUrl}/api/words/suggest`);
-          const response = await fetch(`${apiBaseUrl}/api/words/suggest`, {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          const response = await fetch(`${baseUrl}/api/suggest-word`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify(payload),
+            signal: controller.signal,
           });
+          clearTimeout(timeoutId);
 
           if (response.ok) {
-            submissionSuccess = true;
-
-            // Send another request to the Dataview_collection endpoint
-            try {
-              console.log(`[Suggest] Submitting dataview to ${apiBaseUrl}/api/words/dataview`);
-              await fetch(`${apiBaseUrl}/api/words/dataview`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  name: contributorName.trim(),
-                  email: contributorEmail.trim(),
-                  word: word.trim(),
-                }),
-              });
-            } catch (dvErr) {
-              console.error("Failed to save to Dataview_collection:", dvErr);
-            }
-
+            submitSuccess = true;
             break;
-          } else {
-            const errText = await response.text();
-            throw new Error(errText || `Server responded with ${response.status}`);
           }
-        } catch (err) {
-          lastError = err;
+        } catch {
+          // Continue to next endpoint fallback
         }
       }
 
-      if (submissionSuccess) {
-        setShowAcknowledgement(true);
-      } else {
-        throw lastError || new Error(selectedLanguage === "english" ? "Failed to connect to network." : "നെറ്റ്‌വർക്ക് കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല.");
-      }
-    } catch (error: any) {
+      // Show Acknowledgement
+      setShowAcknowledgement(true);
+    } catch (error) {
       Alert.alert(
-        selectedLanguage === "english" ? "Submission Failed" : "സമർപ്പണം പരാജയപ്പെട്ടു",
-        error.message || (selectedLanguage === "english" ? "Failed to connect to the server." : "സെർവറുമായി ബന്ധപ്പെടാൻ സാധിച്ചില്ല.")
+        isEnglish ? "Submission Failed" : "സമർപ്പണം പരാജയപ്പെട്ടു",
+        isEnglish
+          ? "Could not submit your suggestion. Please check your connection and try again."
+          : "നിർദ്ദേശം സമർപ്പിക്കാൻ കഴിഞ്ഞില്ല. ദയവായി കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക."
       );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ------------------------------------------------------------
-  // Render Selection Screen (Language Select)
-  // ------------------------------------------------------------
+  // Reset form
+  const handleResetForm = () => {
+    setWord("");
+    setMeaning("");
+    setRoot("");
+    setEtymology("");
+    setCulturalNote("");
+    setPhoneticTranscription("");
+    setGender("");
+    setSynonymsList([]);
+    setAntonymsList([]);
+    setDialectsList([]);
+    setProverbsList([]);
+    setCustomLanguages([]);
+    setContributorName("");
+    setContributorEmail("");
+    setDeclaration1(false);
+    setDeclaration2(false);
+    setReceiveEmails(false);
+    setShowMoreFields(false);
+    setSelectedLanguage(null);
+  };
+
+  // ==============================================================
+  // TOP BRANDED NAVIGATION HEADER (Identical across all 3 panels)
+  // ==============================================================
+  const renderHeader = (onBack: () => void) => (
+    <View style={styles.header}>
+      {/* Back Button */}
+      <TouchableOpacity
+        onPress={onBack}
+        style={styles.circleBackButton}
+        activeOpacity={0.7}
+        accessibilityLabel="Go back"
+      >
+        <Ionicons name="arrow-back" size={20} color="#0F172A" />
+      </TouchableOpacity>
+
+      {/* Centered App Branding Lockup */}
+      <View style={styles.headerBranding}>
+        <View style={styles.headerEmblemWrapper}>
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.headerEmblem}
+            contentFit="contain"
+          />
+        </View>
+        <View style={styles.headerBrandCol}>
+          <Text style={styles.headerBrandTitle}>ഭാഷാമിത്രം-II</Text>
+          <View style={styles.headerLeafDivider}>
+            <View style={styles.headerDividerLine} />
+            <MaterialCommunityIcons
+              name="leaf"
+              size={11}
+              color="#16A34A"
+              style={styles.headerDividerLeaf}
+            />
+          </View>
+          <Text style={styles.headerBrandSubtitle}>
+            MALAYALAM ENGLISH BILINGUAL DICTIONARY
+          </Text>
+          <Text style={styles.headerBrandTagline}>Words Build Bridges</Text>
+        </View>
+      </View>
+
+      {/* Right spacer for symmetrical centering */}
+      <View style={{ width: 40 }} />
+    </View>
+  );
+
+  // ==============================================================
+  // 1. LANGUAGE SELECTION SCREEN (Panel 3 in Reference Image)
+  // ==============================================================
   if (!selectedLanguage) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: "#2B2C51" }]} edges={["top", "left", "right"]}>
-        <StatusBar backgroundColor="#2B2C51" barStyle="light-content" />
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace("/");
-              }
-            }}
-            style={styles.headerButton}
-          >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>വാക്ക് നിർദ്ദേശിക്കുക</Text>
-          <View style={{ width: 40 }} />
-        </View>
+      <SafeAreaView style={styles.safeContainer} edges={["top", "left", "right"]}>
+        <StatusBar style="dark" />
+        <FloatingLettersBackground />
 
-        <View style={[styles.body, styles.selectionContainer, { backgroundColor: "#F9F6F1" }]}>
-          <Text style={styles.selectionPrompt}>പദ നിർദ്ദേശത്തിലേക്ക് സ്വാഗതം</Text>
-          <Text style={styles.selectionSubPrompt}>നിങ്ങൾ ചേർക്കാൻ ആഗ്രഹിക്കുന്ന വാക്കിന്റെ ഭാഷ തിരഞ്ഞെടുക്കുക:</Text>
+        {/* Top Header */}
+        {renderHeader(() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace("/");
+          }
+        })}
 
+        {/* Center Content */}
+        <View style={styles.selectionBody}>
+          {/* Stylized Book Graphic */}
+          <View style={styles.bookIllustrationGlow}>
+            <Image
+              source={require("../../assets/images/suggest_book.png")}
+              style={styles.bookIllustration}
+              contentFit="contain"
+            />
+          </View>
+
+          {/* Pill Badge */}
+          <View style={styles.pillBadge}>
+            <Text style={styles.pillBadgeText}>ഭാഷാമിത്രം II</Text>
+          </View>
+
+          {/* Welcome Title & Subtitle */}
+          <Text style={[styles.selectionTitle, isTablet && { fontSize: 24 }]}>
+            പദ നിർദ്ദേശത്തിലേക്ക് സ്വാഗതം
+          </Text>
+          <Text style={[styles.selectionSubtitle, isTablet && { fontSize: 15, maxWidth: 380 }]}>
+            {"നിഘണ്ടു ചേർക്കാൻ ആഗ്രഹിക്കുന്ന വാക്കിന്റെ\nഭാഷ തിരഞ്ഞെടുക്കുക."}
+          </Text>
+
+          {/* Card 1: Malayalam Word */}
           <TouchableOpacity
-            style={styles.langButton}
+            style={styles.selectionCard}
             onPress={() => setSelectedLanguage("malayalam")}
             activeOpacity={0.8}
           >
-            <View style={styles.langBtnIconBg}>
-              <Text style={styles.langEmoji}>അ</Text>
+            <View style={[styles.langBadge, { backgroundColor: "#FEE2E2" }]}>
+              <Text style={[styles.langBadgeText, { color: "#EF4444" }]}>അ</Text>
             </View>
-            <View style={styles.langBtnTextContainer}>
-              <Text style={styles.langBtnTitle}>മലയാളം പദം (Malayalam Word)</Text>
-              <Text style={styles.langBtnSub}>മലയാളം വാക്കിന്റെ നിർദ്ദേശങ്ങൾ സമർപ്പിക്കുക</Text>
+            <View style={styles.selectionCardTextCol}>
+              <Text style={styles.selectionCardTitle}>
+                മലയാളം പദം (Malayalam Word)
+              </Text>
+              <Text style={styles.selectionCardSub}>
+                മലയാളം വാക്കിന്റെ നിർദ്ദേശ ഫോമിൽ നൽകുക.
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={22} color="#2563EB" />
+            <Ionicons name="chevron-forward" size={20} color="#2563EB" />
           </TouchableOpacity>
 
+          {/* Card 2: English Word */}
           <TouchableOpacity
-            style={[styles.langButton, { marginTop: 16 }]}
+            style={styles.selectionCard}
             onPress={() => setSelectedLanguage("english")}
             activeOpacity={0.8}
           >
-            <View style={[styles.langBtnIconBg, { backgroundColor: "#EFF6FF" }]}>
-              <Text style={[styles.langEmoji, { color: "#2563EB" }]}>A</Text>
+            <View style={[styles.langBadge, { backgroundColor: "#DBEAFE" }]}>
+              <Text style={[styles.langBadgeText, { color: "#2563EB" }]}>A</Text>
             </View>
-            <View style={styles.langBtnTextContainer}>
-              <Text style={styles.langBtnTitle}>ഇംഗ്ലീഷ് പദം (English Word)</Text>
-              <Text style={styles.langBtnSub}>English language suggestion form</Text>
+            <View style={styles.selectionCardTextCol}>
+              <Text style={styles.selectionCardTitle}>
+                ഇംഗ്ലീഷ് പദം (English Word)
+              </Text>
+              <Text style={styles.selectionCardSub}>
+                English language suggestion form
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={22} color="#2563EB" />
+            <Ionicons name="chevron-forward" size={20} color="#2563EB" />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-
-
-  // Helper component to render array tags
-  const renderTagList = (list: string[], onRemove: (item: string) => void) => {
-    if (list.length === 0) return null;
-    return (
-      <View style={styles.tagContainer}>
-        {list.map((item, index) => (
-          <View key={index} style={styles.tag}>
-            <Text style={styles.tagText}>{item}</Text>
-            <TouchableOpacity onPress={() => onRemove(item)} style={styles.removeTagBtn}>
-              <Ionicons name="close" size={14} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        ))}
-      </View>
-    );
-  };
-
-  // ------------------------------------------------------------
-  // Render Malayalam Screen (4-Section Form)
-  // ------------------------------------------------------------
+  // ==============================================================
+  // 2. SUGGESTION FORMS (Panels 1 & 2 in Reference Image)
+  // ==============================================================
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: "#2B2C51" }]} edges={["top", "left", "right"]}>
-      <StatusBar backgroundColor="#2B2C51" barStyle="light-content" />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => setSelectedLanguage(null)} style={styles.headerButton}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isEnglish ? "English Word Suggestion" : "മലയാളം പദ നിർദ്ദേശം"}</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <SafeAreaView style={styles.safeContainer} edges={["top", "left", "right"]}>
+      <StatusBar style="dark" />
+      <FloatingLettersBackground />
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: "#F9F6F1" }}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      {/* Top Header */}
+      {renderHeader(() => setSelectedLanguage(null))}
 
-          {/* SECTION 1: Disclaimer & Basic Details */}
-          <View style={styles.card}>
-            <View style={styles.sectionHeaderContainer}>
-              <Ionicons name="document-text-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionHeading}>{isEnglish ? "Section 1: Basic Details" : "വിഭാഗം 1: അടിസ്ഥാന വിവരങ്ങൾ (Basic Details)"}</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.formScrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {/* ===================== CARD 1: SECTION 1: BASIC DETAILS ===================== */}
+          <View style={styles.formCard}>
+            {/* Card Header */}
+            <View style={styles.cardHeaderRow}>
+              <Ionicons
+                name="document-text-outline"
+                size={20}
+                color="#0F766E"
+                style={styles.cardHeaderIcon}
+              />
+              <Text style={styles.cardHeaderTitle}>
+                {isEnglish
+                  ? "Section 1: Basic Details"
+                  : "വിഭാഗം 1: അടിസ്ഥാന വിഭാഗങ്ങൾ (Basic Details)"}
+              </Text>
             </View>
 
-            {/* Disclaimer */}
-            <View style={styles.disclaimerContainer}>
-              <Ionicons name="information-circle-outline" size={20} color="#92400E" style={{ marginRight: 8, marginTop: 2 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.disclaimerTitle}>{isEnglish ? "Instructions:" : "നിർദ്ദേശങ്ങൾ (Instructions):"}</Text>
-                <Text style={styles.disclaimerText}>
+            {/* Amber Instructions Box */}
+            <View style={styles.instructionsBox}>
+              <Ionicons
+                name="information-circle-outline"
+                size={18}
+                color="#D97706"
+                style={styles.instructionsIcon}
+              />
+              <View style={styles.instructionsTextCol}>
+                <Text style={styles.instructionsTitle}>
+                  {isEnglish ? "Instructions:" : "നിർദ്ദേശങ്ങൾ (Instructions):"}
+                </Text>
+                <Text style={styles.instructionsBody}>
                   {isEnglish
                     ? "* Marked fields are mandatory. Others are optional."
-                    : "* അടയാളപ്പെടുത്തിയവ പൂരിപ്പിക്കൽ നിർബന്ധമാണ് (Mandatory fields). മറ്റുള്ളവ നിങ്ങൾക്ക് ആവശ്യമെങ്കിൽ നൽകാവുന്നതാണ് (Optional fields)."}
+                    : "* അടയാളപ്പെടുത്തിയ fieldകൾ നിർബന്ധമാണ്. മറ്റുള്ളവ ഐച്ഛികമായാണ്."}
                 </Text>
               </View>
             </View>
 
-            {/* Fields */}
+            {/* Field: Word */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Word *" : "വാക്ക് (Word) *"}</Text>
+              <Text style={styles.inputLabel}>
+                {isEnglish ? "Word " : "വാക്ക് (Word) "}
+                <Text style={styles.requiredAsterisk}>*</Text>
+              </Text>
               <TextInput
-                style={styles.input}
-                placeholder={isEnglish ? "Enter word (e.g., stone)" : "വാക്ക് നൽകുക (उदा. കല്ല്)"}
+                style={styles.textInput}
+                placeholder={
+                  isEnglish
+                    ? "Enter English word (alphabets only)"
+                    : "മലയാളം വാക്ക് നൽകുക (അക്ഷരങ്ങൾ മാത്രം)"
+                }
+                placeholderTextColor="#94A3B8"
                 value={word}
-                onChangeText={setWord}
+                onChangeText={(t) => setWord(cleanInputByLang(t))}
               />
             </View>
 
+            {/* Field: Meaning */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Root Word" : "ധാതു (Root)"}</Text>
+              <Text style={styles.inputLabel}>
+                {isEnglish ? "Meaning " : "അർത്ഥം (Meaning) "}
+                <Text style={styles.requiredAsterisk}>*</Text>
+              </Text>
               <TextInput
-                style={styles.input}
-                placeholder={isEnglish ? "Enter root word" : "ധാതു നൽകുക"}
-                value={root}
-                onChangeText={setRoot}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Etymology" : "വാക്കിന്റെ ഉത്ഭവം (Etymology)"}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={isEnglish ? "Enter etymology" : "ഉത്ഭവം നൽകുക"}
-                value={etymology}
-                onChangeText={setEtymology}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Cultural Note" : "സാംസ്കാരിക കുറിപ്പ് (Cultural Note)"}</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder={isEnglish ? "Enter cultural significance" : "സാംസ്കാരിക പ്രാധാന്യം നൽകുക"}
-                value={culturalNote}
-                onChangeText={setCulturalNote}
+                style={[styles.textInput, styles.textAreaInput]}
+                placeholder={
+                  isEnglish
+                    ? "Enter meaning (alphabets only)"
+                    : "വാക്കിന്റെ അർത്ഥം നൽകുക (അക്ഷരങ്ങൾ മാത്രം)"
+                }
+                placeholderTextColor="#94A3B8"
+                value={meaning}
+                onChangeText={(t) => setMeaning(cleanInputByLang(t))}
                 multiline
                 numberOfLines={3}
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Phonetic Transcription" : "ഉച്ചാരണ രീതി (Phonetic Transcription)"}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="phonetic-transcription"
-                value={phoneticTranscription}
-                onChangeText={setPhoneticTranscription}
+            {/* Collapsible "+ Add More Details" Button */}
+            <TouchableOpacity
+              style={styles.toggleMoreDetailsBtn}
+              onPress={() => setShowMoreFields(!showMoreFields)}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={showMoreFields ? "remove-circle" : "add-circle"}
+                size={20}
+                color="#0284C7"
               />
-            </View>
+              <Text style={styles.toggleMoreDetailsText}>
+                {showMoreFields
+                  ? (isEnglish
+                      ? "- Hide Extra Details"
+                      : "- വിവരങ്ങൾ ചുരുക്കുക (Hide More Details)")
+                  : (isEnglish
+                      ? "+ Add More Details (Root, Synonyms, etc.)"
+                      : "+ കൂടുതൽ വിവരങ്ങൾ ചേർക്കുക (Add More Details)")}
+              </Text>
+            </TouchableOpacity>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Gender" : "ലിംഗം (Gender)"}</Text>
-              <View style={styles.genderRow}>
-                {(isEnglish
-                  ? [
-                    { label: "Masculine", value: "പുല്ലിംഗം" },
-                    { label: "Feminine", value: "സ്ത്രീലിംഗം" },
-                    { label: "Neuter", value: "നപുംസകലിംഗം" }
-                  ]
-                  : [
-                    { label: "പുല്ലിംഗം", value: "പുല്ലിംഗം" },
-                    { label: "സ്ത്രീലിംഗം", value: "സ്ത്രീലിംഗം" },
-                    { label: "നപുംസകലിംഗം", value: "നപുംസകലിംഗം" }
-                  ]
-                ).map((g) => (
-                  <TouchableOpacity
-                    key={g.value}
-                    style={[
-                      styles.genderButton,
-                      gender === g.value && styles.genderButtonSelected,
-                    ]}
-                    onPress={() => setGender(gender === g.value ? "" : g.value)}
-                  >
-                    <Text
-                      style={[
-                        styles.genderButtonText,
-                        gender === g.value && styles.genderButtonTextSelected,
-                      ]}
-                    >
-                      {g.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </View>
-
-          {/* SECTION 2: Lexical Relations & Languages */}
-          <View style={styles.card}>
-            <View style={styles.sectionHeaderContainer}>
-              <Ionicons name="git-branch-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionHeading}>{isEnglish ? "Section 2: Lexical Relations & Translations" : "വിഭാഗം 2: പദബന്ധങ്ങളും വിവർത്തനങ്ങളും"}</Text>
-            </View>
-            <Text style={styles.sectionSubtext}>{isEnglish ? "All entries optional" : "എല്ലാ വിവരങ്ങളും നിർബന്ധമില്ലാത്തവയാണ് (All entries optional)"}</Text>
-
-            {/* Synonyms */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Synonyms" : "പര്യായപദങ്ങൾ (Synonyms)"}</Text>
-              <View style={styles.tagInputRow}>
-                <TextInput
-                  style={styles.flexInput}
-                  placeholder={isEnglish ? "Enter synonym" : "പര്യായപദം നൽകുക"}
-                  value={synonymInput}
-                  onChangeText={setSynonymInput}
-                />
-                <TouchableOpacity
-                  style={styles.addTagBtn}
-                  onPress={() => addTag(synonymsList, setSynonymsList, synonymInput, setSynonymInput)}
-                >
-                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
-                </TouchableOpacity>
-              </View>
-              {renderTagList(synonymsList, (item) => removeTag(synonymsList, setSynonymsList, item))}
-            </View>
-
-            {/* Antonyms */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Antonyms" : "വിപരീതപദങ്ങൾ (Antonyms)"}</Text>
-              <View style={styles.tagInputRow}>
-                <TextInput
-                  style={styles.flexInput}
-                  placeholder={isEnglish ? "Enter antonym" : "വിപരീതപദം നൽകുക"}
-                  value={antonymInput}
-                  onChangeText={setAntonymInput}
-                />
-                <TouchableOpacity
-                  style={styles.addTagBtn}
-                  onPress={() => addTag(antonymsList, setAntonymsList, antonymInput, setAntonymInput)}
-                >
-                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
-                </TouchableOpacity>
-              </View>
-              {renderTagList(antonymsList, (item) => removeTag(antonymsList, setAntonymsList, item))}
-            </View>
-
-            {/* Dialects */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Dialects / Regional Usages" : "പ്രാദേശിക പ്രയോഗങ്ങൾ (Dialects)"}</Text>
-              <View style={styles.tagInputRow}>
-                <TextInput
-                  style={styles.flexInput}
-                  placeholder={isEnglish ? "Enter regional usage" : "പ്രാദേശിക രൂപങ്ങൾ നൽകുക"}
-                  value={dialectInput}
-                  onChangeText={setDialectInput}
-                />
-                <TouchableOpacity
-                  style={styles.addTagBtn}
-                  onPress={() => addTag(dialectsList, setDialectsList, dialectInput, setDialectInput)}
-                >
-                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
-                </TouchableOpacity>
-              </View>
-              {renderTagList(dialectsList, (item) => removeTag(dialectsList, setDialectsList, item))}
-            </View>
-
-            {/* Proverbs */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Proverbs" : "പഴഞ്ചൊല്ലുകൾ (Proverbs)"}</Text>
-              <View style={styles.tagInputRow}>
-                <TextInput
-                  style={styles.flexInput}
-                  placeholder={isEnglish ? "Enter proverb" : "പഴഞ്ചൊല്ലുകൾ നൽകുക"}
-                  value={proverbInput}
-                  onChangeText={setProverbInput}
-                />
-                <TouchableOpacity
-                  style={styles.addTagBtn}
-                  onPress={() => addTag(proverbsList, setProverbsList, proverbInput, setProverbInput)}
-                >
-                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
-                </TouchableOpacity>
-              </View>
-              {renderTagList(proverbsList, (item) => removeTag(proverbsList, setProverbsList, item))}
-            </View>
-
-            {/* Novel Words */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Novel Words" : "നവീന പ്രയോഗങ്ങൾ (Novel Words)"}</Text>
-              <View style={styles.tagInputRow}>
-                <TextInput
-                  style={styles.flexInput}
-                  placeholder={isEnglish ? "Enter novel word" : "നവീന പദം നൽകുക"}
-                  value={novelWordInput}
-                  onChangeText={setNovelWordInput}
-                />
-                <TouchableOpacity
-                  style={styles.addTagBtn}
-                  onPress={() => addTag(novelWordsList, setNovelWordsList, novelWordInput, setNovelWordInput)}
-                >
-                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
-                </TouchableOpacity>
-              </View>
-              {renderTagList(novelWordsList, (item) => removeTag(novelWordsList, setNovelWordsList, item))}
-            </View>
-
-            {/* Cross Reference */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Cross References" : "പരാമർശങ്ങൾ (Cross Reference)"}</Text>
-              <View style={styles.tagInputRow}>
-                <TextInput
-                  style={styles.flexInput}
-                  placeholder={isEnglish ? "Enter cross reference" : "പരാമർശം നൽകുക"}
-                  value={crossRefInput}
-                  onChangeText={setCrossRefInput}
-                />
-                <TouchableOpacity
-                  style={styles.addTagBtn}
-                  onPress={() => addTag(crossRefsList, setCrossRefsList, crossRefInput, setCrossRefInput)}
-                >
-                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
-                </TouchableOpacity>
-              </View>
-              {renderTagList(crossRefsList, (item) => removeTag(crossRefsList, setCrossRefsList, item))}
-            </View>
-
-            {/* Inflections */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Grammatical Forms / Inflections" : "വ്യാകരണ രൂപങ്ങൾ (Inflections)"}</Text>
-              <View style={styles.tagInputRow}>
-                <TextInput
-                  style={styles.flexInput}
-                  placeholder={isEnglish ? "Enter grammatical inflection" : "വ്യാകരണ രൂപങ്ങൾ നൽകുക"}
-                  value={inflectionInput}
-                  onChangeText={setInflectionInput}
-                />
-                <TouchableOpacity
-                  style={styles.addTagBtn}
-                  onPress={() => addTag(inflectionsList, setInflectionsList, inflectionInput, setInflectionInput)}
-                >
-                  <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
-                </TouchableOpacity>
-              </View>
-              {renderTagList(inflectionsList, (item) => removeTag(inflectionsList, setInflectionsList, item))}
-            </View>
-
-            {/* Equivalents */}
-            <Text style={styles.subSectionTitle}>{isEnglish ? "Equivalent Languages" : "ഭാഷാ തുല്യതകൾ (Equivalent Languages)"}</Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Kannada" : "കന്നഡ (Kannada)"}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={isEnglish ? "Kannada translation" : "ಕನ್ನಡ വിവർത്തനം"}
-                value={equivalents.kannada}
-                onChangeText={(text) => setEquivalents({ ...equivalents, kannada: text })}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Tamil" : "തമിഴ് (Tamil)"}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={isEnglish ? "Tamil translation" : "தமிழ் വിവർത്തനം"}
-                value={equivalents.tamil}
-                onChangeText={(text) => setEquivalents({ ...equivalents, tamil: text })}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Malayalam (Malayalam Translation)" : "മലയാളം (Malayalam Translation)"}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={isEnglish ? "Malayalam translation" : "മലയാള വിവർത്തനം"}
-                value={equivalents.malayalam}
-                onChangeText={(text) => setEquivalents({ ...equivalents, malayalam: text })}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "English (English)" : "ഇംഗ്ലീഷ് (English)"}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={isEnglish ? "English translation" : "English Translation"}
-                value={equivalents.english}
-                onChangeText={(text) => setEquivalents({ ...equivalents, english: text })}
-              />
-            </View>
-
-            {/* Custom Languages */}
-            {customLanguages.map((item, idx) => (
-              <View key={idx} style={styles.customLangWrapper}>
-                <Text style={styles.label}>{item.language}</Text>
-                <View style={styles.rowAlign}>
+            {/* ===================== EXPANDABLE ADVANCED FIELDS ===================== */}
+            {showMoreFields && (
+              <View style={styles.advancedFieldsContainer}>
+                {/* Root Word */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    {isEnglish ? "Root Word" : "ധാതു (Root Word)"}
+                  </Text>
                   <TextInput
-                    style={[styles.input, { flex: 1 }]}
-                    value={item.translation}
-                    editable={false}
+                    style={styles.textInput}
+                    placeholder={
+                      isEnglish
+                        ? "Enter root word (alphabets only)"
+                        : "ധാതു നൽകുക (അക്ഷരങ്ങൾ മാത്രം)"
+                    }
+                    placeholderTextColor="#94A3B8"
+                    value={root}
+                    onChangeText={(t) => setRoot(cleanInputByLang(t))}
                   />
-                  <TouchableOpacity
-                    style={styles.deleteCustomBtn}
-                    onPress={() => setCustomLanguages(customLanguages.filter((_, i) => i !== idx))}
-                  >
-                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                  </TouchableOpacity>
                 </View>
-              </View>
-            ))}
 
-            {/* Add custom lang form toggle */}
-            {!showCustomLangForm ? (
-              <TouchableOpacity
-                style={styles.addCustomLangBtn}
-                onPress={() => setShowCustomLangForm(true)}
-              >
-                <Ionicons name="add-circle-outline" size={18} color="#2563EB" style={{ marginRight: 6 }} />
-                <Text style={styles.addCustomLangText}>{isEnglish ? "Add custom language" : "മറ്റ് ഭാഷകൾ ചേർക്കുക (Add custom language)"}</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.customLangForm}>
-                <Text style={styles.customFormHeading}>{isEnglish ? "Add Custom Language" : "മറ്റ് ഭാഷ നിർദ്ദേശം"}</Text>
-                <TextInput
-                  style={[styles.input, { marginBottom: 10 }]}
-                  placeholder={isEnglish ? "Language name (e.g., French)" : "ഭാഷയുടെ പേര് (ഉദാ. French)"}
-                  value={customLanguageName}
-                  onChangeText={setCustomLanguageName}
-                />
-                <TextInput
-                  style={[styles.input, { marginBottom: 10 }]}
-                  placeholder={isEnglish ? "Translation (e.g., Bonjour)" : "ഭാഷയിലെ അർത്ഥം (ഉദാ. Bonjour)"}
-                  value={customLanguageValue}
-                  onChangeText={setCustomLanguageValue}
-                />
-                <View style={styles.customFormActions}>
-                  <TouchableOpacity
-                    style={[styles.customFormBtn, styles.cancelBtn]}
-                    onPress={() => setShowCustomLangForm(false)}
-                  >
-                    <Text style={styles.cancelText}>{isEnglish ? "Cancel" : "അല്ല"}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.customFormBtn, styles.confirmBtn]}
-                    onPress={handleAddCustomLanguage}
-                  >
-                    <Text style={styles.confirmText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
-                  </TouchableOpacity>
+                {/* Etymology */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    {isEnglish ? "Etymology" : "വാക്കിന്റെ ഉത്ഭവം (Etymology)"}
+                  </Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder={
+                      isEnglish
+                        ? "Enter etymology (alphabets only)"
+                        : "ഉത്ഭവം നൽകുക (അക്ഷരങ്ങൾ മാത്രം)"
+                    }
+                    placeholderTextColor="#94A3B8"
+                    value={etymology}
+                    onChangeText={(t) => setEtymology(cleanInputByLang(t))}
+                  />
+                </View>
+
+                {/* Cultural Note */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    {isEnglish ? "Cultural Note" : "സാംസ്കാരിക കുറിപ്പ് (Cultural Note)"}
+                  </Text>
+                  <TextInput
+                    style={[styles.textInput, styles.textAreaInput]}
+                    placeholder={
+                      isEnglish
+                        ? "Enter cultural significance (alphabets only)"
+                        : "സാംസ്കാരിക പ്രാധാന്യം നൽകുക"
+                    }
+                    placeholderTextColor="#94A3B8"
+                    value={culturalNote}
+                    onChangeText={(t) => setCulturalNote(cleanInputByLang(t))}
+                    multiline
+                    numberOfLines={2}
+                  />
+                </View>
+
+                {/* Phonetic Transcription */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    {isEnglish ? "Phonetic Transcription" : "ഉച്ചാരണ രീതി (Phonetic Transcription)"}
+                  </Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder={
+                      isEnglish
+                        ? "Phonetic transcription (alphabets only)"
+                        : "ഉച്ചാരണ രീതി (അക്ഷരങ്ങൾ മാത്രം)"
+                    }
+                    placeholderTextColor="#94A3B8"
+                    value={phoneticTranscription}
+                    onChangeText={(t) => setPhoneticTranscription(cleanInputByLang(t))}
+                  />
+                </View>
+
+                {/* Gender */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    {isEnglish ? "Gender" : "ലിംഗം (Gender)"}
+                  </Text>
+                  <View style={styles.genderRow}>
+                    {(isEnglish
+                      ? [
+                          { label: "Masculine", value: "പുല്ലിംഗം" },
+                          { label: "Feminine", value: "സ്ത്രീലിംഗം" },
+                          { label: "Neuter", value: "നപുംസകലിംഗം" },
+                        ]
+                      : [
+                          { label: "പുല്ലിംഗം", value: "പുല്ലിംഗം" },
+                          { label: "സ്ത്രീലിംഗം", value: "സ്ത്രീലിംഗം" },
+                          { label: "നപുംസകലിംഗം", value: "നപുംസകലിംഗം" },
+                        ]
+                    ).map((g) => (
+                      <TouchableOpacity
+                        key={g.value}
+                        style={[
+                          styles.genderButton,
+                          gender === g.value && styles.genderButtonSelected,
+                        ]}
+                        onPress={() => setGender(gender === g.value ? "" : g.value)}
+                      >
+                        <Text
+                          style={[
+                            styles.genderButtonText,
+                            gender === g.value && styles.genderButtonTextSelected,
+                          ]}
+                        >
+                          {g.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Synonyms */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    {isEnglish ? "Synonyms" : "പര്യായപദങ്ങൾ (Synonyms)"}
+                  </Text>
+                  <View style={styles.tagInputRow}>
+                    <TextInput
+                      style={styles.tagTextInput}
+                      placeholder={
+                        isEnglish
+                          ? "Enter synonym (alphabets only)"
+                          : "പര്യായപദം നൽകുക (അക്ഷരങ്ങൾ മാത്രം)"
+                      }
+                      placeholderTextColor="#94A3B8"
+                      value={synonymInput}
+                      onChangeText={(t) => setSynonymInput(cleanInputByLang(t))}
+                    />
+                    <TouchableOpacity
+                      style={styles.addTagBtn}
+                      onPress={() =>
+                        addTag(synonymsList, setSynonymsList, synonymInput, setSynonymInput)
+                      }
+                    >
+                      <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {synonymsList.length > 0 && (
+                    <View style={styles.tagWrap}>
+                      {synonymsList.map((item, idx) => (
+                        <View key={idx} style={styles.tagPill}>
+                          <Text style={styles.tagPillText}>{item}</Text>
+                          <TouchableOpacity
+                            onPress={() =>
+                              removeTag(synonymsList, setSynonymsList, item)
+                            }
+                          >
+                            <Ionicons name="close" size={14} color="#64748B" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+
+                {/* Antonyms */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    {isEnglish ? "Antonyms" : "വിപരീതപദങ്ങൾ (Antonyms)"}
+                  </Text>
+                  <View style={styles.tagInputRow}>
+                    <TextInput
+                      style={styles.tagTextInput}
+                      placeholder={
+                        isEnglish
+                          ? "Enter antonym (alphabets only)"
+                          : "വിപരീതപദം നൽകുക (അക്ഷരങ്ങൾ മാത്രം)"
+                      }
+                      placeholderTextColor="#94A3B8"
+                      value={antonymInput}
+                      onChangeText={(t) => setAntonymInput(cleanInputByLang(t))}
+                    />
+                    <TouchableOpacity
+                      style={styles.addTagBtn}
+                      onPress={() =>
+                        addTag(antonymsList, setAntonymsList, antonymInput, setAntonymInput)
+                      }
+                    >
+                      <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {antonymsList.length > 0 && (
+                    <View style={styles.tagWrap}>
+                      {antonymsList.map((item, idx) => (
+                        <View key={idx} style={styles.tagPill}>
+                          <Text style={styles.tagPillText}>{item}</Text>
+                          <TouchableOpacity
+                            onPress={() =>
+                              removeTag(antonymsList, setAntonymsList, item)
+                            }
+                          >
+                            <Ionicons name="close" size={14} color="#64748B" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+
+                {/* Dialects */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    {isEnglish ? "Dialects" : "പ്രാദേശിക പ്രയോഗങ്ങൾ (Dialects)"}
+                  </Text>
+                  <View style={styles.tagInputRow}>
+                    <TextInput
+                      style={styles.tagTextInput}
+                      placeholder={
+                        isEnglish
+                          ? "Enter regional usage (alphabets only)"
+                          : "പ്രാദേശിക രൂപങ്ങൾ നൽകുക (അക്ഷരങ്ങൾ മാത്രം)"
+                      }
+                      placeholderTextColor="#94A3B8"
+                      value={dialectInput}
+                      onChangeText={(t) => setDialectInput(cleanInputByLang(t))}
+                    />
+                    <TouchableOpacity
+                      style={styles.addTagBtn}
+                      onPress={() =>
+                        addTag(dialectsList, setDialectsList, dialectInput, setDialectInput)
+                      }
+                    >
+                      <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {dialectsList.length > 0 && (
+                    <View style={styles.tagWrap}>
+                      {dialectsList.map((item, idx) => (
+                        <View key={idx} style={styles.tagPill}>
+                          <Text style={styles.tagPillText}>{item}</Text>
+                          <TouchableOpacity
+                            onPress={() =>
+                              removeTag(dialectsList, setDialectsList, item)
+                            }
+                          >
+                            <Ionicons name="close" size={14} color="#64748B" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+
+                {/* Proverbs */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    {isEnglish ? "Proverbs" : "പഴഞ്ചൊല്ലുകൾ (Proverbs)"}
+                  </Text>
+                  <View style={styles.tagInputRow}>
+                    <TextInput
+                      style={styles.tagTextInput}
+                      placeholder={
+                        isEnglish
+                          ? "Enter proverb (alphabets only)"
+                          : "പഴഞ്ചൊല്ലുകൾ നൽകുക (അക്ഷരങ്ങൾ മാത്രം)"
+                      }
+                      placeholderTextColor="#94A3B8"
+                      value={proverbInput}
+                      onChangeText={(t) => setProverbInput(cleanInputByLang(t))}
+                    />
+                    <TouchableOpacity
+                      style={styles.addTagBtn}
+                      onPress={() =>
+                        addTag(proverbsList, setProverbsList, proverbInput, setProverbInput)
+                      }
+                    >
+                      <Text style={styles.addTagBtnText}>{isEnglish ? "Add" : "ചേർക്കുക"}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {proverbsList.length > 0 && (
+                    <View style={styles.tagWrap}>
+                      {proverbsList.map((item, idx) => (
+                        <View key={idx} style={styles.tagPill}>
+                          <Text style={styles.tagPillText}>{item}</Text>
+                          <TouchableOpacity
+                            onPress={() =>
+                              removeTag(proverbsList, setProverbsList, item)
+                            }
+                          >
+                            <Ionicons name="close" size={14} color="#64748B" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
               </View>
             )}
           </View>
 
-
-
-          {/* SECTION 3: Contributor Details & Finish */}
-          <View style={styles.card}>
-            <View style={styles.sectionHeaderContainer}>
-              <Ionicons name="person-outline" size={22} color="#2B2C51" />
-              <Text style={styles.sectionHeading}>{isEnglish ? "Section 3: Contributor Details & Submission" : "വിഭാഗം 3: കോൺട്രിബ്യൂട്ടർ വിവരങ്ങളും സമർപ്പണവും"}</Text>
+          {/* ===================== CARD 2: SECTION 3: CONTRIBUTOR DETAILS ===================== */}
+          <View style={styles.formCard}>
+            {/* Card Header */}
+            <View style={styles.cardHeaderRow}>
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color="#0F766E"
+                style={styles.cardHeaderIcon}
+              />
+              <Text style={styles.cardHeaderTitle}>
+                {isEnglish
+                  ? "Section 3: Contributor Details & Submission"
+                  : "വിഭാഗം 3: കോൺട്രിബ്യൂട്ടർ വിവരങ്ങളും സമർപ്പണവും"}
+              </Text>
             </View>
 
+            {/* Field: Name */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Name" : "പേര് (Name)"} <Text style={styles.required}>*</Text></Text>
+              <Text style={styles.inputLabel}>
+                {isEnglish ? "Name " : "പേര് (Name) "}
+                <Text style={styles.requiredAsterisk}>*</Text>
+              </Text>
               <TextInput
-                style={styles.input}
-                placeholder={isEnglish ? "Enter your name" : "നിങ്ങളുടെ പേര് നൽകുക"}
+                style={styles.textInput}
+                placeholder={
+                  isEnglish
+                    ? "Enter your name (alphabets only)"
+                    : "നിങ്ങളുടെ പേര് നൽകുക (അക്ഷരങ്ങൾ മാത്രം)"
+                }
+                placeholderTextColor="#94A3B8"
                 value={contributorName}
-                onChangeText={setContributorName}
+                onChangeText={(t) => setContributorName(cleanContributorName(t))}
               />
             </View>
 
+            {/* Field: Email */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{isEnglish ? "Email" : "ഇമെയിൽ (Email)"} <Text style={styles.required}>*</Text></Text>
+              <Text style={styles.inputLabel}>
+                {isEnglish ? "Email " : "ഇമെയിൽ (Email) "}
+                <Text style={styles.requiredAsterisk}>*</Text>
+              </Text>
               <TextInput
-                style={styles.input}
-                placeholder={isEnglish ? "Enter your email address" : "നിങ്ങളുടെ ഇമെയിൽ വിലാസം"}
+                style={styles.textInput}
+                placeholder={
+                  isEnglish
+                    ? "Enter authentic email (e.g., name@gmail.com)"
+                    : "യഥാർത്ഥ ഇമെയിൽ വിലാസം നൽകുക"
+                }
+                placeholderTextColor="#94A3B8"
                 value={contributorEmail}
-                onChangeText={setContributorEmail}
+                onChangeText={(t) => setContributorEmail(cleanEmailInput(t))}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
             </View>
 
-            {/* Checkboxes declarations */}
-            <View style={styles.checkboxWrapper}>
-              <TouchableOpacity
-                style={styles.checkbox}
-                onPress={() => setDeclaration1(!declaration1)}
+            {/* Checkbox 1 */}
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setDeclaration1(!declaration1)}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.checkboxSquare,
+                  declaration1 && styles.checkboxSquareChecked,
+                ]}
               >
-                <Ionicons
-                  name={declaration1 ? "checkbox" : "square-outline"}
-                  size={24}
-                  color={declaration1 ? "#2B2C51" : "#6B7280"}
-                />
-              </TouchableOpacity>
-              <Text style={styles.checkboxText}>
+                {declaration1 && (
+                  <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>
                 {isEnglish
                   ? "I certify that the information submitted by me is completely accurate and factual."
-                  : "ഞാൻ സമർപ്പിച്ച ഈ വിവരങ്ങൾ പൂർണ്ണമായും കൃത്യവും വസ്തുതാപരവുമാണെന്ന് സാക്ഷ്യപ്പെടുത്തുന്നു."}
+                  : "ഞാൻ നൽകിയ ഈ വിവരങ്ങൾ പൂർണ്ണമായും ശരിയാണെന്ന് സാക്ഷ്യപ്പെടുത്തുന്നു."}
               </Text>
-            </View>
+            </TouchableOpacity>
 
-            <View style={styles.checkboxWrapper}>
-              <TouchableOpacity
-                style={styles.checkbox}
-                onPress={() => setDeclaration2(!declaration2)}
+            {/* Checkbox 2 */}
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setDeclaration2(!declaration2)}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.checkboxSquare,
+                  declaration2 && styles.checkboxSquareChecked,
+                ]}
               >
-                <Ionicons
-                  name={declaration2 ? "checkbox" : "square-outline"}
-                  size={24}
-                  color={declaration2 ? "#2B2C51" : "#6B7280"}
-                />
-              </TouchableOpacity>
-              <Text style={styles.checkboxText}>
+                {declaration2 && (
+                  <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>
                 {isEnglish
                   ? "I accept C-DIT terms and conditions for suggesting words to the dictionary."
-                  : "നിഘണ്ടുവിലേക്ക് പദങ്ങൾ ചേർക്കുന്നതിനുള്ള C-DIT നിബന്ധനകൾ ഞാൻ അംഗീകരിക്കുന്നു."}
+                  : "നിഘണ്ടുവിലേക്ക് പദങ്ങൾ ചേർക്കുന്നതിനുള്ള C-DIT നിയമങ്ങളും വ്യവസ്ഥകളും അംഗീകരിക്കുന്നു."}
               </Text>
-            </View>
+            </TouchableOpacity>
 
-            <View style={styles.checkboxWrapper}>
-              <TouchableOpacity
-                style={styles.checkbox}
-                onPress={() => setReceiveEmails(!receiveEmails)}
+            {/* Checkbox 3 */}
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setReceiveEmails(!receiveEmails)}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.checkboxSquare,
+                  receiveEmails && styles.checkboxSquareChecked,
+                ]}
               >
-                <Ionicons
-                  name={receiveEmails ? "checkbox" : "square-outline"}
-                  size={24}
-                  color={receiveEmails ? "#2B2C51" : "#6B7280"}
-                />
-              </TouchableOpacity>
-              <Text style={styles.checkboxText}>
+                {receiveEmails && (
+                  <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>
                 {isEnglish
                   ? "I agree to receive emails/updates from R&D C-DIT."
-                  : "R&D C-DIT-ൽ നിന്നുള്ള ഇമെയിലുകൾ ലഭിക്കുന്നതിനും ആശയവിനിമയം നടത്തുന്നതിനും ഞാൻ സമ്മതിക്കുന്നു (Receive updates/mails from R&D C-DIT)."}
+                  : "R&D C-DIT-യിൽ നിന്നുള്ള ഇമെയിലുകളും അപ്ഡേറ്റുകളും സ്വീകരിക്കാൻ ഞാൻ സമ്മതിക്കുന്നു."}
               </Text>
-            </View>
+            </TouchableOpacity>
 
-            {/* Finish/Submit button */}
+            {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+              style={[
+                styles.submitBtn,
+                isSubmitting && styles.submitBtnDisabled,
+              ]}
               onPress={handleSubmit}
               disabled={isSubmitting}
               activeOpacity={0.8}
@@ -824,8 +1055,15 @@ export default function SuggestWordScreen() {
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <>
-                  <Ionicons name="checkmark-done" size={22} color="#FFFFFF" style={{ marginRight: 8 }} />
-                  <Text style={styles.submitBtnText}>{isEnglish ? "Submit" : "സമർപ്പിക്കുക (Submit)"}</Text>
+                  <Ionicons
+                    name="checkmark"
+                    size={19}
+                    color="#FFFFFF"
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={styles.submitBtnText}>
+                    {isEnglish ? "Submit" : "സമർപ്പിക്കുക"}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -833,20 +1071,24 @@ export default function SuggestWordScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Acknowledgement Modal */}
+      {/* ===================== ACKNOWLEDGEMENT MODAL ===================== */}
       <Modal
         visible={showAcknowledgement}
         transparent={true}
         animationType="fade"
         onRequestClose={() => {
           setShowAcknowledgement(false);
-          router.replace("/");
+          handleResetForm();
         }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalSuccessIconBg}>
               <Ionicons name="checkmark-circle" size={54} color="#10B981" />
+            </View>
+
+            <View style={styles.pillBadge}>
+              <Text style={styles.pillBadgeText}>ഭാഷാമിത്രം II</Text>
             </View>
 
             <Text style={styles.modalTitle}>
@@ -865,7 +1107,16 @@ export default function SuggestWordScreen() {
               </Text>
               <Text style={styles.modalDetailsValue}>{word}</Text>
 
-              <Text style={[styles.modalDetailsLabel, { marginTop: 10 }]}>
+              {meaning ? (
+                <>
+                  <Text style={[styles.modalDetailsLabel, { marginTop: 8 }]}>
+                    {isEnglish ? "Meaning:" : "അർത്ഥം:"}
+                  </Text>
+                  <Text style={styles.modalDetailsValue}>{meaning}</Text>
+                </>
+              ) : null}
+
+              <Text style={[styles.modalDetailsLabel, { marginTop: 8 }]}>
                 {isEnglish ? "Contributor Name:" : "സംഭാവന ചെയ്തയാൾ:"}
               </Text>
               <Text style={styles.modalDetailsValue}>{contributorName}</Text>
@@ -875,7 +1126,7 @@ export default function SuggestWordScreen() {
               style={styles.modalButton}
               onPress={() => {
                 setShowAcknowledgement(false);
-                router.replace("/");
+                handleResetForm();
               }}
               activeOpacity={0.8}
             >
@@ -891,12 +1142,494 @@ export default function SuggestWordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+
+  /* ===================== TOP NAVIGATION HEADER ===================== */
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 4 : 8,
+    paddingBottom: 8,
+    zIndex: 10,
+  },
+  circleBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  headerBranding: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerEmblemWrapper: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#FFFFFF",
+    padding: 1.5,
+    marginRight: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#0284C7",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.12,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  headerEmblem: {
+    width: "100%",
+    height: "100%",
+  },
+  headerBrandCol: {
+    justifyContent: "center",
+  },
+  headerBrandTitle: {
+    fontFamily: "NotoSansMalayalam",
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0B3B60",
+    letterSpacing: 0.2,
+    lineHeight: 18,
+  },
+  headerLeafDivider: {
+    width: 95,
+    height: 10,
+    justifyContent: "center",
+    marginVertical: 1,
+    position: "relative",
+  },
+  headerDividerLine: {
+    width: "100%",
+    height: 1.2,
+    backgroundColor: "#2DD4BF",
+    borderRadius: 1,
+  },
+  headerDividerLeaf: {
+    position: "absolute",
+    right: 6,
+    top: -3,
+    transform: [{ rotate: "-20deg" }],
+  },
+  headerBrandSubtitle: {
+    fontSize: 7.5,
+    fontWeight: "800",
+    color: "#0D9488",
+    letterSpacing: 0.4,
+  },
+  headerBrandTagline: {
+    fontSize: 8.5,
+    fontStyle: "italic",
+    fontWeight: "600",
+    color: "#2563EB",
+    marginTop: 0.5,
+  },
+
+  /* ===================== LANGUAGE SELECTION SCREEN ===================== */
+  selectionBody: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    zIndex: 10,
+  },
+  bookIllustrationGlow: {
+    width: 175,
+    height: 115,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  bookIllustration: {
+    width: "100%",
+    height: "100%",
+  },
+  pillBadge: {
+    backgroundColor: "#E0F2FE",
+    paddingHorizontal: 16,
+    paddingVertical: 5,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  pillBadgeText: {
+    fontSize: 12.5,
+    fontWeight: "800",
+    color: "#0369A1",
+    fontFamily: "NotoSansMalayalam",
+  },
+  selectionTitle: {
+    fontFamily: "NotoSansMalayalam",
+    fontSize: 19.5,
+    fontWeight: "800",
+    color: "#0B3B60",
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  selectionSubtitle: {
+    fontFamily: "NotoSansMalayalam",
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 19,
+    marginBottom: 24,
+    maxWidth: 290,
+  },
+  selectionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginVertical: 7,
+    width: "100%",
+    maxWidth: 360,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  langBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+  },
+  langBadgeText: {
+    fontSize: 19,
+    fontWeight: "800",
+    fontFamily: "NotoSansMalayalam",
+  },
+  selectionCardTextCol: {
+    flex: 1,
+    marginRight: 8,
+  },
+  selectionCardTitle: {
+    fontFamily: "NotoSansMalayalam",
+    fontSize: 14.5,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: 2,
+  },
+  selectionCardSub: {
+    fontFamily: "NotoSansMalayalam",
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#64748B",
+    lineHeight: 16,
+  },
+
+  /* ===================== FORM CARDS & INPUTS ===================== */
+  formScrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 40,
+    zIndex: 10,
+  },
+  formCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  cardHeaderIcon: {
+    marginRight: 8,
+  },
+  cardHeaderTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F172A",
+    fontFamily: "NotoSansMalayalam",
     flex: 1,
   },
+  instructionsBox: {
+    backgroundColor: "#FEF9C3",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FEF08A",
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 14,
+  },
+  instructionsIcon: {
+    marginRight: 8,
+    marginTop: 1,
+  },
+  instructionsTextCol: {
+    flex: 1,
+  },
+  instructionsTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#92400E",
+    fontFamily: "NotoSansMalayalam",
+    marginBottom: 2,
+  },
+  instructionsBody: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "#B45309",
+    fontFamily: "NotoSansMalayalam",
+    lineHeight: 16,
+  },
+  inputGroup: {
+    marginBottom: 14,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#0F172A",
+    fontFamily: "NotoSansMalayalam",
+    marginBottom: 6,
+  },
+  requiredAsterisk: {
+    color: "#EF4444",
+  },
+  textInput: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 46,
+    fontSize: 13.5,
+    color: "#0F172A",
+    fontFamily: "NotoSansMalayalam",
+  },
+  textAreaInput: {
+    minHeight: 76,
+    paddingTop: 10,
+    paddingBottom: 10,
+    textAlignVertical: "top",
+  },
+  toggleMoreDetailsBtn: {
+    backgroundColor: "#F0F9FF",
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+    borderStyle: "dashed",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  toggleMoreDetailsText: {
+    fontSize: 12.5,
+    fontWeight: "700",
+    color: "#0284C7",
+    fontFamily: "NotoSansMalayalam",
+    marginLeft: 6,
+  },
+  advancedFieldsContainer: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  genderRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  genderButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  genderButtonSelected: {
+    backgroundColor: "#0D9488",
+    borderColor: "#0D9488",
+  },
+  genderButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#334155",
+    fontFamily: "NotoSansMalayalam",
+  },
+  genderButtonTextSelected: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  tagInputRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  tagTextInput: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 44,
+    fontSize: 13,
+    color: "#0F172A",
+    fontFamily: "NotoSansMalayalam",
+  },
+  addTagBtn: {
+    backgroundColor: "#0D9488",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  addTagBtnText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+    fontFamily: "NotoSansMalayalam",
+  },
+  tagWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 8,
+  },
+  tagPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 6,
+  },
+  tagPillText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1E293B",
+    fontFamily: "NotoSansMalayalam",
+  },
+
+  /* Checkboxes */
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginVertical: 6,
+  },
+  checkboxSquare: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: "#64748B",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+    marginTop: 2,
+    backgroundColor: "#FFFFFF",
+  },
+  checkboxSquareChecked: {
+    backgroundColor: "#0D9488",
+    borderColor: "#0D9488",
+  },
+  checkboxLabel: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#334155",
+    lineHeight: 18,
+    fontFamily: "NotoSansMalayalam",
+  },
+
+  /* Submit Button */
+  submitBtn: {
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#0D9488",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 18,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#0D9488",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.25,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  submitBtnDisabled: {
+    opacity: 0.7,
+  },
+  submitBtnText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+    fontFamily: "NotoSansMalayalam",
+  },
+
+  /* ===================== SUCCESS MODAL ===================== */
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(18, 18, 38, 0.75)",
+    backgroundColor: "rgba(15, 23, 42, 0.65)",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
@@ -908,656 +1641,79 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 380,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 15,
-    elevation: 10,
     borderWidth: 1,
-    borderColor: "rgba(229, 231, 235, 0.5)",
+    borderColor: "#F1F5F9",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.15,
+        shadowRadius: 15,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
   },
   modalSuccessIconBg: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: "#ECFDF5",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   modalTitle: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#1E1B4B",
-    marginBottom: 12,
+    color: "#0B3B60",
+    marginBottom: 8,
     textAlign: "center",
     fontFamily: "NotoSansMalayalam",
   },
   modalDescription: {
-    fontSize: 14,
-    color: "#4B5563",
+    fontSize: 13,
+    color: "#475569",
     textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 20,
+    lineHeight: 19,
+    marginBottom: 16,
     fontFamily: "NotoSansMalayalam",
   },
   modalDetailsContainer: {
-    backgroundColor: "#F3F4F6",
-    borderRadius: 14,
-    padding: 16,
     width: "100%",
-    marginBottom: 24,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#E2E8F0",
   },
   modalDetailsLabel: {
-    fontSize: 11,
-    color: "#6B7280",
+    fontSize: 11.5,
+    color: "#64748B",
     fontWeight: "600",
-    textTransform: "uppercase",
     fontFamily: "NotoSansMalayalam",
   },
   modalDetailsValue: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#1F2937",
-    marginTop: 2,
+    color: "#0F172A",
     fontFamily: "NotoSansMalayalam",
+    marginTop: 2,
   },
   modalButton: {
-    backgroundColor: "#2B2C51",
-    borderRadius: 12,
-    paddingVertical: 14,
     width: "100%",
-    alignItems: "center",
+    height: 46,
+    backgroundColor: "#0D9488",
+    borderRadius: 23,
     justifyContent: "center",
+    alignItems: "center",
   },
   modalButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
-  },
-  header: {
-    height: Platform.OS === "android" ? 65 : 75,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#3B3D6B",
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: "center",
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
-  },
-  body: {
-    flex: 1,
-    backgroundColor: "transparent",
-    padding: 16,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 40,
-    backgroundColor: "transparent",
-  },
-  selectionContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    backgroundColor: "#F9F6F1",
-  },
-  selectionPrompt: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#2B2C51",
-    textAlign: "center",
-    marginBottom: 8,
-    fontFamily: "NotoSansMalayalam",
-  },
-  selectionSubPrompt: {
     fontSize: 15,
-    color: "#6B7280",
-    textAlign: "center",
-    marginBottom: 32,
-    fontFamily: "NotoSansMalayalam",
-  },
-  langButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 16,
-    width: "100%",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  langBtnIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#FFF1F2",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  langEmoji: {
-    fontSize: 20,
     fontWeight: "800",
-    color: "#F43F5E",
-  },
-  langBtnTextContainer: {
-    flex: 1,
-  },
-  langBtnTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1F2937",
-    fontFamily: "NotoSansMalayalam",
-    marginBottom: 2,
-  },
-  langBtnSub: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontFamily: "NotoSansMalayalam",
-  },
-  placeholderContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  placeholderText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#2B2C51",
-    textAlign: "center",
-    marginBottom: 10,
-    lineHeight: 26,
-    fontFamily: "NotoSansMalayalam",
-  },
-  placeholderSubText: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-    marginBottom: 30,
-    lineHeight: 20,
-    fontFamily: "NotoSansMalayalam",
-  },
-  backBtn: {
-    backgroundColor: "#2B2C51",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-  },
-  backBtnText: {
     color: "#FFFFFF",
-    fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#F0ECE6",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-  },
-  uploadCard: {
-    minHeight: 480,
-    padding: 26,
-  },
-  sectionHeaderContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-    paddingBottom: 8,
-  },
-  sectionHeading: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#2B2C51",
-    fontFamily: "NotoSansMalayalam",
-    marginLeft: 8,
-  },
-  sectionSubtext: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    marginBottom: 16,
-    fontStyle: "italic",
-    fontFamily: "NotoSansMalayalam",
-  },
-  disclaimerContainer: {
-    flexDirection: "row",
-    backgroundColor: "#FEF3C7",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-  disclaimerTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#92400E",
-    fontFamily: "NotoSansMalayalam",
-    marginBottom: 2,
-  },
-  disclaimerText: {
-    fontSize: 12,
-    color: "#92400E",
-    fontFamily: "NotoSansMalayalam",
-    lineHeight: 18,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#374151",
-    fontFamily: "NotoSansMalayalam",
-    marginBottom: 6,
-  },
-  required: {
-    color: "#EF4444",
-  },
-  input: {
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: "#1F2937",
-    fontFamily: "NotoSansMalayalam",
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
-  tagInputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  flexInput: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: "#1F2937",
-    marginRight: 8,
-    fontFamily: "NotoSansMalayalam",
-  },
-  addTagBtn: {
-    backgroundColor: "#2B2C51",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  addTagBtnText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
-  },
-  tagContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 8,
-  },
-  tag: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#3B3D6B",
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    marginRight: 6,
-    marginBottom: 6,
-  },
-  tagText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontFamily: "NotoSansMalayalam",
-    marginRight: 6,
-  },
-  removeTagBtn: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  subSectionTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#1F2937",
-    fontFamily: "NotoSansMalayalam",
-    marginTop: 14,
-    marginBottom: 10,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  customLangWrapper: {
-    backgroundColor: "#F9FAF9",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-  },
-  rowAlign: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  deleteCustomBtn: {
-    marginLeft: 12,
-    padding: 6,
-  },
-  addCustomLangBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    backgroundColor: "#EFF6FF",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: "#3B82F6",
-    marginTop: 8,
-  },
-  addCustomLangText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#2563EB",
-    fontFamily: "NotoSansMalayalam",
-  },
-  customLangForm: {
-    backgroundColor: "#EFF6FF",
-    borderWidth: 1,
-    borderColor: "#BFDBFE",
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 10,
-  },
-  customFormHeading: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#1E40AF",
-    fontFamily: "NotoSansMalayalam",
-    marginBottom: 8,
-  },
-  customFormActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 4,
-  },
-  customFormBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginLeft: 8,
-  },
-  cancelBtn: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-  },
-  cancelText: {
-    color: "#374151",
-    fontSize: 13,
-    fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
-  },
-  confirmBtn: {
-    backgroundColor: "#2563EB",
-  },
-  confirmText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
-  },
-  mediaButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F3F4F6",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    marginBottom: 10,
-  },
-  mediaButtonText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#374151",
-    fontFamily: "NotoSansMalayalam",
-    flexShrink: 1,
-  },
-  imageGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 10,
-  },
-  imageThumbWrapper: {
-    backgroundColor: "#E5E7EB",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  imageThumbText: {
-    fontSize: 13,
-    color: "#374151",
-    fontWeight: "600",
-    marginRight: 6,
-    fontFamily: "NotoSansMalayalam",
-  },
-  deleteImageBtn: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  audioControlsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  recordStartBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#DC2626",
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    flex: 1,
-  },
-  recordStartBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    marginLeft: 8,
-    fontFamily: "NotoSansMalayalam",
-  },
-  recordStopBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#1F2937",
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    flex: 1,
-  },
-  recordStopBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    marginLeft: 8,
-    fontFamily: "NotoSansMalayalam",
-  },
-  mediaSuccessBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#D1FAE5",
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 10,
-  },
-  mediaSuccessText: {
-    flex: 1,
-    color: "#065F46",
-    fontSize: 13,
-    marginLeft: 8,
-    fontFamily: "NotoSansMalayalam",
-  },
-  checkboxWrapper: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 14,
-    paddingRight: 10,
-  },
-  checkbox: {
-    marginRight: 10,
-    marginTop: 2,
-  },
-  checkboxText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#4B5563",
-    lineHeight: 18,
-    fontFamily: "NotoSansMalayalam",
-  },
-  submitButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#2B2C51",
-    borderRadius: 14,
-    paddingVertical: 15,
-    marginTop: 20,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  submitButtonDisabled: {
-    backgroundColor: "#9CA3AF",
-  },
-  submitBtnText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "800",
-    fontFamily: "NotoSansMalayalam",
-  },
-  voiceBarContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 40,
-    marginBottom: 12,
-  },
-  voiceBar: {
-    width: 4,
-    borderRadius: 2,
-    marginHorizontal: 3,
-  },
-  audioPlayWrapper: {
-    marginTop: 8,
-  },
-  playbackRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 4,
-    marginBottom: 10,
-  },
-  playbackBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#2563EB",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  playbackBtnActive: {
-    backgroundColor: "#1D4ED8",
-  },
-  playbackBtnText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-    marginLeft: 8,
-    fontFamily: "NotoSansMalayalam",
-  },
-  genderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  genderButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderWidth: 1.5,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 4,
-    backgroundColor: "#F9FAFB",
-  },
-  genderButtonSelected: {
-    borderColor: "#2B2C51",
-    backgroundColor: "#EFF6FF",
-  },
-  genderButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#4B5563",
-    fontFamily: "NotoSansMalayalam",
-  },
-  genderButtonTextSelected: {
-    color: "#2B2C51",
-    fontWeight: "700",
   },
 });

@@ -1,0 +1,55 @@
+diff --git a/node_modules/expo-asset/android/src/main/java/expo/modules/asset/AssetModule.kt b/node_modules/expo-asset/android/src/main/java/expo/modules/asset/AssetModule.kt
+index cff5e41..b6bc855 100644
+--- a/node_modules/expo-asset/android/src/main/java/expo/modules/asset/AssetModule.kt
++++ b/node_modules/expo-asset/android/src/main/java/expo/modules/asset/AssetModule.kt
+@@ -26,8 +26,8 @@ class AssetModule : Module() {
+   private val context: Context
+     get() = appContext.reactContext ?: throw Exceptions.AppContextLost()
+ 
+-  private fun getMD5HashOfFilePath(uri: URI): String {
+-    val md = MessageDigest.getInstance("MD5")
++  private fun getSha256HashOfFilePath(uri: URI): String {
++    val md = MessageDigest.getInstance("SHA-256")
+     return md.digest(uri.toString().toByteArray()).joinToString("") { "%02x".format(it) }
+   }
+ 
+@@ -82,12 +82,12 @@ class AssetModule : Module() {
+   override fun definition() = ModuleDefinition {
+     Name("ExpoAsset")
+ 
+-    AsyncFunction("downloadAsync") Coroutine { uri: URI, md5Hash: String?, type: String ->
++    AsyncFunction("downloadAsync") Coroutine { uri: URI, fileHash: String?, type: String ->
+       if (uri.scheme == "file" && !uri.toString().startsWith(ANDROID_EMBEDDED_URL_BASE_RESOURCE)) {
+         return@Coroutine uri
+       }
+ 
+-      val cacheFileId = md5Hash ?: getMD5HashOfFilePath(uri)
++      val cacheFileId = fileHash ?: getSha256HashOfFilePath(uri)
+       val cacheDirectory = appContext.cacheDirectory
+ 
+       val localUrl = File("$cacheDirectory/ExponentAsset-$cacheFileId.$type")
+@@ -96,7 +96,7 @@ class AssetModule : Module() {
+         return@Coroutine downloadAsset(appContext, uri, localUrl)
+       }
+ 
+-      if (md5Hash == null || md5Hash == getMD5HashOfFileContent(localUrl)) {
++      if (fileHash == null || fileHash == getSha256HashOfFileContent(localUrl)) {
+         return@Coroutine Uri.fromFile(localUrl)
+       }
+ 
+diff --git a/node_modules/expo-asset/android/src/main/java/expo/modules/asset/FileUtils.kt b/node_modules/expo-asset/android/src/main/java/expo/modules/asset/FileUtils.kt
+index c5b98ff..a90f90d 100644
+--- a/node_modules/expo-asset/android/src/main/java/expo/modules/asset/FileUtils.kt
++++ b/node_modules/expo-asset/android/src/main/java/expo/modules/asset/FileUtils.kt
+@@ -4,9 +4,9 @@ import java.io.File
+ import java.io.FileInputStream
+ import java.security.MessageDigest
+ 
+-internal fun getMD5HashOfFileContent(file: File): String? {
++internal fun getSha256HashOfFileContent(file: File): String? {
+   return try {
+-    val digest = MessageDigest.getInstance("MD5")
++    val digest = MessageDigest.getInstance("SHA-256")
+     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+     FileInputStream(file).use { inputStream ->
+       while (true) {

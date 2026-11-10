@@ -62,7 +62,14 @@ const suggestedWordSchema = new mongoose.Schema({
     id: Number,
     proverb: String,
     context_usage: String
-  }]
+  }],
+  security: {
+    content_hash_sha256: { type: String, trim: true, index: true },
+    signature_verified: { type: Boolean, default: false },
+    sanitized: { type: Boolean, default: true },
+    encryption_mode: { type: String, default: "standard" },
+    received_at: { type: Date, default: Date.now }
+  }
 }, {
   collection: 'Suggested_words',
   timestamps: true

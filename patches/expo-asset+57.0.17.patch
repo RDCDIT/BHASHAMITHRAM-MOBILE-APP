@@ -1,0 +1,26 @@
+diff --git a/node_modules/expo-asset/android/src/main/java/expo/modules/asset/AssetModule.kt b/node_modules/expo-asset/android/src/main/java/expo/modules/asset/AssetModule.kt
+index cff5e41..649b499 100644
+--- a/node_modules/expo-asset/android/src/main/java/expo/modules/asset/AssetModule.kt
++++ b/node_modules/expo-asset/android/src/main/java/expo/modules/asset/AssetModule.kt
+@@ -27,7 +27,7 @@ class AssetModule : Module() {
+     get() = appContext.reactContext ?: throw Exceptions.AppContextLost()
+ 
+   private fun getMD5HashOfFilePath(uri: URI): String {
+-    val md = MessageDigest.getInstance("MD5")
++    val md = MessageDigest.getInstance("SHA-256")
+     return md.digest(uri.toString().toByteArray()).joinToString("") { "%02x".format(it) }
+   }
+ 
+diff --git a/node_modules/expo-asset/android/src/main/java/expo/modules/asset/FileUtils.kt b/node_modules/expo-asset/android/src/main/java/expo/modules/asset/FileUtils.kt
+index c5b98ff..93c53de 100644
+--- a/node_modules/expo-asset/android/src/main/java/expo/modules/asset/FileUtils.kt
++++ b/node_modules/expo-asset/android/src/main/java/expo/modules/asset/FileUtils.kt
+@@ -6,7 +6,7 @@ import java.security.MessageDigest
+ 
+ internal fun getMD5HashOfFileContent(file: File): String? {
+   return try {
+-    val digest = MessageDigest.getInstance("MD5")
++    val digest = MessageDigest.getInstance("SHA-256")
+     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+     FileInputStream(file).use { inputStream ->
+       while (true) {

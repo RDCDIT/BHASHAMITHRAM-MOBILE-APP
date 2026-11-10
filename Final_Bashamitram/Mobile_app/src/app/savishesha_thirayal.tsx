@@ -1,700 +1,776 @@
-import React, { useState, useEffect } from "react";
+/**
+ * @file savishesha_thirayal.tsx
+ * @description Recent Activity Screen (സമീപകാല തിരയലുകൾ) matching official Bhashamithram-II design.
+ * Features:
+ * - Branded top navigation header with circular back button and "ഭാഷാമിത്രം II 🍃"
+ * - 4 Dictionary Category tabs:
+ *   1. ഇംഗ്ലീഷ് - മലയാളം (english_malayalam)
+ *   2. മലയാളം - ഇംഗ്ലീഷ് (malayalam_english)
+ *   3. മലയാളം - നാനാർത്ഥം (malayalam_synonym)
+ *   4. മലയാളം - മലയാളം (malayalam_malayalam)
+ * - Sub-filter Pill Switcher:
+ *   - തുറന്ന വാക്കുകൾ (Recent Opened Words)
+ *   - തിരച്ചിലുകൾ (Recent Searches)
+ * - Real-time filtering by dictionary type using AsyncStorage (recentActivity.ts)
+ * - Word tap navigation to corresponding dictionary details screen or search screen
+ * - Delete individual item and Clear History actions
+ * - Styled empty state with open book illustration matching the design system
+ */
+
+import React, { useState, useCallback } from "react";
 import {
-  FlatList,
+  Alert,
   Platform,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
-  Alert,
-  ScrollView,
-  Animated,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { router, useFocusEffect } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import AnimatedCard from "../components/AnimatedCard";
-import SkeletonLoader from "../components/SkeletonLoader";
-
+import FloatingLettersBackground from "../components/FloatingLettersBackground";
 import {
   getRecentActivity,
+  inferDictionaryType,
+  removeRecentOpening,
+  removeRecentSearch,
   clearRecentActivity,
-  saveRecentSearch,
-  saveRecentOpening,
-  RecentSearch,
   RecentOpening,
+  RecentSearch,
+  DictionaryType,
 } from "../utils/recentActivity";
 
-import {
-  searchMalayalam,
-} from "../database/dictionaryService";
+type ActivePill = "openings" | "searches";
 
-import { DictionaryEntry } from "../database/types";
+interface DictionaryTabItem {
+  id: DictionaryType;
+  label: string;
+  detailRoute: string;
+  searchRoute: string;
+}
 
+const DICTIONARY_TABS: DictionaryTabItem[] = [
+  {
+    id: "english_malayalam",
+    label: "ഇംഗ്ലീഷ്\nമലയാളം",
+    detailRoute: "/english_malayalam_details",
+    searchRoute: "/english_malayalam",
+  },
+  {
+    id: "malayalam_english",
+    label: "മലയാളം\nഇംഗ്ലീഷ്",
+    detailRoute: "/malayalam_english_details",
+    searchRoute: "/malayalam_english",
+  },
+  {
+    id: "malayalam_synonym",
+    label: "മലയാളം\nനാനാർത്ഥം",
+    detailRoute: "/malayalam_synonym_details",
+    searchRoute: "/malayalam_synonym",
+  },
+  {
+    id: "malayalam_malayalam",
+    label: "മലയാളം\nമലയാളം",
+    detailRoute: "/malayalam_details",
+    searchRoute: "/malayalam-malayalam",
+  },
+];
+
+function formatDateTime(dateStr?: string): string {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  } catch {
+    return dateStr;
+  }
+}
 
 export default function SavisheshaThirayalScreen() {
-  const [searchText, setSearchText] = useState("");
-  const [activeTab, setActiveTab] = useState<"searches" | "openings">("searches");
-  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
-  const [recentOpenings, setRecentOpenings] = useState<RecentOpening[]>([]);
-  const [isLoadingActivity, setIsLoadingActivity] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activityErrorMessage, setActivityErrorMessage] = useState("");
+  const [activeTab, setActiveTab] = useState<DictionaryType>("english_malayalam");
+  const [activePill, setActivePill] = useState<ActivePill>("openings");
 
-  const [searchScrollY] = React.useState(() => new Animated.Value(0));
-  const [recentScrollY] = React.useState(() => new Animated.Value(0));
+  const [allOpenings, setAllOpenings] = useState<RecentOpening[]>([]);
+  const [allSearches, setAllSearches] = useState<RecentSearch[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [containerWidth, setContainerWidth] = useState(0);
-  const [tabTranslateX] = React.useState(() => new Animated.Value(0));
-
-  useEffect(() => {
-    Animated.timing(tabTranslateX, {
-      toValue: activeTab === "searches" ? 0 : 1,
-      duration: 250,
-      useNativeDriver: true,
-    }).start();
-  }, [activeTab]);
-
-
-
-  const [searchResults, setSearchResults] = useState<DictionaryEntry[]>([]);
-  const [isLoadingResults, setIsLoadingResults] = useState(false);
-  const [searchErrorMessage, setSearchErrorMessage] = useState("");
-
-const loadRecentActivity = async (showLoadingIndicator = true) => {
+  // Load activities from AsyncStorage
+  const loadActivity = async () => {
     try {
-      if (showLoadingIndicator) setIsLoadingActivity(true);
-      setActivityErrorMessage("");
-
-      const { recentSearches: searches, recentOpenings: openings } = await getRecentActivity();
-      setRecentSearches(searches);
-      setRecentOpenings(openings);
-    } catch (error) {
-      console.error(error);
-      setActivityErrorMessage(
-        error instanceof Error ? error.message : "സമീപകാല വിവരങ്ങൾ ലോഡ് ചെയ്യാൻ സാധിച്ചില്ല."
-      );
+      const { recentSearches, recentOpenings } = await getRecentActivity();
+      setAllSearches(recentSearches);
+      setAllOpenings(recentOpenings);
+    } catch (err) {
+      console.warn("Failed to load recent activity:", err);
     } finally {
-      setIsLoadingActivity(false);
-      setIsRefreshing(false);
+      setRefreshing(false);
     }
   };
 
-  
-  const loadSearchEntries = async (queryText: string) => {
-  try {
-    setIsLoadingResults(true);
-    setSearchErrorMessage("");
-
-    const results = await searchMalayalam(queryText);
-
-    setSearchResults(results);
-
-    if (results.length > 0) {
-      await saveRecentSearch(queryText, "character");
-    }
-  } catch (error) {
-    setSearchErrorMessage(
-      error instanceof Error
-        ? error.message
-        : "വാക്കുകൾ ലോഡ് ചെയ്യാൻ സാധിച്ചില്ല."
-    );
-    setSearchResults([]);
-  } finally {
-    setIsLoadingResults(false);
-  }
-};
-
   useFocusEffect(
-    React.useCallback(() => {
-      void loadRecentActivity(true);
+    useCallback(() => {
+      void loadActivity();
     }, [])
   );
 
-  useEffect(() => {
-    if (!searchText.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    const delayDebounceFn = setTimeout(() => {
-      void loadSearchEntries(searchText);
-    }, 400); // 400ms ഡെബോൺസ് ടൈം
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchText]);
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    if (searchText.trim()) {
-      void loadSearchEntries(searchText);
-    } else {
-      void loadRecentActivity(false);
-    }
+  const onRefresh = () => {
+    setRefreshing(true);
+    void loadActivity();
   };
 
- 
-const handleClearHistory = async (type: "searches" | "openings") => {
-    try {
-      setIsLoadingActivity(true);
-      await clearRecentActivity(type);
-      if (type === "searches") {
-        setRecentSearches([]);
-      } else {
-        setRecentOpenings([]);
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", error instanceof Error ? error.message : "ചരിത്രം ഇല്ലാതാക്കാൻ സാധിച്ചില്ല.");
-    } finally {
-      setIsLoadingActivity(false);
-    }
+  // Filter activities strictly for the currently selected dictionary tab
+  const activeOpenings = allOpenings.filter(
+    (item) => inferDictionaryType(item) === activeTab
+  );
+
+  const activeSearches = allSearches.filter(
+    (item) => inferDictionaryType(item) === activeTab
+  );
+
+  const currentTab =
+    DICTIONARY_TABS.find((t) => t.id === activeTab) || DICTIONARY_TABS[0];
+
+  const currentCount =
+    activePill === "openings" ? activeOpenings.length : activeSearches.length;
+
+  // Direct single item delete without confirmation alert
+  const handleDeleteOpening = async (id: string, word: string) => {
+    const updated = await removeRecentOpening(id, word);
+    setAllOpenings(updated);
   };
 
+  const handleDeleteSearch = async (id: string, title: string) => {
+    const updated = await removeRecentSearch(id, title);
+    setAllSearches(updated);
+  };
+
+  // Clear all history for current tab & pill
   const confirmClearHistory = () => {
-    const typeLabel = activeTab === "searches" ? "തിരച്ചിലുകൾ" : "തുറന്ന വാക്കുകൾ";
+    const typeLabel = activePill === "openings" ? "തുറന്ന വാക്കുകൾ" : "തിരച്ചിലുകൾ";
     Alert.alert(
       "ചരിത്രം ഇല്ലാതാക്കുക",
-      `സമീപകാലത്തെ ${typeLabel} ചരിത്രം പൂർണ്ണമായും ഒഴിവാക്കണോ?`,
+      `ഈ നിഘണ്ടുവിലെ സമീപകാല ${typeLabel} ചരിത്രം പൂർണ്ണമായും ഒഴിവാക്കണോ?`,
       [
         { text: "അല്ല", style: "cancel" },
-        { text: "അതെ", style: "destructive", onPress: () => void handleClearHistory(activeTab) },
+        {
+          text: "അതെ",
+          style: "destructive",
+          onPress: async () => {
+            await clearRecentActivity(
+              activePill === "openings" ? "openings" : "searches",
+              activeTab
+            );
+            await loadActivity();
+          },
+        },
       ]
     );
   };
 
-  const handleRecentSearchPress = (title: string) => {
-    setSearchText(title);
-  };
-
-  const handleRecentOpeningPress = (word: string) => {
-  router.push({
-    pathname: "/malayalam_details",
-    params: { word },
-  });
-};
-
-  const handleSearchResultPress = async (item: DictionaryEntry) => {
-  await saveRecentOpening(item.id ?? 0, item.word);
-
-  router.push({
-    pathname: "/malayalam_details",
-    params: {
-      word: item.word,
-    },
-  });
-};
-
-
-const formatDateTime = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      const day = String(d.getDate()).padStart(2, "0");
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const year = d.getFullYear();
-      const hours = String(d.getHours()).padStart(2, "0");
-      const minutes = String(d.getMinutes()).padStart(2, "0");
-      return `${day}/${month}/${year} ${hours}:${minutes}`;
-    } catch (e) {
-      return dateStr;
-    }
-  };
-
-  const renderSearchResult = ({ item, index }: { item: DictionaryEntry; index: number }) => (
-    <AnimatedCard index={index} scrollY={searchScrollY}>
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => handleSearchResultPress(item)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderText}>
-            <Text style={styles.malayalamWord}>{item.word}</Text>
-            <Text style={styles.cardSubtext}>
-              English: {item.english_equivalent}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.definitionBox}>
-          <Text style={styles.definitionHeader}>Definition</Text>
-          <Text style={styles.definitionText} numberOfLines={2}>
-            • {item.primary_malayalam_meaning}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    </AnimatedCard>
-  );
-
   return (
-    <View style={styles.screen}>
-      {/* Header */}
+    <SafeAreaView style={styles.safeContainer} edges={["top", "left", "right"]}>
+      <StatusBar style="dark" />
+
+      {/* Floating Animated Malayalam letters & waves */}
+      <FloatingLettersBackground />
+
+      {/* ===================== TOP NAVIGATION HEADER ===================== */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => {
-                if (router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace("/");
-                }
-              }}>
-            <Ionicons name="chevron-back" size={27} color="white" />
-          </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/");
+            }
+          }}
+          style={styles.circleBackButton}
+          activeOpacity={0.7}
+          accessibilityLabel="Go back"
+        >
+          <Ionicons name="chevron-back" size={22} color="#0F172A" />
+        </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>സമീപകാല തിരയൽ</Text>
-
-          {/* Clear history button inside header */}
-          {!searchText.trim() &&
-            ((activeTab === "searches" && recentSearches.length > 0) ||
-              (activeTab === "openings" && recentOpenings.length > 0)) ? (
-            <TouchableOpacity onPress={confirmClearHistory}>
-              <Ionicons name="trash-outline" size={24} color="white" />
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 24 }} />
-          )}
+        {/* Header Title: ഭാഷാമിത്രം II 🍃 */}
+        <View style={styles.headerTitleRow}>
+          <Text style={styles.headerTitleText}>ഭാഷാമിത്രം II</Text>
+          <MaterialCommunityIcons
+            name="leaf"
+            size={22}
+            color="#16A34A"
+            style={styles.headerLeaf}
+          />
         </View>
+
+        <View style={{ width: 40 }} />
       </View>
 
-      {/* Search Input Container */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Explore words..."
-          value={searchText}
-          onChangeText={setSearchText}
-          placeholderTextColor="#898683"
-        />
-        {searchText.trim().length > 0 && (
-          <TouchableOpacity onPress={() => setSearchText("")} style={styles.clearSearchIcon}>
-            <Ionicons name="close-circle" size={20} color="#777" />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity onPress={() => void loadSearchEntries(searchText)} style={styles.searchButton}>
-          <Ionicons name="search" size={18} color="white" />
+      {/* ===================== DICTIONARY TABS ===================== */}
+      <View style={styles.categoryTabsBar}>
+        {DICTIONARY_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              style={styles.categoryTabBtn}
+              onPress={() => setActiveTab(tab.id)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.categoryTabLabel,
+                  isActive && styles.categoryTabLabelActive,
+                ]}
+                numberOfLines={2}
+              >
+                {tab.label}
+              </Text>
+              {isActive && <View style={styles.activeTabIndicator} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* ===================== SUB-FILTER PILLS ===================== */}
+      <View style={styles.filterPillContainer}>
+        {/* Left Pill: തുറന്ന വാക്കുകൾ (Recent Openings) */}
+        <TouchableOpacity
+          style={[
+            styles.filterPill,
+            activePill === "openings" && styles.filterPillActive,
+          ]}
+          onPress={() => setActivePill("openings")}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="book-outline"
+            size={16}
+            color={activePill === "openings" ? "#FFFFFF" : "#64748B"}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            style={[
+              styles.filterPillText,
+              activePill === "openings" && styles.filterPillTextActive,
+            ]}
+          >
+            {`തുറന്ന വാക്കുകൾ (${activeOpenings.length})`}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Right Pill: തിരച്ചിലുകൾ (Recent Searches) */}
+        <TouchableOpacity
+          style={[
+            styles.filterPill,
+            activePill === "searches" && styles.filterPillActive,
+          ]}
+          onPress={() => setActivePill("searches")}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="search-outline"
+            size={16}
+            color={activePill === "searches" ? "#FFFFFF" : "#64748B"}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            style={[
+              styles.filterPillText,
+              activePill === "searches" && styles.filterPillTextActive,
+            ]}
+          >
+            {`തിരച്ചിലുകൾ (${activeSearches.length})`}
+          </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Tab Selector */}
-      {!searchText.trim() && (
-        <View
-          style={styles.tabContainer}
-          onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
-        >
-          {containerWidth > 0 && (
-            <Animated.View
-              style={[
-                styles.activeIndicator,
-                {
-                  width: (containerWidth - 8) / 2,
-                  transform: [
-                    {
-                      translateX: tabTranslateX.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, (containerWidth - 8) / 2],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-          )}
-          <TouchableOpacity
-            style={styles.tabButton}
-            onPress={() => setActiveTab("searches")}
-            activeOpacity={0.9}
-          >
-            <Text style={[styles.tabButtonText, activeTab === "searches" && styles.activeTabButtonText]}>
-              Recent Searches
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.tabButton}
-            onPress={() => setActiveTab("openings")}
-            activeOpacity={0.9}
-          >
-            <Text style={[styles.tabButtonText, activeTab === "openings" && styles.activeTabButtonText]}>
-              Recent Openings
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Content Rendering */}
-      {searchText.trim() ? (
-        isLoadingResults ? (
-          <SkeletonLoader />
-        ) : searchErrorMessage ? (
-          <View style={styles.stateContainer}>
-            <Text style={styles.stateTitle}>കണക്ട് ചെയ്യാൻ സാധിച്ചില്ല</Text>
-            <Text style={styles.stateText}>{searchErrorMessage}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => void loadSearchEntries(searchText)}>
-              <Text style={styles.retryButtonText}>വീണ്ടും ശ്രമിക്കുക</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <Animated.FlatList
-            data={searchResults}
-            keyExtractor={(item, index) => (item.id ?? index).toString()}
-            renderItem={renderSearchResult}
-            contentContainerStyle={styles.listContent}
-            keyboardShouldPersistTaps="handled"
-            scrollEventThrottle={16}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: searchScrollY } } }],
-              { useNativeDriver: true }
-            )}
-            ListEmptyComponent={
-              <View style={styles.stateContainer}>
-                <Text style={styles.stateTitle}>ഫലങ്ങൾ ഒന്നും കണ്ടെത്തിയില്ല</Text>
-                <Text style={styles.stateText}>
-                  &quot;{searchText}&quot; എന്ന വാക്ക് നിഘണ്ടുവിൽ കണ്ടെത്താൻ സാധിച്ചില്ല.
-                </Text>
-              </View>
-            }
+      {/* ===================== MAIN CONTENT / LIST / EMPTY STATE ===================== */}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          currentCount === 0 && styles.scrollContentEmpty,
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#0D9488"]}
+            tintColor="#0D9488"
           />
-        )
-      ) : (
-        isLoadingActivity ? (
-          <SkeletonLoader />
-        ) : activityErrorMessage ? (
-          <View style={styles.stateContainer}>
-            <Text style={styles.stateTitle}>വിവരങ്ങൾ ലഭ്യമാക്കാൻ സാധിച്ചില്ല</Text>
-            <Text style={styles.stateText}>{activityErrorMessage}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => void loadRecentActivity(true)}>
-              <Text style={styles.retryButtonText}>വീണ്ടും ശ്രമിക്കുക</Text>
-            </TouchableOpacity>
+        }
+      >
+        {currentCount === 0 ? (
+          /* Empty State matching the uploaded screenshot */
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyBookWrapper}>
+              <Image
+                source={require("../../assets/images/empty_suggestions_book.png")}
+                style={styles.emptyBookImage}
+                contentFit="contain"
+              />
+            </View>
+
+            <Text style={styles.emptyTitle}>
+              {activePill === "openings"
+                ? "തുറന്ന വാക്കുകൾ ലഭ്യമല്ല"
+                : "തിരച്ചിലുകൾ ലഭ്യമല്ല"}
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              {activePill === "openings"
+                ? "ഈ നിഘണ്ടുവിൽ സമീപകാലത്ത് തുറന്ന വാക്കുകൾ നിലവിലില്ല."
+                : "ഈ നിഘണ്ടുവിൽ സമീപകാലത്ത് തിരച്ചിലുകൾ നിലവിലില്ല."}
+            </Text>
           </View>
         ) : (
-          <Animated.ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            scrollEventThrottle={16}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: recentScrollY } } }],
-              { useNativeDriver: true }
-            )}
-          >
-            <>
-              {activeTab === "searches" ? (
-                recentSearches.length === 0 ? (
-                  <View style={styles.stateContainer}>
-                    <Text style={styles.stateTitle}>തിരച്ചിലുകൾ ലഭ്യമല്ല</Text>
-                    <Text style={styles.stateText}>സമീപകാല തിരച്ചിലുകൾ നിലവിലില്ല.</Text>
-                  </View>
-                ) : (
-                  recentSearches.map((item, index) => (
-                    <AnimatedCard
-                      key={`${item.title}-${index}`}
-                      index={index}
-                      scrollY={recentScrollY}
-                    >
-                      <TouchableOpacity
-                            style={styles.card}
-                            activeOpacity={0.7}
-                            onPress={() => handleRecentSearchPress(item.title)}
-                          >
-                            <View style={styles.cardHeader}>
-                              <View style={styles.cardHeaderText}>
-                                <Text style={styles.malayalamWord}>{item.title}</Text>
-                                <Text style={styles.timestampText}>
-                                  {formatDateTime(item.searchedAt)}
-                                </Text>
-                              </View>
+          /* List of Recent Items */
+          <View style={styles.listContainer}>
+            {/* Header row with count and clear button */}
+            <View style={styles.listHeaderRow}>
+              <Text style={styles.listHeaderCount}>
+                {activePill === "openings"
+                  ? `${activeOpenings.length} വാക്കുകൾ`
+                  : `${activeSearches.length} തിരച്ചിലുകൾ`}
+              </Text>
+              <TouchableOpacity
+                style={styles.clearAllBtn}
+                onPress={confirmClearHistory}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name="trash-outline"
+                  size={13}
+                  color="#EF4444"
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={styles.clearAllText}>എല്ലാം ഒഴിവാക്കുക</Text>
+              </TouchableOpacity>
+            </View>
 
-                              <View style={styles.cardHeaderRight}>
-                                <View style={styles.directionBadge}>
-                                  <Text style={styles.directionBadgeText}>
-                                    {item.itemType}
-                                  </Text>
-                                </View>
-                              </View>
-                            </View>
-                          </TouchableOpacity>
-                    </AnimatedCard>
-                  ))
-                )
-              ) : (
-                recentOpenings.length === 0 ? (
-                  <View style={styles.stateContainer}>
-                    <Text style={styles.stateTitle}>തുറന്ന വാക്കുകൾ ലഭ്യമല്ല</Text>
-                    <Text style={styles.stateText}>സമീപകാലത്ത് തുറന്ന വാക്കുകൾ നിലവിലില്ല.</Text>
-                  </View>
-                ) : (
-                  recentOpenings.map((item, index) => (
-                    <AnimatedCard
-                      key={item._id}
-                      index={index}
-                      scrollY={recentScrollY}
+            {activePill === "openings"
+              ? activeOpenings.map((item) => (
+                  <View key={item._id} style={styles.activityCard}>
+                    <TouchableOpacity
+                      style={styles.cardMainAction}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        router.push({
+                          pathname: currentTab.detailRoute as any,
+                          params: { word: item.word },
+                        });
+                      }}
+                      onLongPress={() => void handleDeleteOpening(item._id, item.word)}
                     >
-                      <TouchableOpacity
-                        style={styles.card}
-                        activeOpacity={0.7}
-                        onPress={() => handleRecentOpeningPress(item.word)}
-                      >
-                        <View style={styles.cardHeader}>
-                          <View style={styles.cardHeaderText}>
-                            <Text style={styles.malayalamWord}>{item.word}</Text>
+                      <View style={styles.cardIconBadge}>
+                        <Ionicons
+                          name="book-outline"
+                          size={18}
+                          color="#0D9488"
+                        />
+                      </View>
 
-                            <Text style={styles.timestampText}>
-                              {formatDateTime(item.openedAt)}
-                            </Text>
-                          </View>
+                      <View style={styles.cardTextCol}>
+                        <Text style={styles.cardWordTitle}>{item.word}</Text>
+                        <View style={styles.cardTimeRow}>
+                          <Ionicons
+                            name="time-outline"
+                            size={12}
+                            color="#94A3B8"
+                          />
+                          <Text style={styles.cardTimeText}>
+                            {formatDateTime(item.openedAt)}
+                          </Text>
                         </View>
-                      </TouchableOpacity>
-                    </AnimatedCard>
-                  ))
-                )
-              )}
-            </>
-          </Animated.ScrollView>
-        )
-      )}
-    </View>
+                      </View>
+
+                      <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color="#CBD5E1"
+                        style={{ marginRight: 6 }}
+                      />
+                    </TouchableOpacity>
+
+                    {/* Single Word Delete Button */}
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      activeOpacity={0.6}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      onPress={() => void handleDeleteOpening(item._id, item.word)}
+                      accessibilityLabel={`Delete ${item.word}`}
+                    >
+                      <View style={styles.deleteIconBadge}>
+                        <Ionicons name="trash-outline" size={15} color="#EF4444" />
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              : activeSearches.map((item) => (
+                  <View key={item._id} style={styles.activityCard}>
+                    <TouchableOpacity
+                      style={styles.cardMainAction}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        router.push({
+                          pathname: currentTab.searchRoute as any,
+                          params: { query: item.title },
+                        });
+                      }}
+                      onLongPress={() => void handleDeleteSearch(item._id, item.title)}
+                    >
+                      <View style={styles.cardIconBadge}>
+                        <Ionicons
+                          name="search-outline"
+                          size={18}
+                          color="#0D9488"
+                        />
+                      </View>
+
+                      <View style={styles.cardTextCol}>
+                        <Text style={styles.cardWordTitle}>{item.title}</Text>
+                        <View style={styles.cardTimeRow}>
+                          <Ionicons
+                            name="time-outline"
+                            size={12}
+                            color="#94A3B8"
+                          />
+                          <Text style={styles.cardTimeText}>
+                            {formatDateTime(item.searchedAt)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color="#CBD5E1"
+                        style={{ marginRight: 6 }}
+                      />
+                    </TouchableOpacity>
+
+                    {/* Single Search Delete Button */}
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      activeOpacity={0.6}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      onPress={() => void handleDeleteSearch(item._id, item.title)}
+                      accessibilityLabel={`Delete ${item.title}`}
+                    >
+                      <View style={styles.deleteIconBadge}>
+                        <Ionicons name="trash-outline" size={15} color="#EF4444" />
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  safeContainer: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: "#F8FAFC",
   },
+
+  /* ===================== TOP HEADER ===================== */
   header: {
-    height: Platform.OS === "android" ? 75 : 95,
-    backgroundColor: "#2B2C51",
-    justifyContent: "flex-end",
-    paddingBottom: 12,
-  },
-  headerContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    width: "100%",
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 4 : 8,
+    paddingBottom: 8,
+    zIndex: 10,
   },
-  headerTitle: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
-    flex: 1,
-    textAlign: "center",
+  circleBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
-  searchContainer: {
+  headerTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: "#EAE6DF",
-    paddingLeft: 18,
-    paddingRight: 4,
-    height: 50,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 2,
+    justifyContent: "center",
   },
-  searchInput: {
+  headerTitleText: {
+    fontFamily: "NotoSansMalayalam",
+    fontSize: 21,
+    fontWeight: "800",
+    color: "#0D5C75",
+    letterSpacing: 0.2,
+  },
+  headerLeaf: {
+    marginLeft: 6,
+    transform: [{ rotate: "-15deg" }],
+  },
+
+  /* ===================== DICTIONARY TABS ===================== */
+  categoryTabsBar: {
+    flexDirection: "row",
+    paddingHorizontal: 8,
+    marginTop: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    zIndex: 10,
+  },
+  categoryTabBtn: {
     flex: 1,
-    fontSize: 15,
-    color: "#333",
-    padding: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    position: "relative",
+  },
+  categoryTabLabel: {
+    fontSize: 11.5,
+    fontWeight: "600",
+    color: "#475569",
+    textAlign: "center",
+    fontFamily: "NotoSansMalayalam",
+    lineHeight: 16,
+  },
+  categoryTabLabelActive: {
+    color: "#0F766E",
+    fontWeight: "800",
+  },
+  activeTabIndicator: {
+    position: "absolute",
+    bottom: -1,
+    left: 8,
+    right: 8,
+    height: 3,
+    backgroundColor: "#0D9488",
+    borderRadius: 2,
+  },
+
+  /* ===================== SUB-FILTER PILLS ===================== */
+  filterPillContainer: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: 4,
+    zIndex: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  filterPill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  filterPillActive: {
+    backgroundColor: "#0D7482",
+  },
+  filterPillText: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    color: "#475569",
     fontFamily: "NotoSansMalayalam",
   },
-  micButton: {
-    padding: 8,
-    marginRight: 4,
+  filterPillTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "800",
   },
-  clearSearchIcon: {
-    padding: 4,
-    marginRight: 4,
+
+  /* ===================== SCROLL CONTENT & EMPTY STATE ===================== */
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 40,
+    zIndex: 10,
   },
-  searchButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#2B2C51",
+  scrollContentEmpty: {
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 24,
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
   },
-  listContent: {
-    padding: 16,
-    paddingBottom: 24,
-  },
-  openingCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#F0ECE6",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 18,
+  emptyBookWrapper: {
+    width: 160,
+    height: 130,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#F0ECE6",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
   },
-  cardHeader: {
+  emptyBookImage: {
+    width: "100%",
+    height: "100%",
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
+    fontFamily: "NotoSansMalayalam",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#64748B",
+    fontFamily: "NotoSansMalayalam",
+    textAlign: "center",
+    lineHeight: 20,
+    maxWidth: 270,
+  },
+
+  /* ===================== LIST CARDS ===================== */
+  listContainer: {
+    width: "100%",
+    paddingTop: 4,
+  },
+  listHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
+    alignItems: "center",
+    paddingHorizontal: 4,
+    marginBottom: 10,
   },
-  cardHeaderText: {
-    flex: 1,
-  },
-  malayalamWord: {
-    color: "#1F2330",
-    fontSize: 20,
-    fontWeight: "800",
-    fontFamily: "NotoSansMalayalam",
-  },
-  timestampText: {
-    color: "#7C736B",
-    fontSize: 12,
-    fontFamily: "NotoSansMalayalam",
-    marginTop: 4,
-  },
-  cardSubtext: {
-    color: "#4E473E",
-    fontSize: 16,
+  listHeaderCount: {
+    fontSize: 12.5,
     fontWeight: "700",
-    marginTop: 4,
+    color: "#64748B",
     fontFamily: "NotoSansMalayalam",
   },
-  cardHeaderRight: {
+  clearAllBtn: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  directionBadge: {
+    paddingVertical: 4,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    backgroundColor: "#FEE2E2",
     borderRadius: 12,
-    backgroundColor: "#F0EAE1",
   },
-  directionBadgeText: {
-    color: "#4E473E",
-    fontSize: 12,
+  clearAllText: {
+    fontSize: 11.5,
     fontWeight: "700",
+    color: "#EF4444",
+    fontFamily: "NotoSansMalayalam",
   },
-  playButtonCircle: {
+  activityCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#0F172A",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  cardMainAction: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingLeft: 14,
+    paddingRight: 6,
+  },
+  cardIconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#CCFBF1",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  cardTextCol: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  cardWordTitle: {
+    fontSize: 16.5,
+    fontWeight: "800",
+    color: "#0F172A",
+    fontFamily: "NotoSansMalayalam",
+  },
+  cardTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 3,
+  },
+  cardTimeText: {
+    fontSize: 11.5,
+    color: "#64748B",
+    marginLeft: 4,
+    fontFamily: "NotoSansMalayalam",
+  },
+  deleteButton: {
+    padding: 6,
+    marginRight: 4,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  deleteIconBadge: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#2B2C51",
+    backgroundColor: "#FEE2E2",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 10,
-  },
-  definitionBox: {
-    backgroundColor: "#F5F5F7",
-    borderRadius: 14,
-    padding: 14,
-    marginTop: 4,
-  },
-  definitionHeader: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#1F2330",
-    marginBottom: 6,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  definitionText: {
-    color: "#4E473E",
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: "NotoSansMalayalam",
-  },
-  stateContainer: {
-    flex: 1,
-    minHeight: 260,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  stateTitle: {
-    color: "#1F2330",
-    fontSize: 17,
-    fontWeight: "800",
-    fontFamily: "NotoSansMalayalam",
-    marginBottom: 6,
-  },
-  stateText: {
-    color: "#6D625A",
-    fontSize: 14,
-    fontFamily: "NotoSansMalayalam",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  retryButton: {
-    marginTop: 14,
-    backgroundColor: "#2B2C51",
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
-  },
-  tabContainer: {
-    flexDirection: "row",
-    backgroundColor: "#EBE6DF",
-    borderRadius: 20,
-    padding: 4,
-    marginHorizontal: 16,
-    marginTop: 4,
-    marginBottom: 12,
-    position: "relative",
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-    borderRadius: 16,
-    zIndex: 1,
-  },
-  activeIndicator: {
-    position: "absolute",
-    top: 4,
-    bottom: 4,
-    left: 4,
-    backgroundColor: "#2B2C51",
-    borderRadius: 16,
-  },
-  tabButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#5F564E",
-    fontFamily: "NotoSansMalayalam",
-  },
-  activeTabButtonText: {
-    color: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#FECACA",
   },
 });

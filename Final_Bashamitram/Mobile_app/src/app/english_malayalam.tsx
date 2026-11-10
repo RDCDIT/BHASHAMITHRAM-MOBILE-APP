@@ -9,26 +9,48 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import AnimatedCard from "../components/AnimatedCard";
 import SkeletonLoader from "../components/SkeletonLoader";
 import { saveRecentSearch } from "../utils/recentActivity";
 import SpeakButton from "../components/SpeakButton";
+import FavoriteButton from "../components/FavoriteButton";
+import DictionarySearchBar from "../components/DictionarySearchBar";
+import FloatingLettersBackground from "../components/FloatingLettersBackground";
 
 import { searchEnglish } from "../database/dictionaryService";
 import type { DictionaryEntry } from "../database/types";
+import { useResponsive } from "../utils/responsive";
 
 const PAGE_SIZE = 20;
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export default function EnglishMalayalamScreen() {
-  const [selectedLetter, setSelectedLetter] = useState("A");
-  const [searchText, setSearchText] = useState("");
+  const {
+    headerHeight,
+    headerTitleFontSize,
+    headerSubtitleFontSize,
+    dictCardPadding,
+    dictCardMargin,
+    dictCardRadius,
+    dictWordFontSize,
+    dictMeaningFontSize,
+    alphabetTabSize,
+    alphabetFontSize,
+    alphabetPadding,
+    horizontalPadding,
+    isSmallPhone,
+  } = useResponsive();
+
+  const { query } = useLocalSearchParams<{ query?: string }>();
+  const [selectedLetter, setSelectedLetter] = useState(query ? "" : "A");
+  const [searchText, setSearchText] = useState(query || "");
   const [allEntries, setAllEntries] = useState<DictionaryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -73,19 +95,24 @@ export default function EnglishMalayalamScreen() {
   }, [selectedLetter]);
 
   useEffect(() => {
-    if (searchText === "") return;
+    if (searchText === "") {
+      if (selectedLetter) {
+        void loadEntries(selectedLetter, false);
+      }
+      return;
+    }
 
     const timer = setTimeout(() => {
       void loadEntries(searchText.trim(), false);
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [searchText]);
+  }, [searchText, selectedLetter]);
 
   useEffect(() => {
     if (searchText.trim().length > 1) {
       const timer = setTimeout(() => {
-        void saveRecentSearch(searchText.trim(), "english");
+        void saveRecentSearch(searchText.trim(), "english", "english_malayalam");
       }, 1000);
       return () => clearTimeout(timer);
     }
@@ -102,6 +129,12 @@ export default function EnglishMalayalamScreen() {
     <TouchableOpacity
       style={[
         styles.letterTab,
+        {
+          width: alphabetTabSize,
+          height: alphabetTabSize,
+          borderRadius: Math.round(alphabetTabSize / 2),
+          marginHorizontal: isSmallPhone ? 3 : 5,
+        },
         selectedLetter === item && !searchText.trim() && styles.activeLetterTab,
       ]}
       onPress={() => {
@@ -112,6 +145,7 @@ export default function EnglishMalayalamScreen() {
       <Text
         style={[
           styles.letterText,
+          { fontSize: alphabetFontSize },
           selectedLetter === item && !searchText.trim() && styles.activeLetterText,
         ]}
       >
@@ -131,24 +165,53 @@ export default function EnglishMalayalamScreen() {
       (item.meanings ?? []).filter((m) => m.meaning?.trim());
 
     const previewMeanings = displayMeanings.slice(0, 3);
+    const pos =
+      item.category_names?.[0] ||
+      item.categories?.[0]?.category ||
+      (Array.isArray(item.category) ? item.category[0] : item.category);
 
     return (
       <AnimatedCard index={index} scrollY={scrollY}>
         <TouchableOpacity
-          style={styles.card}
+          style={[
+            styles.card,
+            {
+              padding: dictCardPadding,
+              marginBottom: dictCardMargin,
+              borderRadius: dictCardRadius,
+            },
+          ]}
           onPress={() => handleCardPress(item.word)}
           activeOpacity={0.7}
         >
-          <View style={styles.cardHeader}>
+          <View style={[styles.cardHeader, { marginBottom: isSmallPhone ? 8 : 12 }]}>
             <View style={styles.cardHeaderText}>
-              <Text style={styles.englishWord}>{item.word}</Text>
+              <View style={styles.wordTitleRow}>
+                <Text style={[styles.englishWord, { fontSize: dictWordFontSize }]}>{item.word}</Text>
+                {pos ? (
+                  <View style={styles.posBadge}>
+                    <Text style={styles.posBadgeText}>{pos}</Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
-            <SpeakButton word={item.word} lang="en" />
+
+            <View style={styles.cardActionRow}>
+              <SpeakButton word={item.word} lang="en" />
+              <FavoriteButton
+                word={item.word}
+                dictionaryType="english_malayalam"
+                meaning={previewMeanings[0]?.meaning}
+                partOfSpeech={pos}
+                size={32}
+              />
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+            </View>
           </View>
 
-          <View style={styles.definitionBox}>
+          <View style={[styles.definitionBox, { padding: isSmallPhone ? 10 : 14, borderRadius: Math.max(10, dictCardRadius - 4) }]}>
             {previewMeanings.length === 0 ? (
-              <Text style={styles.definitionText}>
+              <Text style={[styles.definitionText, { fontSize: dictMeaningFontSize }]}>
                 No meaning available
               </Text>
             ) : (
@@ -158,8 +221,10 @@ export default function EnglishMalayalamScreen() {
                   style={[
                     styles.definitionText,
                     {
+                      fontSize: dictMeaningFontSize,
+                      lineHeight: Math.round(dictMeaningFontSize * 1.45),
                       marginBottom:
-                        idx < previewMeanings.length - 1 ? 5 : 0,
+                        idx < previewMeanings.length - 1 ? (isSmallPhone ? 3 : 5) : 0,
                     },
                   ]}
                 >
@@ -175,22 +240,40 @@ export default function EnglishMalayalamScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
-      <View style={styles.header}>
+      <FloatingLettersBackground />
+      {/* Header (Matching Screen 2) */}
+      <View style={[styles.header, { height: headerHeight }]}>
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={27} color="white" />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.headerBackButton}
+            activeOpacity={0.7}
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={24} color="#0F172A" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>ഇംഗ്ലീഷ് - മലയാളം നിഘണ്ടു</Text>
-          <View style={{ width: 27 }} />
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { fontSize: headerTitleFontSize }]}>ഭാഷാമിത്രം II</Text>
+            <Text style={[styles.headerSubtitle, { fontSize: headerSubtitleFontSize }]}>ഇംഗ്ലീഷ് - മലയാളം പദസേതു</Text>
+          </View>
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.headerEmblem}
+            resizeMode="contain"
+          />
         </View>
       </View>
 
       {/* Alphabet strip */}
-      <View style={styles.alphabetContainer}>
+      <View style={[styles.alphabetContainer, { paddingVertical: alphabetPadding, paddingHorizontal: horizontalPadding }]}>
         <TouchableOpacity
           style={[
             styles.clearFilterButton,
+            {
+              width: alphabetTabSize,
+              height: alphabetTabSize,
+              borderRadius: Math.round(alphabetTabSize / 2),
+            },
             selectedLetter === "" && searchText === "" && styles.clearFilterButtonDisabled,
           ]}
           onPress={() => {
@@ -203,7 +286,7 @@ export default function EnglishMalayalamScreen() {
         >
           <Ionicons
             name="funnel-outline"
-            size={18}
+            size={isSmallPhone ? 16 : 18}
             color={selectedLetter === "" && searchText === "" ? "#9CA3AF" : "#EF4444"}
           />
         </TouchableOpacity>
@@ -219,21 +302,13 @@ export default function EnglishMalayalamScreen() {
       </View>
 
       {/* Search bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Explore words..."
-          value={searchText}
-          onChangeText={setSearchText}
-          placeholderTextColor="#898683"
-        />
-        <TouchableOpacity
-         onPress={() => void loadEntries(searchText.trim(), false)}
-          style={styles.searchButton}
-        >
-          <Ionicons name="search" size={18} color="white" />
-        </TouchableOpacity>
-      </View>
+      <DictionarySearchBar
+        lang="en"
+        value={searchText}
+        placeholder="Explore words..."
+        onChangeText={(text) => setSearchText(text)}
+        onSubmit={() => void loadEntries(searchText.trim(), false)}
+      />
 
       {/* Content */}
       {isLoading ? (
@@ -254,7 +329,13 @@ export default function EnglishMalayalamScreen() {
           renderItem={renderEntry}
           data={allEntries}
           keyExtractor={(item, index) => (item.id ?? item.word ?? index).toString()}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            {
+              padding: horizontalPadding,
+              paddingBottom: Math.round(dictCardMargin * 2.5),
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
           onScroll={Animated.event(
@@ -296,152 +377,178 @@ export default function EnglishMalayalamScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "transparent" },
   header: {
-    height: Platform.OS === "android" ? 75 : 95,
-    backgroundColor: "#2B2C51",
+    height: Platform.OS === "android" ? 82 : 100,
+    backgroundColor: "#FFFFFF",
     justifyContent: "flex-end",
-    paddingBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
+  },
+  headerBackButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitleContainer: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    color: "white",
+    color: "#0F172A",
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "500",
+    fontFamily: "NotoSansMalayalam",
+    textAlign: "center",
+    marginTop: 1,
+  },
+  headerEmblem: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   alphabetContainer: {
-    backgroundColor: "#F9F6F1",
-    paddingVertical: 14,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
   alphabetFlatList: { flex: 1 },
   clearFilterButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F1F5F9",
     borderWidth: 1,
-    borderColor: "#EAE6DF",
+    borderColor: "#E2E8F0",
     marginRight: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
   },
   clearFilterButtonDisabled: { opacity: 0.5 },
   alphabetList: { paddingHorizontal: 4 },
   letterTab: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    marginHorizontal: 5,
+    marginHorizontal: 4,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#EAE6DF",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
+    borderColor: "#E2E8F0",
   },
   activeLetterTab: {
-    backgroundColor: "#2B2C51",
-    borderColor: "#2B2C51",
-    shadowOpacity: 0.12,
+    backgroundColor: "#2563EB",
+    borderColor: "#2563EB",
+    shadowColor: "#2563EB",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
     elevation: 3,
   },
   letterText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#2B2C51",
+    color: "#0F172A",
   },
-  activeLetterText: { color: "#FFFFFF" },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    marginHorizontal: 16,
-    marginTop: 4,
-    marginBottom: 12,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: "#EAE6DF",
-    paddingLeft: 18,
-    paddingRight: 4,
-    height: 50,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 2,
+  activeLetterText: { color: "#FFFFFF", fontWeight: "800" },
+  listContent: {
+    padding: 16,
+    paddingBottom: 32,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: "#333",
-    padding: 0,
-  },
-  searchButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#2B2C51",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  listContent: { padding: 16, paddingBottom: 24 },
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#F0ECE6",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    borderColor: "#E2E8F0",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 2,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
+    alignItems: "center",
+    marginBottom: 10,
   },
-  cardHeaderText: { flex: 1 },
+  cardHeaderText: { flex: 1, marginRight: 8 },
+  wordTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
   englishWord: {
-    color: "#1F2330",
-    fontSize: 20,
+    color: "#0F172A",
+    fontSize: 18,
     fontWeight: "800",
   },
-  definitionBox: {
-    backgroundColor: "#F7F7F9",
-    borderLeftColor: "#E07B54",
-    borderLeftWidth: 4,
-    borderRadius: 14,
-    padding: 14,
-    marginTop: 4,
+  posBadge: {
+    backgroundColor: "#E0F2FE",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
-  
+  posBadgeText: {
+    color: "#0284C7",
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "lowercase",
+  },
+  cardActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  definitionBox: {
+    backgroundColor: "#F8FAFC",
+    borderLeftColor: "#2563EB",
+    borderLeftWidth: 3,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 2,
+  },
   definitionText: {
-    color: "#4E473E",
+    color: "#334155",
     fontSize: 14,
     lineHeight: 20,
     fontFamily: "NotoSansMalayalam",
   },
-  
   stateContainer: {
     flex: 1,
     minHeight: 260,
@@ -450,13 +557,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   stateTitle: {
-    color: "#1F2330",
+    color: "#0F172A",
     fontSize: 17,
     fontWeight: "800",
     marginBottom: 6,
   },
   stateText: {
-    color: "#6D625A",
+    color: "#64748B",
     fontSize: 14,
     textAlign: "center",
     lineHeight: 20,
@@ -464,7 +571,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 14,
-    backgroundColor: "#2B2C51",
+    backgroundColor: "#2563EB",
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 12,

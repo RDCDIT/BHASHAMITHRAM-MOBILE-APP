@@ -8,3 +8,12 @@ export async function getDatabase() {
   const { getDatabase } = await import("./database.native");
   return getDatabase();
 }
+
+export async function forceReloadDatabase() {
+  if (Platform.OS === "web") {
+    throw new Error("SQLite is not supported in the web build.");
+  }
+
+  const { forceReloadDatabase } = await import("./database.native");
+  return forceReloadDatabase();
+}

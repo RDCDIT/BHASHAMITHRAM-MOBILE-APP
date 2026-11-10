@@ -1,16 +1,18 @@
 /**
  * @file SpeakButton.tsx
- * @description Native text-to-speech speak button utilizing expo-speech library for local speech synthesis.
+ * @description Highly responsive audio pronunciation button powered by speechService.
+ * Supports authentic audio pronunciation for both Malayalam and English across Android, iOS, and Web.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
+import { speechService, SupportedLang } from '../services/speechService';
 
 interface SpeakButtonProps {
   word: string;
-  lang: 'ml' | 'en';
+  lang?: SupportedLang;
+  size?: number;
 }
 
 /**
@@ -19,34 +21,44 @@ interface SpeakButtonProps {
  * @param {SpeakButtonProps} props - The component parameters.
  * @returns {React.JSX.Element}
  */
-export default function SpeakButton({ word, lang }: SpeakButtonProps) {
+export default function SpeakButton({ word, lang, size = 32 }: SpeakButtonProps) {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-
-  const [scaleAnim] = React.useState(() => new Animated.Value(1));
+  const [scaleAnim] = useState(() => new Animated.Value(1));
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (pulseLoop.current) {
-        pulseLoop.current.stop();
-      }
-      Speech.stop();
-    };
-  }, []);
+  const cleanTarget = speechService.cleanWord(word);
 
-  // Handle animation triggers when state changes
+  // Sync with global speechService state
+  useEffect(() => {
+    // Initial check
+    setIsPlaying(speechService.isWordPlaying(word));
+
+    const unsubscribe = speechService.subscribe((activeWord, isSpeaking) => {
+      if (activeWord === cleanTarget && isSpeaking) {
+        setIsPlaying(true);
+      } else {
+        setIsPlaying(false);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [cleanTarget, word]);
+
+  // Handle pulse animation during playback
   useEffect(() => {
     if (isPlaying) {
       pulseLoop.current = Animated.loop(
         Animated.sequence([
           Animated.timing(scaleAnim, {
-            toValue: 1.12,
-            duration: 500,
+            toValue: 1.15,
+            duration: 400,
             useNativeDriver: true,
           }),
           Animated.timing(scaleAnim, {
             toValue: 0.95,
-            duration: 500,
+            duration: 400,
             useNativeDriver: true,
           }),
         ])
@@ -62,70 +74,57 @@ export default function SpeakButton({ word, lang }: SpeakButtonProps) {
         useNativeDriver: true,
       }).start();
     }
+
+    return () => {
+      if (pulseLoop.current) {
+        pulseLoop.current.stop();
+      }
+    };
   }, [isPlaying]);
 
-  /**
- * Initiates speech playbacks or interrupts them if already speaking.
- */
   const handlePlayback = async () => {
     if (!word || typeof word !== 'string' || word.trim() === '') {
       return;
     }
 
-    if (isPlaying) {
-      try {
-        await Speech.stop();
-      } catch (error) {
-        console.warn("Error stopping speech:", error);
-      }
-      setIsPlaying(false);
-      return;
-    }
-
     try {
-      if (!Speech || typeof Speech.speak !== 'function') {
-        console.warn("Speech module is not available on this device.");
-        return;
-      }
-
-      const speechLang = lang === 'ml' ? 'ml-IN' : 'en-US';
-      setIsPlaying(true);
-      
-      try {
-        await Speech.stop();
-      } catch (e) {}
-
-      Speech.speak(word, {
-        language: speechLang,
+      await speechService.speak(word, lang, {
         onStart: () => setIsPlaying(true),
         onDone: () => setIsPlaying(false),
-        onStopped: () => setIsPlaying(false),
         onError: (err) => {
-          console.warn("Local Speech synthesis failed:", err);
+          console.warn(`[SpeakButton] Speech playback notice for "${word}":`, err?.message || err);
           setIsPlaying(false);
-        }
+        },
       });
     } catch (error) {
       setIsPlaying(false);
-      console.error("Audio speaking error:", error);
+      console.warn("[SpeakButton] Failed to trigger speech:", error);
     }
   };
 
+  const buttonSize = size;
+  const iconSize = Math.max(15, Math.round(buttonSize * 0.52));
+
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[
-          styles.playCircle, 
-          isPlaying && styles.playCircleActive
-        ]} 
-        onPress={handlePlayback} 
-        activeOpacity={0.8}
+          styles.playCircle,
+          {
+            width: buttonSize,
+            height: buttonSize,
+            borderRadius: buttonSize / 2,
+          },
+          isPlaying && styles.playCircleActive,
+        ]}
+        onPress={handlePlayback}
+        activeOpacity={0.75}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Ionicons 
-          name={isPlaying ? "volume-high" : "play"} 
-          size={16} 
-          color="#FFFFFF" 
-          style={!isPlaying ? { marginLeft: 2 } : {}}
+        <Ionicons
+          name={isPlaying ? "volume-high" : "volume-medium"}
+          size={iconSize}
+          color="#FFFFFF"
         />
       </TouchableOpacity>
     </Animated.View>
@@ -134,19 +133,20 @@ export default function SpeakButton({ word, lang }: SpeakButtonProps) {
 
 const styles = StyleSheet.create({
   playCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#2B2C51",
+    backgroundColor: "#2563EB", // Vibrant Royal Blue matching brand UI
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: "#000",
+    shadowColor: "#2563EB",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   playCircleActive: {
-    backgroundColor: "#10B981", // Beautiful Emerald Green when playing
+    backgroundColor: "#10B981", // Emerald Green pulse when speaking
+    shadowColor: "#10B981",
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 4,
   },
 });

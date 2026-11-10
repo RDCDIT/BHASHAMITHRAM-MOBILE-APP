@@ -8,19 +8,23 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import AnimatedCard from "../components/AnimatedCard";
 import SkeletonLoader from "../components/SkeletonLoader";
 import { saveRecentSearch } from "../utils/recentActivity";
 import SpeakButton from "../components/SpeakButton";
+import FavoriteButton from "../components/FavoriteButton";
 import DictionarySearchBar from "../components/DictionarySearchBar";
+import FloatingLettersBackground from "../components/FloatingLettersBackground";
 
 import type { DictionaryEntry } from "../database/types";
 import { searchSynonym } from "../database/dictionaryService";
+import { useResponsive } from "../utils/responsive";
 
 const PAGE_SIZE = 20;
 
@@ -33,8 +37,25 @@ const MALAYALAM_ALPHABET = Object.freeze([
 ]);
 
 export default function MalayalamSynonymScreen() {
-  const [selectedLetter, setSelectedLetter] = useState("അ");
-  const [searchText, setSearchText] = useState("");
+  const {
+    headerHeight,
+    headerTitleFontSize,
+    headerSubtitleFontSize,
+    dictCardPadding,
+    dictCardMargin,
+    dictCardRadius,
+    dictWordFontSize,
+    dictMeaningFontSize,
+    alphabetTabSize,
+    alphabetFontSize,
+    alphabetPadding,
+    horizontalPadding,
+    isSmallPhone,
+  } = useResponsive();
+
+  const { query } = useLocalSearchParams<{ query?: string }>();
+  const [selectedLetter, setSelectedLetter] = useState(query ? "" : "അ");
+  const [searchText, setSearchText] = useState(query || "");
   const [allEntries, setAllEntries] = useState<DictionaryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -91,7 +112,7 @@ export default function MalayalamSynonymScreen() {
   useEffect(() => {
     if (searchText.trim().length > 1) {
       const timer = setTimeout(() => {
-        void saveRecentSearch(searchText.trim(), "synonym");
+        void saveRecentSearch(searchText.trim(), "synonym", "malayalam_synonym");
       }, 1000);
       return () => clearTimeout(timer);
     }
@@ -108,6 +129,12 @@ export default function MalayalamSynonymScreen() {
     <TouchableOpacity
       style={[
         styles.letterTab,
+        {
+          width: alphabetTabSize,
+          height: alphabetTabSize,
+          borderRadius: Math.round(alphabetTabSize / 2),
+          marginHorizontal: isSmallPhone ? 3 : 5,
+        },
         selectedLetter === item && !searchText.trim() && styles.activeLetterTab,
       ]}
       onPress={() => {
@@ -118,6 +145,7 @@ export default function MalayalamSynonymScreen() {
       <Text
         style={[
           styles.letterText,
+          { fontSize: alphabetFontSize },
           selectedLetter === item && !searchText.trim() && styles.activeLetterText,
         ]}
       >
@@ -131,31 +159,55 @@ export default function MalayalamSynonymScreen() {
       .flat(Infinity)
       .map((s) => String(s).trim())
       .filter(Boolean);
-       
 
     return (
       <AnimatedCard index={index} scrollY={scrollY}>
         <TouchableOpacity
-          style={styles.card}
+          style={[
+            styles.card,
+            {
+              padding: dictCardPadding,
+              marginBottom: dictCardMargin,
+              borderRadius: dictCardRadius,
+            },
+          ]}
           onPress={() => handleCardPress(item.word)}
           activeOpacity={0.7}
         >
-          <View style={styles.cardHeader}>
+          <View style={[styles.cardHeader, { marginBottom: isSmallPhone ? 8 : 12 }]}>
             <View style={styles.cardHeaderText}>
-              <Text style={styles.malayalamWord}>{item.word}</Text>
+              <Text style={[styles.malayalamWord, { fontSize: dictWordFontSize }]}>{item.word}</Text>
             </View>
-            <SpeakButton word={item.word} lang="ml" />
+            <View style={styles.cardActionRow}>
+              <SpeakButton word={item.word} lang="ml" />
+              <FavoriteButton
+                word={item.word}
+                dictionaryType="malayalam_synonym"
+                meaning={synonymsList[0]}
+                size={32}
+              />
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+            </View>
           </View>
 
-          <View style={styles.definitionBox}>
+          <View style={[styles.definitionBox, { padding: isSmallPhone ? 10 : 14, borderRadius: Math.max(10, dictCardRadius - 4) }]}>
             {synonymsList.length > 0 ? (
               synonymsList.slice(0, 5).map((synonym, idx) => (
-                <Text key={idx} style={styles.definitionText}>
+                <Text
+                  key={idx}
+                  style={[
+                    styles.definitionText,
+                    {
+                      fontSize: dictMeaningFontSize,
+                      lineHeight: Math.round(dictMeaningFontSize * 1.45),
+                    },
+                  ]}
+                >
                   • {synonym}
                 </Text>
               ))
             ) : (
-              <Text style={styles.definitionText}>No synonyms available</Text>
+              <Text style={[styles.definitionText, { fontSize: dictMeaningFontSize }]}>No synonyms available</Text>
             )}
           </View>
         </TouchableOpacity>
@@ -165,28 +217,46 @@ export default function MalayalamSynonymScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
-      <View style={styles.header}>
+      <FloatingLettersBackground />
+      {/* Header (Matching Screen 2) */}
+      <View style={[styles.header, { height: headerHeight }]}>
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => {
-                if (router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace("/");
-                }
-              }}>
-            <Ionicons name="chevron-back" size={27} color="white" />
+          <TouchableOpacity
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/");
+              }
+            }}
+            style={styles.headerBackButton}
+            activeOpacity={0.7}
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={24} color="#0F172A" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>മലയാളം തെസോറസ് നിഘണ്ടു</Text>
-          <View style={{ width: 27 }} />
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { fontSize: headerTitleFontSize }]}>ഭാഷാമിത്രം II</Text>
+            <Text style={[styles.headerSubtitle, { fontSize: headerSubtitleFontSize }]}>മലയാള നാനാർത്ഥം വാക്കറിവ്</Text>
+          </View>
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.headerEmblem}
+            resizeMode="contain"
+          />
         </View>
       </View>
 
       {/* Alphabet strip */}
-      <View style={styles.alphabetContainer}>
+      <View style={[styles.alphabetContainer, { paddingVertical: alphabetPadding, paddingHorizontal: horizontalPadding }]}>
         <TouchableOpacity
           style={[
             styles.clearFilterButton,
+            {
+              width: alphabetTabSize,
+              height: alphabetTabSize,
+              borderRadius: Math.round(alphabetTabSize / 2),
+            },
             selectedLetter === "" && searchText === "" && styles.clearFilterButtonDisabled,
           ]}
           onPress={() => {
@@ -199,7 +269,7 @@ export default function MalayalamSynonymScreen() {
         >
           <Ionicons
             name="funnel-outline"
-            size={18}
+            size={isSmallPhone ? 16 : 18}
             color={selectedLetter === "" && searchText === "" ? "#9CA3AF" : "#EF4444"}
           />
         </TouchableOpacity>
@@ -243,7 +313,13 @@ export default function MalayalamSynonymScreen() {
             (item.id ?? item.word ?? index).toString()
           }
           renderItem={renderEntry}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            {
+              padding: horizontalPadding,
+              paddingBottom: Math.round(dictCardMargin * 2.5),
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
           onScroll={Animated.event(
@@ -285,124 +361,167 @@ export default function MalayalamSynonymScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "transparent" },
   header: {
-    height: Platform.OS === "android" ? 75 : 95,
-    backgroundColor: "#2B2C51",
+    height: Platform.OS === "android" ? 82 : 100,
+    backgroundColor: "#FFFFFF",
     justifyContent: "flex-end",
-    paddingBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
+  },
+  headerBackButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitleContainer: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    color: "white",
+    color: "#0F172A",
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "500",
+    fontFamily: "NotoSansMalayalam",
+    textAlign: "center",
+    marginTop: 1,
+  },
+  headerEmblem: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   alphabetContainer: {
-    backgroundColor: "#F9F6F1",
-    paddingVertical: 14,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
   alphabetFlatList: { flex: 1 },
   clearFilterButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F1F5F9",
     borderWidth: 1,
-    borderColor: "#EAE6DF",
+    borderColor: "#E2E8F0",
     marginRight: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
   },
   clearFilterButtonDisabled: { opacity: 0.5 },
   alphabetList: { paddingHorizontal: 4 },
   letterTab: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    marginHorizontal: 5,
+    marginHorizontal: 4,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#EAE6DF",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
+    borderColor: "#E2E8F0",
   },
   activeLetterTab: {
-    backgroundColor: "#2B2C51",
-    borderColor: "#2B2C51",
-    shadowOpacity: 0.12,
+    backgroundColor: "#2563EB",
+    borderColor: "#2563EB",
+    shadowColor: "#2563EB",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
     elevation: 3,
   },
   letterText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#2B2C51",
+    color: "#0F172A",
     fontFamily: "NotoSansMalayalam",
   },
-  activeLetterText: { color: "#FFFFFF" },
-  listContent: { padding: 16, paddingBottom: 24 },
+  activeLetterText: { color: "#FFFFFF", fontWeight: "800" },
+  listContent: {
+    padding: 16,
+    paddingBottom: 32,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
+  },
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#F0ECE6",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    borderColor: "#E2E8F0",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 2,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
+    alignItems: "center",
+    marginBottom: 10,
   },
-  cardHeaderText: { flex: 1 },
+  cardHeaderText: { flex: 1, marginRight: 8 },
   malayalamWord: {
-    color: "#1F2330",
-    fontSize: 20,
+    color: "#0F172A",
+    fontSize: 18,
     fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
   },
+  cardActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   definitionBox: {
-    backgroundColor: "#F7F7F9",
-    borderLeftColor: "#9333EA",
-    borderLeftWidth: 4,
-    borderRadius: 14,
-    padding: 14,
-    marginTop: 4,
+    backgroundColor: "#F8FAFC",
+    borderLeftColor: "#7C3AED",
+    borderLeftWidth: 3,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 2,
   },
   definitionHeader: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#1F2330",
+    color: "#0F172A",
     marginBottom: 6,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     fontFamily: "NotoSansMalayalam",
   },
   definitionText: {
-    color: "#4E473E",
+    color: "#334155",
     fontSize: 14,
     lineHeight: 20,
     fontFamily: "NotoSansMalayalam",
@@ -415,14 +534,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   stateTitle: {
-    color: "#1F2330",
+    color: "#0F172A",
     fontSize: 17,
     fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
     marginBottom: 6,
   },
   stateText: {
-    color: "#6D625A",
+    color: "#64748B",
     fontSize: 14,
     fontFamily: "NotoSansMalayalam",
     textAlign: "center",
@@ -430,7 +549,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 14,
-    backgroundColor: "#2B2C51",
+    backgroundColor: "#2563EB",
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 12,

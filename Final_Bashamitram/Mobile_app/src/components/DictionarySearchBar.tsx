@@ -1,21 +1,19 @@
 /**
  * @file DictionarySearchBar.tsx
- * @description Shared search bar for Malayalam dictionary screens.
+ * @description Shared search bar for Malayalam & English dictionaries.
  *
  * Features:
- *  - Manglish keyboard toggle: when ON, English keystrokes are
- *    transliterated to Malayalam in real-time (e.g. "amma" → "അമ്മ").
- *    When OFF, the input behaves as a plain Malayalam / any-script search.
- *  - Voice search mic button: opens a bottom-sheet overlay, records
- *    the user's voice via useVoiceSearch, and injects the Malayalam
- *    transcript directly into the search field.
+ *  - Offline Manglish typing for Malayalam dictionaries (real-time conversion, space trigger, submit)
+ *  - Clean language toggle button ("മ ON" / "OFF" - no Google branding)
+ *  - Voice search with native Android silence/break auto-stop
+ *  - Simple inline listening indicator ("കേൾക്കുന്നു..." / "Listening...") with no popup modals or manual stop button
+ *  - Fully reusable across all 4 dictionaries (ml-ml, ml-en, ml-synonym, en-ml) via the `lang` prop
  */
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
-  Modal,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -23,182 +21,343 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { transliterate } from "../utils/transliterator";
+import {
+  fetchGoogleMalayalamSuggestions,
+  transliterateOffline,
+} from "../utils/transliterator";
 import { useVoiceSearch } from "../hooks/useVoiceSearch";
+import { sanitizeHtmlTags } from "../utils/security";
+import { useResponsive } from "../utils/responsive";
 
 interface DictionarySearchBarProps {
   /** Current value shown in the input */
   value: string;
   /** Placeholder text */
   placeholder?: string;
-  /** Called whenever the search text changes (already transliterated when Manglish is ON) */
+  /** Language mode: "ml" for Malayalam dictionaries, "en" for English-Malayalam */
+  lang?: "ml" | "en";
+  /** Called whenever the search text changes */
   onChangeText: (text: string) => void;
-  /** Called when the user presses the search / return button */
+  /** Called when search is submitted */
   onSubmit: () => void;
 }
 
 export default function DictionarySearchBar({
   value,
-  placeholder = "വാക്ക് നൽകുക...",
+  placeholder,
+  lang = "ml",
   onChangeText,
   onSubmit,
 }: DictionarySearchBarProps) {
-  // --- Manglish toggle state ---
-  const [manglishOn, setManglishOn] = useState(true);
+  const { searchBarHeight, isSmallPhone } = useResponsive();
+  const [inputText, setInputText] = useState(value);
+  const [manglishOn, setManglishOn] = useState(lang === "ml");
 
-  // --- raw English buffer (only used when Manglish is ON) ---
-  // We keep the raw Latin text so the cursor stays natural while
-  // the displayed value is Malayalam.
-  const rawRef = useRef("");
+  // Candidate suggestions strip
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
-  // --- Voice overlay ---
-  const [voiceVisible, setVoiceVisible] = useState(false);
+  // Timers for debounce auto-conversion and suggestions
+  const autoConvertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Animated pulse for the mic icon while listening
-  const [pulseAnim] = useState(() => new Animated.Value(1));
-  const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
+  // Pulse animation for mic button while listening
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseLoopRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  const startPulse = () => {
-    pulseLoop.current = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.25,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulseLoop.current.start();
-  };
+  // Sync external value with local input
+  useEffect(() => {
+    setInputText(value);
+  }, [value]);
 
-  const stopPulse = () => {
-    pulseLoop.current?.stop();
-    pulseAnim.setValue(1);
-  };
+  // Voice Search Hook
+  const voiceLangCode = lang === "en" ? "en-IN" : "ml-IN";
+  const {
+    isListening,
+    partialTranscript,
+    error: voiceError,
+    startListening,
+    stopListening,
+    cancelListening,
+    resetVoice,
+  } = useVoiceSearch((transcript: string) => {
+    if (!transcript) return;
 
-  // Voice search hook — always uses ml-IN for these screens
-  const { isListening, partialTranscript, startListening, stopListening } =
-    useVoiceSearch((transcript: string) => {
-      // Transcript arrives as Malayalam text from the backend / Web Speech API
-      rawRef.current = "";
-      onChangeText(transcript);
-      setVoiceVisible(false);
-      stopPulse();
-    }, "ml-IN");
-
-  // ---- handlers ----
-
-  const handleTextChange = (text: string) => {
-    if (manglishOn) {
-      rawRef.current = text;
-      if (text === "") {
-        onChangeText("");
-        return;
-      }
-      try {
-        const malayalam = transliterate(text, { from: "en", to: "ml" });
-        onChangeText(malayalam);
-      } catch {
-        onChangeText(text);
-      }
-    } else {
-      rawRef.current = "";
-      onChangeText(text);
+    let finalWord = transcript.trim();
+    // If Malayalam dictionary and voice returned Latin letters, transliterate offline
+    if (lang === "ml" && /[a-zA-Z]/.test(finalWord)) {
+      finalWord = transliterateOffline(finalWord);
     }
-  };
 
-  const handleToggleManglish = () => {
-    setManglishOn((prev) => !prev);
-    // Clear search when switching modes to avoid stale state
-    rawRef.current = "";
-    onChangeText("");
-  };
+    setInputText(finalWord);
+    onChangeText(finalWord);
+    setSuggestions([]);
+    resetVoice();
 
+    // Auto trigger search on speech completion
+    setTimeout(() => {
+      onSubmit();
+    }, 100);
+  }, voiceLangCode);
+
+  // Pulse animation controller
+  useEffect(() => {
+    if (isListening) {
+      pulseLoopRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.22,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseLoopRef.current.start();
+    } else {
+      pulseLoopRef.current?.stop();
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isListening]);
+
+  // Mic button press handler
   const handleMicPress = async () => {
     if (isListening) {
       await stopListening();
-      stopPulse();
-      setVoiceVisible(false);
     } else {
-      setVoiceVisible(true);
-      startPulse();
-      await startListening();
+      resetVoice();
+      await startListening(voiceLangCode);
     }
   };
 
-  const handleCloseVoice = async () => {
-    await stopListening();
-    stopPulse();
-    setVoiceVisible(false);
+  // Helper to get trailing English word being typed
+  const getActiveEnglishWord = (text: string): string => {
+    if (text.endsWith(" ")) return "";
+    const words = text.split(/\s+/);
+    const lastWord = words[words.length - 1] || "";
+    return /[a-zA-Z]/.test(lastWord) ? lastWord : "";
   };
 
-  return (
-    <>
-      <View style={styles.container}>
-        {/* ── Manglish toggle pill ── */}
-        <TouchableOpacity
-          style={[styles.manglishBtn, manglishOn && styles.manglishBtnActive]}
-          onPress={handleToggleManglish}
-          activeOpacity={0.75}
-          accessibilityLabel={
-            manglishOn ? "Manglish keyboard ON — tap to turn off" : "Manglish keyboard OFF — tap to turn on"
-          }
-        >
-          <Text style={[styles.manglishLabel, manglishOn && styles.manglishLabelActive]}>
-            മ
-          </Text>
-          <Text style={[styles.manglishSub, manglishOn && styles.manglishSubActive]}>
-            {manglishOn ? "ON" : "OFF"}
-          </Text>
-        </TouchableOpacity>
+  // Load suggestions
+  const loadSuggestions = async (word: string) => {
+    if (!word || !/[a-zA-Z]/.test(word)) {
+      setSuggestions([]);
+      return;
+    }
+    setLoadingSuggestions(true);
+    try {
+      const candidates = await fetchGoogleMalayalamSuggestions(word, 4);
+      setSuggestions(candidates);
+    } catch {
+      const offline = transliterateOffline(word);
+      setSuggestions(offline ? [offline] : []);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
 
-        {/* ── Text input ── */}
+  // Text change handler
+  const handleTextChange = (rawText: string) => {
+    const newText = sanitizeHtmlTags(rawText);
+    // If English dictionary or Manglish is turned OFF: direct input
+    if (lang === "en" || !manglishOn) {
+      if (autoConvertTimerRef.current) clearTimeout(autoConvertTimerRef.current);
+      if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
+      setInputText(newText);
+      onChangeText(newText);
+      setSuggestions([]);
+      return;
+    }
+
+    // Empty input
+    if (newText === "") {
+      if (autoConvertTimerRef.current) clearTimeout(autoConvertTimerRef.current);
+      if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
+      setInputText("");
+      onChangeText("");
+      setSuggestions([]);
+      return;
+    }
+
+    // Space-triggered instant offline transliteration (e.g. "amma " -> "അമ്മ ")
+    if (newText.endsWith(" ") && !inputText.endsWith(" ")) {
+      if (autoConvertTimerRef.current) clearTimeout(autoConvertTimerRef.current);
+      if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
+
+      const words = newText.trimEnd().split(/\s+/);
+      const lastWord = words[words.length - 1];
+
+      if (lastWord && /[a-zA-Z]/.test(lastWord)) {
+        const convertedWord = transliterateOffline(lastWord);
+        words[words.length - 1] = convertedWord;
+        const fullConverted = words.join(" ") + " ";
+        setInputText(fullConverted);
+        onChangeText(fullConverted);
+        setSuggestions([]);
+        return;
+      }
+    }
+
+    setInputText(newText);
+
+    // Check active English word being typed
+    const activeWord = getActiveEnglishWord(newText);
+    if (activeWord) {
+      // Debounce suggestions fetch
+      if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
+      suggestionTimerRef.current = setTimeout(() => {
+        void loadSuggestions(activeWord);
+      }, 150);
+
+      // Debounce automatic offline word conversion in search bar (400ms pause)
+      if (autoConvertTimerRef.current) clearTimeout(autoConvertTimerRef.current);
+      autoConvertTimerRef.current = setTimeout(() => {
+        const converted = transliterateOffline(activeWord);
+        const words = newText.split(/\s+/);
+        words[words.length - 1] = converted;
+        const fullConverted = words.join(" ");
+        setInputText(fullConverted);
+        onChangeText(fullConverted);
+        setSuggestions([]);
+      }, 400);
+    } else {
+      if (autoConvertTimerRef.current) clearTimeout(autoConvertTimerRef.current);
+      if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
+      setSuggestions([]);
+      onChangeText(newText);
+    }
+  };
+
+  // User taps candidate suggestion chip
+  const handleSelectSuggestion = (candidate: string) => {
+    if (autoConvertTimerRef.current) clearTimeout(autoConvertTimerRef.current);
+    if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
+
+    const words = inputText.split(/\s+/);
+    words[words.length - 1] = candidate;
+    const result = words.join(" ");
+    setInputText(result);
+    onChangeText(result);
+    setSuggestions([]);
+  };
+
+  // Clear input
+  const handleClear = () => {
+    if (autoConvertTimerRef.current) clearTimeout(autoConvertTimerRef.current);
+    if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
+    setInputText("");
+    setSuggestions([]);
+    onChangeText("");
+    resetVoice();
+  };
+
+  // Submit search: ensure any remaining English text is converted
+  const handleSubmit = () => {
+    if (autoConvertTimerRef.current) clearTimeout(autoConvertTimerRef.current);
+    if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
+    setSuggestions([]);
+
+    let queryToSubmit = inputText;
+    if (lang === "ml" && manglishOn && /[a-zA-Z]/.test(inputText)) {
+      queryToSubmit = transliterateOffline(inputText);
+      setInputText(queryToSubmit);
+      onChangeText(queryToSubmit);
+    }
+    onSubmit();
+  };
+
+  const defaultPlaceholder =
+    lang === "en"
+      ? "Explore words..."
+      : manglishOn
+      ? "Manglish (amma → അമ്മ)..."
+      : "വാക്ക് നൽകുക...";
+
+  const displayPlaceholder = placeholder || defaultPlaceholder;
+
+  return (
+    <View style={styles.wrapper}>
+      <View style={[styles.container, { height: searchBarHeight, borderRadius: Math.round(searchBarHeight / 2) }, isListening && styles.containerListening]}>
+        {/* ── Language / Manglish toggle pill (Only for Malayalam dictionaries) ── */}
+        {lang === "ml" ? (
+          <TouchableOpacity
+            style={[styles.manglishBtn, manglishOn && styles.manglishBtnActive]}
+            onPress={() => {
+              setManglishOn(!manglishOn);
+              setSuggestions([]);
+            }}
+            activeOpacity={0.75}
+            accessibilityLabel={manglishOn ? "Manglish typing ON" : "Malayalam typing only"}
+          >
+            <Text style={[styles.manglishLabel, manglishOn && styles.manglishLabelActive]}>
+              മ
+            </Text>
+            <Text style={[styles.manglishSub, manglishOn && styles.manglishSubActive]}>
+              {manglishOn ? "ON" : "OFF"}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {/* ── Text Input / Inline Voice Indicator ── */}
         <TextInput
-          style={styles.input}
+          style={[styles.input, isListening && styles.inputListening]}
           placeholder={
-            manglishOn
-              ? "Type in English (amma → അമ്മ)..."
-              : placeholder
+            isListening
+              ? lang === "en"
+                ? "Listening... speak now"
+                : "കേൾക്കുന്നു... പറയൂ"
+              : displayPlaceholder
           }
-          placeholderTextColor="#898683"
-          value={value}
-          // When Manglish is ON we feed a raw Latin value to the input
-          // so the user sees their keystrokes; the displayed value prop
-          // is Malayalam. We override by using the raw buffer as the
-          // controlled value only when manglish is on.
+          placeholderTextColor={isListening ? "#DC2626" : "#898683"}
+          value={isListening && partialTranscript ? partialTranscript : inputText}
           onChangeText={handleTextChange}
           returnKeyType="search"
           autoCapitalize="none"
           autoCorrect={false}
-          onSubmitEditing={onSubmit}
-          keyboardType="default"
+          onSubmitEditing={handleSubmit}
+          editable={!isListening}
         />
 
-        {/* ── Mic button ── */}
-        <TouchableOpacity
-          style={[styles.iconBtn, isListening && styles.iconBtnActive]}
-          onPress={handleMicPress}
-          activeOpacity={0.8}
-          accessibilityLabel="Voice search"
-        >
-          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+        {/* ── Clear button ── */}
+        {inputText.length > 0 && !isListening ? (
+          <TouchableOpacity
+            style={styles.clearBtn}
+            onPress={handleClear}
+            activeOpacity={0.7}
+            accessibilityLabel="Clear text"
+          >
+            <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+          </TouchableOpacity>
+        ) : null}
+
+        {/* ── Voice search mic button (Simple inline, auto-stop on silence) ── */}
+        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+          <TouchableOpacity
+            style={[styles.micBtn, isListening && styles.micBtnActive]}
+            onPress={handleMicPress}
+            activeOpacity={0.8}
+            accessibilityLabel={isListening ? "Listening... tap to cancel" : "Voice search"}
+          >
             <Ionicons
               name={isListening ? "mic" : "mic-outline"}
               size={20}
-              color={isListening ? "#FFFFFF" : "#FFFFFF"}
+              color="#FFFFFF"
             />
-          </Animated.View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </Animated.View>
 
-        {/* ── Search button ── */}
+        {/* ── Search submit button ── */}
         <TouchableOpacity
           style={styles.searchBtn}
-          onPress={onSubmit}
+          onPress={handleSubmit}
           activeOpacity={0.8}
           accessibilityLabel="Search"
         >
@@ -206,84 +365,61 @@ export default function DictionarySearchBar({
         </TouchableOpacity>
       </View>
 
-      {/* ── Voice search modal overlay ── */}
-      <Modal
-        transparent
-        visible={voiceVisible}
-        animationType="slide"
-        onRequestClose={handleCloseVoice}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={handleCloseVoice}
-        >
-          {/* Prevent touches on the card from closing */}
-          <TouchableOpacity activeOpacity={1} style={styles.voiceCard}>
-            {/* Pulsing mic */}
-            <Animated.View
-              style={[
-                styles.micCircle,
-                isListening && styles.micCircleListening,
-                { transform: [{ scale: pulseAnim }] },
-              ]}
-            >
-              <Ionicons name="mic" size={38} color="#FFFFFF" />
-            </Animated.View>
+      {/* ── Inline Voice Error indicator if any ── */}
+      {voiceError ? (
+        <View style={styles.inlineErrorRow}>
+          <Ionicons name="alert-circle" size={14} color="#DC2626" />
+          <Text style={styles.inlineErrorText}>{voiceError}</Text>
+        </View>
+      ) : null}
 
-            <Text style={styles.voiceTitle}>
-              {isListening ? "കേൾക്കുന്നു..." : "ശബ്ദ തിരയൽ"}
-            </Text>
-
-            <Text style={styles.voiceHint}>
-              {isListening
-                ? "മലയാളത്തിൽ സംസാരിക്കൂ"
-                : "മൈക്ക് ബട്ടൺ അമർത്തി സംസാരിക്കൂ"}
-            </Text>
-
-            {/* Live transcript preview */}
-            {partialTranscript ? (
-              <View style={styles.transcriptBox}>
-                <Text style={styles.transcriptText} numberOfLines={3}>
-                  {partialTranscript}
+      {/* ── Candidate suggestions strip ── */}
+      {lang === "ml" && manglishOn && suggestions.length > 0 ? (
+        <View style={styles.suggestionContainer}>
+          <View style={styles.suggestionList}>
+            {suggestions.map((item, idx) => (
+              <TouchableOpacity
+                key={`${item}-${idx}`}
+                style={[
+                  styles.suggestionChip,
+                  idx === 0 && styles.firstSuggestionChip,
+                ]}
+                onPress={() => handleSelectSuggestion(item)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.suggestionText,
+                    idx === 0 && styles.firstSuggestionText,
+                  ]}
+                >
+                  {item}
                 </Text>
-              </View>
-            ) : null}
-
-            <View style={styles.voiceActions}>
-              {isListening ? (
-                <TouchableOpacity
-                  style={styles.stopBtn}
-                  onPress={handleCloseVoice}
-                >
-                  <Ionicons name="stop-circle" size={20} color="#FFFFFF" />
-                  <Text style={styles.stopBtnText}>നിർത്തുക</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.cancelBtn}
-                  onPress={handleCloseVoice}
-                >
-                  <Text style={styles.cancelBtnText}>റദ്ദാക്കുക</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-    </>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {loadingSuggestions ? (
+            <ActivityIndicator size="small" color="#2B2C51" style={{ marginLeft: 4 }} />
+          ) : null}
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // ── Search bar row ──────────────────────────────────────────────────
+  wrapper: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 8,
+    width: "100%",
+    maxWidth: 900,
+    alignSelf: "center",
+  },
   container: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    marginHorizontal: 16,
-    marginTop: 4,
-    marginBottom: 12,
     borderRadius: 25,
     borderWidth: 1,
     borderColor: "#EAE6DF",
@@ -296,8 +432,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-
-  // Manglish toggle pill
+  containerListening: {
+    borderColor: "#EF4444",
+    backgroundColor: "#FEF2F2",
+  },
+  // Clean Manglish toggle pill
   manglishBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -306,56 +445,68 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginRight: 6,
-    gap: 3,
-    minWidth: 52,
+    gap: 4,
+    minWidth: 50,
     justifyContent: "center",
   },
   manglishBtnActive: {
     backgroundColor: "#2B2C51",
   },
   manglishLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "800",
     color: "#6B6560",
     fontFamily: "NotoSansMalayalam",
-    lineHeight: 20,
   },
   manglishLabelActive: {
     color: "#FFFFFF",
   },
   manglishSub: {
     fontSize: 9,
-    fontWeight: "700",
+    fontWeight: "800",
     color: "#6B6560",
     letterSpacing: 0.5,
   },
   manglishSubActive: {
-    color: "#A5B4FC",
+    color: "#C7D2FE",
   },
-
   // Text input
   input: {
     flex: 1,
     fontSize: 15,
     color: "#333",
-    padding: 0,
+    paddingVertical: 0,
+    paddingHorizontal: 4,
     fontFamily: "NotoSansMalayalam",
   },
-
-  // Mic icon button
-  iconBtn: {
+  inputListening: {
+    color: "#DC2626",
+    fontWeight: "600",
+  },
+  clearBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  // Mic button
+  micBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#6B7280",
+    backgroundColor: "#3B82F6",
     justifyContent: "center",
     alignItems: "center",
     marginHorizontal: 3,
   },
-  iconBtnActive: {
-    backgroundColor: "#E04848",
+  micBtnActive: {
+    backgroundColor: "#EF4444",
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 4,
   },
-
   // Search submit button
   searchBtn: {
     width: 42,
@@ -365,101 +516,56 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
-  // ── Voice modal ─────────────────────────────────────────────────────
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
-  },
-  voiceCard: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 32,
-    paddingBottom: Platform.OS === "ios" ? 44 : 28,
-    paddingHorizontal: 28,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 16,
-  },
-  micCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: "#6B7280",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  micCircleListening: {
-    backgroundColor: "#E04848",
-  },
-  voiceTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#2B2C51",
-    fontFamily: "NotoSansMalayalam",
-    marginBottom: 6,
-  },
-  voiceHint: {
-    fontSize: 14,
-    color: "#7C736B",
-    fontFamily: "NotoSansMalayalam",
-    textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  transcriptBox: {
-    width: "100%",
-    backgroundColor: "#F5F5F8",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 20,
-    minHeight: 52,
-    justifyContent: "center",
-  },
-  transcriptText: {
-    fontSize: 17,
-    color: "#1F2330",
-    fontFamily: "NotoSansMalayalam",
-    textAlign: "center",
-    lineHeight: 26,
-    fontWeight: "700",
-  },
-  voiceActions: {
+  // Inline error
+  inlineErrorRow: {
     flexDirection: "row",
-    gap: 12,
+    alignItems: "center",
+    gap: 4,
     marginTop: 4,
+    marginLeft: 12,
   },
-  stopBtn: {
+  inlineErrorText: {
+    fontSize: 12,
+    color: "#DC2626",
+    fontFamily: "NotoSansMalayalam",
+  },
+  // Candidate suggestions
+  suggestionContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "#E04848",
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    borderRadius: 16,
+    marginTop: 6,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
-  stopBtnText: {
+  suggestionList: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  suggestionChip: {
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  firstSuggestionChip: {
+    backgroundColor: "#2B2C51",
+    borderColor: "#2B2C51",
+  },
+  suggestionText: {
+    fontSize: 13,
+    color: "#374151",
+    fontFamily: "NotoSansMalayalam",
+  },
+  firstSuggestionText: {
     color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
-  },
-  cancelBtn: {
-    backgroundColor: "#F0ECE6",
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    borderRadius: 16,
-  },
-  cancelBtnText: {
-    color: "#4B5563",
-    fontSize: 15,
-    fontWeight: "700",
-    fontFamily: "NotoSansMalayalam",
+    fontWeight: "600",
   },
 });

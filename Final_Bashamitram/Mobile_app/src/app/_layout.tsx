@@ -6,21 +6,24 @@
  */
 
 
-import { DefaultTheme, Stack, ThemeProvider, usePathname } from "expo-router";
+import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import FloatingLettersBackground from "../components/FloatingLettersBackground";
+import LoadingScreen from "../components/LoadingScreen";
+import { clearAppTempCache } from "../utils/cacheManager";
 
-// Prevent the splash screen from automatically hiding before assets/fonts are loaded.
-SplashScreen.preventAutoHideAsync();
+// Dismiss native splash screen immediately so our branded LoadingScreen displays from the first frame
+SplashScreen.hideAsync().catch(() => {});
 
 /**
  * RootLayout is the top-level layout component for the application.
- * It manages global settings like theme and custom Malayalam fonts.
+ * It manages global settings like theme, custom Malayalam fonts, and the initial loading screen.
  * 
- * @returns {React.JSX.Element | null} The themed application layout, or null if fonts are not loaded yet.
+ * @returns {React.JSX.Element} The themed application layout or the custom LoadingScreen.
  */
 export default function RootLayout() {
   // Load custom Noto Sans Malayalam fonts
@@ -28,30 +31,42 @@ export default function RootLayout() {
     NotoSansMalayalam: require("../../assets/fonts/NotoSansMalayalam-VariableFont_wdth,wght.ttf"),
   });
 
-  const pathname = usePathname();
+  const [isReady, setIsReady] = useState(false);
 
-  // Hide the splash screen once fonts are loaded
+  useEffect(() => {
+    // Hide the native splash screen immediately so our custom LoadingScreen renders
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  // Prepare app and clear temporary caches
   useEffect(() => {
     if (fontsLoaded) {
-      SplashScreen.hideAsync();
+      clearAppTempCache().catch(() => {});
+      // Allow a brief display window for the branded loading animation
+      const timer = setTimeout(() => {
+        setIsReady(true);
+      }, 1000);
+      return () => clearTimeout(timer);
     }
   }, [fontsLoaded]);
 
-  // Render nothing (splash screen remains visible) if fonts aren't loaded yet
-  if (!fontsLoaded) {
-    return null;
+  // Render the branded loading page while loading fonts and initializing
+  if (!fontsLoaded || !isReady) {
+    return (
+      <View style={{ flex: 1 }}>
+        <StatusBar style="dark" />
+        <LoadingScreen />
+      </View>
+    );
   }
 
-  // Determine whether to display the animated floating letters background
-  const shouldShowBackground = !(
-    pathname.includes("/admin") ||
-    pathname === "/settings" ||
-    pathname === "/suggest-word"
-  );
+  // Display the universal background across the application
+  const shouldShowBackground = true;
 
   return (
     <ThemeProvider value={DefaultTheme}>
-      <View style={{ flex: 1, backgroundColor: "#F9F6F1" }}>
+      <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
+        <StatusBar style="dark" />
         {shouldShowBackground && <FloatingLettersBackground />}
         <Stack
           screenOptions={{
@@ -64,4 +79,5 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
 

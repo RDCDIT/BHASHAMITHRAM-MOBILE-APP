@@ -144,6 +144,17 @@ async function fetchFromApi(endpoint: string): Promise<DictionaryEntry[]> {
   }
 }
 
+function sanitizeInput(input: string): string {
+  if (!input || typeof input !== "string") return "";
+  return input
+    .replace(/['’‘`]|\\'/g, "") // Block all single quote variations
+    .replace(/<[^>]*>/g, "") // Strip HTML tags
+    .replace(/--|\/\*|\*\//g, "") // Strip SQL comment markers
+    .replace(/;/g, "") // Strip query terminators
+    .replace(/[\0\x1a]/g, "") // Strip null bytes & EOF chars
+    .trim();
+}
+
 // -------------------- Malayalam-Malayalam --------------------
 
 export async function searchMalayalam(
@@ -152,20 +163,21 @@ export async function searchMalayalam(
   offset: number = 0
 ): Promise<SearchResult[]> {
   try {
-    const q = (word ?? "").trim() || "അ";
-    const escapedQ = q.replace(/'/g, "''");
+    const q = sanitizeInput(word) || "അ";
     const db = await getDatabase();
     const rows = await db.getAllAsync<any>(
       `SELECT *
        FROM dictionary
        WHERE dictionary_type = 'malayalam_malayalam'
-         AND word LIKE '${escapedQ}%'
+         AND word LIKE ?
        ORDER BY word
        LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [`${q}%`, limit, offset]
     );
 
-    if (!rows || rows.length === 0) return [];
+    if (!rows || rows.length === 0) {
+      return fetchFromApi(`/api/malayalam-malayalam/browse-malayalam?query=${encodeURIComponent(word)}`);
+    }
 
     const ids = rows.map((r: any) => r.id).filter(Boolean);
     const meaningsMap = await loadMeaningsForRows(ids);
@@ -179,15 +191,15 @@ export async function searchMalayalam(
 
 export async function getMalayalamWord(word: string): Promise<DictionaryEntry | null> {
   try {
-    const escapedWord = word.replace(/'/g, "''");
+    const q = sanitizeInput(word);
     const db = await getDatabase();
     const row = await db.getFirstAsync<any>(
       `SELECT *
        FROM dictionary
        WHERE dictionary_type = 'malayalam_malayalam'
-         AND word = '${escapedWord}'
+         AND word = ?
        LIMIT 1`,
-      []
+      [q]
     );
 
     if (row) return await mapDictionaryEntry(row);
@@ -211,20 +223,21 @@ export async function searchEnglish(
   offset: number = 0
 ): Promise<SearchResult[]> {
   try {
-    const q = (word ?? "").trim() || "A";
-    const escapedQ = q.replace(/'/g, "''");
+    const q = sanitizeInput(word) || "A";
     const db = await getDatabase();
     const rows = await db.getAllAsync<any>(
       `SELECT *
        FROM dictionary
        WHERE dictionary_type = 'english_malayalam'
-         AND word LIKE '${escapedQ}%'
+         AND word LIKE ?
        ORDER BY word
        LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [`${q}%`, limit, offset]
     );
 
-    if (!rows || rows.length === 0) return [];
+    if (!rows || rows.length === 0) {
+      return fetchFromApi(`/api/english-malayalam/browse-english?query=${encodeURIComponent(word)}`);
+    }
 
     const ids = rows.map((r: any) => r.id).filter(Boolean);
     const meaningsMap = await loadMeaningsForRows(ids);
@@ -238,15 +251,15 @@ export async function searchEnglish(
 
 export async function getEnglishWord(word: string): Promise<DictionaryEntry | null> {
   try {
-    const escapedWord = word.replace(/'/g, "''");
+    const q = sanitizeInput(word);
     const db = await getDatabase();
     const row = await db.getFirstAsync<any>(
       `SELECT *
        FROM dictionary
        WHERE dictionary_type = 'english_malayalam'
-         AND word = '${escapedWord}'
+         AND word = ?
        LIMIT 1`,
-      []
+      [q]
     );
 
     if (row) return await mapDictionaryEntry(row);
@@ -270,20 +283,21 @@ export async function searchMalayalamEnglish(
   offset: number = 0
 ): Promise<SearchResult[]> {
   try {
-    const q = (word ?? "").trim() || "അ";
-    const escapedQ = q.replace(/'/g, "''");
+    const q = sanitizeInput(word) || "അ";
     const db = await getDatabase();
     const rows = await db.getAllAsync<any>(
       `SELECT *
        FROM dictionary
        WHERE dictionary_type = 'malayalam_english'
-         AND word LIKE '${escapedQ}%'
+         AND word LIKE ?
        ORDER BY word
        LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [`${q}%`, limit, offset]
     );
 
-    if (!rows || rows.length === 0) return [];
+    if (!rows || rows.length === 0) {
+      return fetchFromApi(`/api/malayalam-english/browse-malayalam?query=${encodeURIComponent(word)}`);
+    }
 
     const ids = rows.map((r: any) => r.id).filter(Boolean);
     const meaningsMap = await loadMeaningsForRows(ids);
@@ -297,15 +311,15 @@ export async function searchMalayalamEnglish(
 
 export async function getMalayalamEnglishWord(word: string): Promise<DictionaryEntry | null> {
   try {
-    const escapedWord = word.replace(/'/g, "''");
+    const q = sanitizeInput(word);
     const db = await getDatabase();
     const row = await db.getFirstAsync<any>(
       `SELECT *
        FROM dictionary
        WHERE dictionary_type = 'malayalam_english'
-         AND word = '${escapedWord}'
+         AND word = ?
        LIMIT 1`,
-      []
+      [q]
     );
 
     if (row) return await mapDictionaryEntry(row);
@@ -329,20 +343,21 @@ export async function searchSynonym(
   offset: number = 0
 ): Promise<SearchResult[]> {
   try {
-    const q = (word ?? "").trim() || "അ";
-    const escapedQ = q.replace(/'/g, "''");
+    const q = sanitizeInput(word) || "അ";
     const db = await getDatabase();
     const rows = await db.getAllAsync<any>(
       `SELECT *
        FROM dictionary
        WHERE dictionary_type = 'malayalam_thesaurus'
-         AND word LIKE '${escapedQ}%'
+         AND word LIKE ?
        ORDER BY word
        LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [`${q}%`, limit, offset]
     );
 
-    if (!rows || rows.length === 0) return [];
+    if (!rows || rows.length === 0) {
+      return fetchFromApi(`/api/synonyms?search=${encodeURIComponent(word)}`);
+    }
 
     const ids = rows.map((r: any) => r.id).filter(Boolean);
     const meaningsMap = await loadMeaningsForRows(ids);
@@ -356,15 +371,15 @@ export async function searchSynonym(
 
 export async function getSynonymWord(word: string): Promise<DictionaryEntry | null> {
   try {
-    const escapedWord = word.replace(/'/g, "''");
+    const q = sanitizeInput(word);
     const db = await getDatabase();
     const row = await db.getFirstAsync<any>(
       `SELECT *
        FROM dictionary
        WHERE dictionary_type = 'malayalam_thesaurus'
-         AND word = '${escapedWord}'
+         AND word = ?
        LIMIT 1`,
-      []
+      [q]
     );
 
     if (row) return await mapDictionaryEntry(row);
@@ -379,3 +394,182 @@ export async function getSynonymWord(word: string): Promise<DictionaryEntry | nu
     return null;
   }
 }
+
+// -------------------- Local Suggested Words Storage --------------------
+
+export interface LocalSuggestedWord {
+  id?: number;
+  word: string;
+  meaning: string;
+  language_type: string;
+  root?: string;
+  etymology?: string;
+  cultural_note?: string;
+  gender?: string;
+  phonetic_transcription?: string;
+  synonyms?: string;
+  antonyms?: string;
+  dialects?: string;
+  proverbs?: string;
+  equivalents?: string;
+  contributor_name: string;
+  contributor_email: string;
+  status?: "pending" | "approved" | "rejected";
+  created_at?: string;
+}
+
+async function ensureSuggestedWordsTable(): Promise<Awaited<ReturnType<typeof getDatabase>>> {
+  const db = await getDatabase();
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS suggested_words (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      word TEXT NOT NULL,
+      meaning TEXT NOT NULL,
+      language_type TEXT,
+      root TEXT,
+      etymology TEXT,
+      cultural_note TEXT,
+      gender TEXT,
+      phonetic_transcription TEXT,
+      synonyms TEXT,
+      antonyms TEXT,
+      dialects TEXT,
+      proverbs TEXT,
+      equivalents TEXT,
+      contributor_name TEXT,
+      contributor_email TEXT,
+      status TEXT DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  try {
+    await db.execAsync("ALTER TABLE suggested_words ADD COLUMN status TEXT DEFAULT 'pending';");
+  } catch {
+    // Column already exists, safe to ignore
+  }
+
+  return db;
+}
+
+export async function saveLocalSuggestedWord(suggestion: LocalSuggestedWord): Promise<number> {
+  try {
+    const db = await ensureSuggestedWordsTable();
+
+    const result = await db.runAsync(
+      `INSERT INTO suggested_words (
+        word, meaning, language_type, root, etymology, cultural_note, gender,
+        phonetic_transcription, synonyms, antonyms, dialects, proverbs,
+        equivalents, contributor_name, contributor_email, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        sanitizeInput(suggestion.word),
+        sanitizeInput(suggestion.meaning),
+        sanitizeInput(suggestion.language_type || "malayalam"),
+        sanitizeInput(suggestion.root || ""),
+        sanitizeInput(suggestion.etymology || ""),
+        sanitizeInput(suggestion.cultural_note || ""),
+        sanitizeInput(suggestion.gender || ""),
+        sanitizeInput(suggestion.phonetic_transcription || ""),
+        sanitizeInput(suggestion.synonyms || ""),
+        sanitizeInput(suggestion.antonyms || ""),
+        sanitizeInput(suggestion.dialects || ""),
+        sanitizeInput(suggestion.proverbs || ""),
+        sanitizeInput(suggestion.equivalents || ""),
+        sanitizeInput(suggestion.contributor_name),
+        sanitizeInput(suggestion.contributor_email),
+        sanitizeInput(suggestion.status || "pending"),
+      ]
+    );
+
+    console.log(`✅ [Local SQLite] Word suggestion saved locally with ID: ${result.lastInsertRowId}`);
+    return result.lastInsertRowId;
+  } catch (error) {
+    console.error("Failed to save suggested word to local database:", error);
+    throw error;
+  }
+}
+
+export async function getLocalSuggestedWords(
+  statusFilter?: "pending" | "approved" | "rejected" | "all"
+): Promise<LocalSuggestedWord[]> {
+  try {
+    const db = await ensureSuggestedWordsTable();
+    let query = "SELECT * FROM suggested_words";
+    const params: any[] = [];
+
+    if (statusFilter && statusFilter !== "all") {
+      query += " WHERE status = ? OR (status IS NULL AND ? = 'pending')";
+      params.push(statusFilter, statusFilter);
+    }
+    query += " ORDER BY id DESC";
+
+    const rows: any[] = (await db.getAllAsync(query, params)) || [];
+    return rows.map((r: any) => ({
+      ...r,
+      status: (r.status || "pending") as "pending" | "approved" | "rejected",
+    }));
+  } catch (err) {
+    console.warn("Failed to get local suggested words:", err);
+    return [];
+  }
+}
+
+export async function getLocalSuggestedWordById(id: number | string): Promise<LocalSuggestedWord | null> {
+  try {
+    const db = await ensureSuggestedWordsTable();
+    const numericId = typeof id === "string" ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) return null;
+
+    const row: any = await db.getFirstAsync(
+      "SELECT * FROM suggested_words WHERE id = ?",
+      [numericId]
+    );
+    if (!row) return null;
+    return {
+      ...row,
+      status: (row.status || "pending") as "pending" | "approved" | "rejected",
+    };
+  } catch (err) {
+    console.warn("Failed to get suggested word by ID:", err);
+    return null;
+  }
+}
+
+export async function updateLocalSuggestedWordStatus(
+  id: number | string,
+  status: "pending" | "approved" | "rejected"
+): Promise<boolean> {
+  try {
+    const db = await ensureSuggestedWordsTable();
+    const numericId = typeof id === "string" ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) return false;
+
+    await db.runAsync(
+      "UPDATE suggested_words SET status = ? WHERE id = ?",
+      [status, numericId]
+    );
+    console.log(`✅ [Local SQLite] Suggestion ${numericId} status updated to: ${status}`);
+    return true;
+  } catch (err) {
+    console.error("Failed to update suggestion status in local SQLite:", err);
+    return false;
+  }
+}
+
+export async function deleteLocalSuggestedWord(id: number | string): Promise<boolean> {
+  try {
+    const db = await ensureSuggestedWordsTable();
+    const numericId = typeof id === "string" ? parseInt(id, 10) : id;
+    if (isNaN(numericId)) return false;
+
+    await db.runAsync("DELETE FROM suggested_words WHERE id = ?", [numericId]);
+    console.log(`✅ [Local SQLite] Suggestion ${numericId} deleted successfully`);
+    return true;
+  } catch (err) {
+    console.error("Failed to delete suggestion from local SQLite:", err);
+    return false;
+  }
+}
+
+

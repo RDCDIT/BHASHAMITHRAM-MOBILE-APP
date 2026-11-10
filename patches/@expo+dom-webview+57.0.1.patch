@@ -1,0 +1,34 @@
+diff --git a/node_modules/@expo/dom-webview/android/src/main/java/expo/modules/webview/DomWebView.kt b/node_modules/@expo/dom-webview/android/src/main/java/expo/modules/webview/DomWebView.kt
+index 125ad1d..31c5fb8 100644
+--- a/node_modules/@expo/dom-webview/android/src/main/java/expo/modules/webview/DomWebView.kt
++++ b/node_modules/@expo/dom-webview/android/src/main/java/expo/modules/webview/DomWebView.kt
+@@ -37,8 +37,8 @@ internal class DomWebView(context: Context, appContext: AppContext) : ExpoView(c
+   private val rncWebViewBridge = RNCWebViewBridge(this@DomWebView)
+   var webviewDebuggingEnabled: Boolean = false
+     set(value) {
+-      field = value
+-      WebView.setWebContentsDebuggingEnabled(value)
++      field = false
++      WebView.setWebContentsDebuggingEnabled(false)
+     }
+   var nestedScrollEnabled = true
+ 
+@@ -194,13 +194,12 @@ internal class DomWebView(context: Context, appContext: AppContext) : ExpoView(c
+   private fun createWebView(): WebView {
+     return WebView(context).apply {
+       setBackgroundColor(Color.TRANSPARENT)
+-      settings.javaScriptEnabled = true
+-      // API 30+ default disables file access; DOM bundles need it for sibling assets.
+-      settings.allowFileAccess = true
+-      settings.allowFileAccessFromFileURLs = true
++      settings.javaScriptEnabled = false
++      // Hardened security for VAPT compliance: disable file access from WebViews
++      settings.allowFileAccess = false
++      settings.allowFileAccessFromFileURLs = false
++      settings.allowUniversalAccessFromFileURLs = false
+       webViewClient = createWebViewClient()
+-      addJavascriptInterface(rncWebViewBridge, "ReactNativeWebView")
+-      addJavascriptInterface(DomWebViewBridge(this@DomWebView), "ExpoDomWebViewBridge")
+       setOnTouchListener(this@DomWebView)
+     }
+   }

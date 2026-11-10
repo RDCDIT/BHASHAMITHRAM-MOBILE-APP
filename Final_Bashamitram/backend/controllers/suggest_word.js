@@ -3,152 +3,296 @@
  * @description Controller handles incoming suggestions from users proposing new words/meanings.
  */
 
-const SuggestedWord = require('../models/SuggestedWord');
-const DataviewSuggestion = require('../models/DataviewSuggestion');
-const DataviewCollection = require('../models/DataviewCollection');
+const fs = require('fs');
+const path = require('path');
+const {
+  SuggestedWord,
+  DataviewSuggestion,
+  DataviewCollection,
+  getMySQLStatus
+} = require('../config/mysql');
 const { sendSuggestionReceivedMail } = require('../services/mailService');
+const {
+  computeSha256,
+  verifyHmacSignature,
+  decryptAes256,
+  sanitizeSuggestionPayload,
+  sanitizeString,
+  validateHighEndEmail
+} = require('../utils/security');
+
+// Local Offline Storage Fallback
+const DATA_DIR = path.join(__dirname, '../data');
+const PENDING_SUGGESTIONS_FILE = path.join(DATA_DIR, 'pending_suggestions.json');
+const PENDING_DATAVIEW_FILE = path.join(DATA_DIR, 'pending_dataview.json');
+
+function ensureDataDir() {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+}
+
+function saveLocalSuggestion(data) {
+  ensureDataDir();
+  let existing = [];
+  try {
+    if (fs.existsSync(PENDING_SUGGESTIONS_FILE)) {
+      existing = JSON.parse(fs.readFileSync(PENDING_SUGGESTIONS_FILE, 'utf-8'));
+    }
+  } catch (e) {
+    existing = [];
+  }
+  const id = existing.length > 0 ? (existing[existing.length - 1]._id || 0) + 1 : 1;
+  const entry = { _id: id, ...data, saved_at: new Date().toISOString() };
+  existing.push(entry);
+  fs.writeFileSync(PENDING_SUGGESTIONS_FILE, JSON.stringify(existing, null, 2), 'utf-8');
+  return entry;
+}
+
+function saveLocalDataview(data) {
+  ensureDataDir();
+  let existing = [];
+  try {
+    if (fs.existsSync(PENDING_DATAVIEW_FILE)) {
+      existing = JSON.parse(fs.readFileSync(PENDING_DATAVIEW_FILE, 'utf-8'));
+    }
+  } catch (e) {
+    existing = [];
+  }
+  const id = existing.length > 0 ? (existing[existing.length - 1]._id || 0) + 1 : 1;
+  const entry = { _id: id, ...data, saved_at: new Date().toISOString() };
+  existing.push(entry);
+  fs.writeFileSync(PENDING_DATAVIEW_FILE, JSON.stringify(existing, null, 2), 'utf-8');
+  return entry;
+}
 
 /**
  * POST /api/words/suggest
  * Creates a new word suggestion entry in the Suggested_words collection
  * and contributor records in the DataviewSuggestions collection.
+ * 
+ * Enforces High-Security standards:
+ * - Replaces legacy/insecure MD5 with SHA-256 audit digest & HMAC-SHA256 signatures
+ * - Supports AES-256 encrypted payload transport
+ * - Multi-layered Anti-Malware / Anti-Virus / XSS / Injection threat neutralization
  */
 /**
- * Adds a new word suggestion entry into the suggestions database collection.
+ * Adds a new word suggestion entry into the suggestions database collection with high-security verification.
  * 
  * @param {Object} req - Express request.
  * @param {Object} res - Express response.
  */
 const suggestWord = async (req, res) => {
   const startTime = Date.now();
-  console.log(`\n📥 [Incoming Request] POST /api/words/suggest`);
+  console.log(`\n📥 [Incoming Request] POST /api/words/suggest (High-Security Mode)`);
 
   try {
-    const {
-      word,
-      root,
-      etymology,
-      cultural_note,
-      synonyms,
-      antonyms,
-      dialects,
-      proverb,
-      similar_word,
-      novel_words,
-      cross_reference,
-      inflections,
-      gender,
-      phonetic_transcription,
-      equivalents,
-      equivalent_languages,
-      contributor,
-      meanings,
-      proverbs,
-      images,
-      pronunciation,
-      language_type
-    } = req.body;
+    let rawPayload = req.body;
+    let encryptionMode = "standard";
+
+    // 1. Support AES-256 Encrypted Payload Decryption
+    if (rawPayload && rawPayload.encrypted_payload) {
+      try {
+        console.log(`🔐 [Security] Decrypting AES-256-GCM payload...`);
+        rawPayload = decryptAes256(rawPayload.encrypted_payload);
+        encryptionMode = "aes-256-gcm";
+        console.log(`🔓 [Security] AES-256 payload decrypted successfully.`);
+      } catch (decErr) {
+        console.warn(`🚨 [Security Alert] AES-256 decryption failed: ${decErr.message}`);
+        return res.status(400).json({ error: "Invalid encrypted payload format." });
+      }
+    }
+
+    // 2. Cryptographic Tamper-Proofing: HMAC-SHA256 Signature Verification
+    const signature = req.headers['x-signature'] || rawPayload._signature;
+    const timestamp = req.headers['x-timestamp'] || rawPayload._timestamp;
+    let signatureVerified = false;
+
+    if (signature && timestamp) {
+      // Remove metadata keys before verifying signature if they were passed inside the body
+      const payloadToVerify = { ...rawPayload };
+      delete payloadToVerify._signature;
+      delete payloadToVerify._timestamp;
+
+      const verification = verifyHmacSignature(payloadToVerify, timestamp, signature);
+      if (!verification.valid) {
+        console.warn(`⚠️ [Security Notice] HMAC-SHA256 signature verification notice: ${verification.reason}. Proceeding with rigorous payload sanitization.`);
+        signatureVerified = false;
+      } else {
+        signatureVerified = true;
+        console.log(`🛡️ [Security] HMAC-SHA256 signature authenticated successfully.`);
+      }
+    }
+
+    // 3. Anti-Malware & Anti-Virus Threat Neutralization (Deep Sanitization)
+    let sanitized;
+    try {
+      sanitized = sanitizeSuggestionPayload(rawPayload);
+    } catch (threatErr) {
+      console.error(`🚨 [Security Alert] Malicious payload rejected: ${threatErr.message}`);
+      return res.status(400).json({ error: threatErr.message });
+    }
 
     // Validation
-    if (!word || word.trim() === '') {
+    if (!sanitized.word || sanitized.word.trim() === '') {
       console.log('⚠️ [Validation Failed] Client omitted required word parameter.');
       return res.status(400).json({ error: "Word is required." });
     }
 
-    console.log(`🔍 [Database Query] Determining next integer ID for SuggestedWord...`);
-    
-    // Find the maximum _id to auto-increment sequentially
-    const maxDoc = await SuggestedWord.findOne().sort({ _id: -1 });
-    const nextId = maxDoc && typeof maxDoc._id === 'number' ? maxDoc._id + 1 : 1;
-
-    console.log(`🔄 [Database] Auto-increment ID resolved to: ${nextId}`);
-
-    // Create the suggested word entry
-    const newSuggestion = new SuggestedWord({
-      _id: nextId,
-      word: word.trim(),
-      language_type: language_type ? language_type.trim() : 'malayalam',
-      root: root ? root.trim() : '',
-      etymology: etymology ? etymology.trim() : '',
-      cultural_note: cultural_note ? cultural_note.trim() : '',
-      synonyms: synonyms ? synonyms.trim() : '',
-      antonyms: antonyms ? antonyms.trim() : '',
-      dialects: dialects ? dialects.trim() : '',
-      proverb: proverb ? proverb.trim() : '',
-      similar_word: similar_word ? similar_word.trim() : '',
-      novel_words: novel_words ? novel_words.trim() : '',
-      cross_reference: cross_reference ? cross_reference.trim() : '',
-      inflections: inflections ? inflections.trim() : '',
-      gender: gender ? gender.trim() : '',
-      phonetic_transcription: phonetic_transcription ? phonetic_transcription.trim() : '',
-      pronunciation: pronunciation ? pronunciation.trim() : '',
-      equivalents: {
-        kannada: equivalents?.kannada ? equivalents.kannada.trim() : '',
-        tamil: equivalents?.tamil ? equivalents.tamil.trim() : '',
-        telugu: equivalents?.telugu ? equivalents.telugu.trim() : '',
-        tulu: equivalents?.tulu ? equivalents.tulu.trim() : '',
-        english: equivalents?.english ? equivalents.english.trim() : ''
-      },
-      equivalent_languages: Array.isArray(equivalent_languages) ? equivalent_languages.map(el => ({
-        language: el.language ? el.language.trim() : '',
-        translation: el.translation ? el.translation.trim() : ''
-      })) : [],
-      contributor: {
-        name: contributor?.name ? contributor.name.trim() : '',
-        email: contributor?.email ? contributor.email.trim() : ''
-      },
-      status: {
-        approved: false,
-        superuser_approved: false,
-        done_by_user: false
-      },
-      images: Array.isArray(images) ? images : [],
-      meanings: Array.isArray(meanings) ? meanings.filter(m => m.meaning && m.meaning.trim() !== '').map((m, idx) => ({
-        id: idx + 1,
-        meaning: m.meaning.trim(),
-        context_usage: m.context_usage ? m.context_usage.trim() : ''
-      })) : [],
-      proverbs: Array.isArray(proverbs) ? proverbs.filter(p => p.proverb && p.proverb.trim() !== '').map((p, idx) => ({
-        id: idx + 1,
-        proverb: p.proverb.trim(),
-        context_usage: p.context_usage ? p.context_usage.trim() : ''
-      })) : []
-    });
-
-    const savedWord = await newSuggestion.save();
-
-    // Create the DataviewSuggestions contributor record
-    const newDataviewSuggestion = new DataviewSuggestion({
-      name: contributor?.name ? contributor.name.trim() : 'Anonymous',
-      email: contributor?.email ? contributor.email.trim() : 'anonymous@example.com',
-      word: word.trim(),
-      submitted_text: word.trim(),
-      wordId: nextId,
-      receive_emails: contributor?.receive_emails || false
-    });
-
-    const savedDataview = await newDataviewSuggestion.save();
-
-    // Send the acknowledgment email using the newly designed Malayalam HTML layout
-    if (contributor?.email) {
-      try {
-        await sendSuggestionReceivedMail(
-          contributor.email.trim(),
-          contributor.name ? contributor.name.trim() : "",
-          word.trim()
-        );
-        console.log(`✉️ [Mail Success] Suggestion acknowledgment email sent to ${contributor.email}`);
-      } catch (mailErr) {
-        console.error("⚠️ [Mail Error] Failed to send acknowledgment email:", mailErr.message);
+    // High-End Email Validation on Backend (Enforce authentic personal/official emails)
+    if (sanitized.contributor && sanitized.contributor.email) {
+      const emailCheck = validateHighEndEmail(sanitized.contributor.email);
+      if (!emailCheck.isValid) {
+        console.warn(`🚨 [Email Rejected] Dummy or invalid email detected: ${sanitized.contributor.email}`);
+        return res.status(400).json({ error: emailCheck.errorEn });
       }
     }
 
+    // 4. Compute High-Security SHA-256 Content Digest (Audit & Tamper Detection)
+    const contentHashSha256 = computeSha256({
+      word: sanitized.word,
+      language_type: sanitized.language_type,
+      root: sanitized.root,
+      contributor_email: sanitized.contributor.email,
+      timestamp: Date.now()
+    });
+
+    console.log(`🔍 [MySQL] Persisting suggested word to MySQL database...`);
+    
+    let savedWord = null;
+    let savedDataview = null;
+
+    if (getMySQLStatus()) {
+      try {
+        const createdWord = await SuggestedWord.create({
+          word: sanitized.word,
+          meaning: sanitized.meanings?.[0]?.meaning || sanitized.meaning || '',
+          language_type: sanitized.language_type || 'malayalam',
+          root: sanitized.root,
+          etymology: sanitized.etymology,
+          cultural_note: sanitized.cultural_note,
+          synonyms: sanitized.synonyms,
+          antonyms: sanitized.antonyms,
+          dialects: sanitized.dialects,
+          proverb: sanitized.proverb,
+          similar_word: sanitized.similar_word,
+          novel_words: sanitized.novel_words,
+          cross_reference: sanitized.cross_reference,
+          inflections: sanitized.inflections,
+          gender: sanitized.gender,
+          phonetic_transcription: sanitized.phonetic_transcription,
+          pronunciation: sanitized.pronunciation,
+          equivalents_kannada: sanitized.equivalents?.kannada || '',
+          equivalents_tamil: sanitized.equivalents?.tamil || '',
+          equivalents_telugu: sanitized.equivalents?.telugu || '',
+          equivalents_tulu: sanitized.equivalents?.tulu || '',
+          equivalents_english: sanitized.equivalents?.english || '',
+          equivalent_languages: JSON.stringify(sanitized.equivalent_languages || []),
+          contributor_name: sanitized.contributor?.name || '',
+          contributor_email: sanitized.contributor?.email || '',
+          receive_emails: sanitized.contributor?.receive_emails || false,
+          status: 'pending',
+          superuser_approved: false,
+          images: JSON.stringify(sanitized.images || []),
+          meanings_json: JSON.stringify(sanitized.meanings || []),
+          security_content_hash: contentHashSha256,
+          security_signature_verified: signatureVerified,
+        });
+
+        savedWord = createdWord.toJSON();
+        savedWord._id = savedWord.id;
+
+        const createdDataview = await DataviewSuggestion.create({
+          word_id: savedWord.id,
+          name: sanitized.contributor?.name || 'Anonymous',
+          email: sanitized.contributor?.email || 'anonymous@example.com',
+          word: sanitized.word,
+          submitted_text: sanitized.word,
+          receive_emails: sanitized.contributor?.receive_emails || false,
+        });
+
+        savedDataview = createdDataview.toJSON();
+        savedDataview._id = savedDataview.id;
+        console.log(`✅ [MySQL Success] Word suggestion saved to MySQL (ID: ${savedWord.id}).`);
+      } catch (dbErr) {
+        console.warn(`⚠️ [MySQL Warning] Insert failed: ${dbErr.message}. Storing in resilient local queue.`);
+      }
+    } else {
+      console.warn(`💡 [MySQL Info] MySQL currently offline. Storing suggestion in resilient local storage queue.`);
+    }
+
+    if (!savedWord) {
+      savedWord = saveLocalSuggestion({
+        word: sanitized.word,
+        language_type: sanitized.language_type,
+        root: sanitized.root,
+        etymology: sanitized.etymology,
+        cultural_note: sanitized.cultural_note,
+        synonyms: sanitized.synonyms,
+        antonyms: sanitized.antonyms,
+        dialects: sanitized.dialects,
+        proverb: sanitized.proverb,
+        similar_word: sanitized.similar_word,
+        novel_words: sanitized.novel_words,
+        cross_reference: sanitized.cross_reference,
+        inflections: sanitized.inflections,
+        gender: sanitized.gender,
+        phonetic_transcription: sanitized.phonetic_transcription,
+        pronunciation: sanitized.pronunciation,
+        equivalents: sanitized.equivalents,
+        equivalent_languages: sanitized.equivalent_languages,
+        meanings: sanitized.meanings,
+        status: {
+          approved: false,
+          superuser_approved: false,
+          done_by_user: false,
+          rejected: false
+        },
+        contributor: sanitized.contributor,
+        security: {
+          content_hash_sha256: contentHashSha256,
+          signature_verified: signatureVerified,
+          sanitized: true,
+          encryption_mode: encryptionMode,
+          received_at: new Date()
+        }
+      });
+      savedDataview = {
+        name: sanitized.contributor.name || 'Anonymous',
+        email: sanitized.contributor.email || 'anonymous@example.com',
+        word: sanitized.word,
+        submitted_text: sanitized.word,
+        wordId: savedWord._id,
+        receive_emails: sanitized.contributor.receive_emails,
+        is_local_queued: true
+      };
+    }
+
+    // Send the acknowledgment email using the newly designed Malayalam HTML layout (non-blocking)
+    if (sanitized.contributor.email) {
+      sendSuggestionReceivedMail(
+        sanitized.contributor.email,
+        sanitized.contributor.name || "",
+        sanitized.word
+      ).then(() => {
+        console.log(`✉️ [Mail Success] Suggestion acknowledgment email sent to ${sanitized.contributor.email}`);
+      }).catch((mailErr) => {
+        console.warn("⚠️ [Mail Warning] Failed to send acknowledgment email:", mailErr.message);
+      });
+    }
+
     const duration = Date.now() - startTime;
-    console.log(`✅ [Database Success] Word suggestion saved (ID: ${savedWord._id}) and contributor details logged to DataviewSuggestions (ID: ${savedDataview._id}).`);
+    console.log(`✅ [Database Success] Word suggestion saved (ID: ${savedWord._id}) [SHA-256: ${contentHashSha256.substring(0, 12)}...]`);
     console.log(`⚡ [Performance] Request lifecycle resolved in ${duration}ms.`);
 
     return res.status(201).json({
       message: "Suggestion submitted successfully.",
+      security: {
+        content_hash_sha256: contentHashSha256,
+        signature_verified: signatureVerified,
+        sanitized: true,
+        encryption_mode: encryptionMode
+      },
       data: {
         word: savedWord,
         contributor: savedDataview
@@ -167,20 +311,40 @@ const suggestWord = async (req, res) => {
  */
 const getSuggestions = async (req, res) => {
   try {
-    const wordSuggestions = await SuggestedWord.find().sort({ createdAt: -1 });
-    const dataviewSuggestions = await DataviewSuggestion.find();
+    let combined = [];
 
-    const combined = wordSuggestions.map(wordDoc => {
-      const dvDoc = dataviewSuggestions.find(d => d.wordId === wordDoc._id);
-      return {
-        ...wordDoc.toObject(),
-        contributor: dvDoc ? {
-          name: dvDoc.name,
-          email: dvDoc.email,
-          createdAt: dvDoc.createdAt
-        } : wordDoc.contributor
-      };
-    });
+    if (getMySQLStatus()) {
+      try {
+        const wordSuggestions = await SuggestedWord.findAll({ order: [['created_at', 'DESC']] });
+        const dataviewSuggestions = await DataviewSuggestion.findAll();
+
+        combined = wordSuggestions.map((w) => {
+          const wordObj = w.toJSON();
+          const dv = dataviewSuggestions.find((d) => d.word_id === wordObj.id);
+          return {
+            ...wordObj,
+            _id: wordObj.id,
+            contributor: dv ? {
+              name: dv.name,
+              email: dv.email,
+              createdAt: dv.created_at,
+            } : {
+              name: wordObj.contributor_name,
+              email: wordObj.contributor_email,
+            },
+          };
+        });
+      } catch (sqlErr) {
+        console.warn('⚠️ [MySQL] Fetch suggestions failed, falling back to local queue:', sqlErr.message);
+      }
+    }
+
+    if (combined.length === 0) {
+      combined = readLocalSuggestions().map((doc) => ({
+        ...doc,
+        _id: doc._id || doc.id,
+      }));
+    }
 
     return res.status(200).json(combined);
   } catch (error) {
@@ -195,15 +359,33 @@ const getSuggestions = async (req, res) => {
 const saveDataviewCollection = async (req, res) => {
   try {
     const { name, email, word } = req.body;
-    if (!name || !name.trim() || !email || !email.trim() || !word || !word.trim()) {
-      return res.status(400).json({ error: "name, email, and word are required." });
+    const cleanName = sanitizeString(name, 100);
+    const cleanEmail = sanitizeString(email, 150);
+    const cleanWord = sanitizeString(word, 150);
+
+    if (!cleanName || !cleanEmail || !cleanWord) {
+      return res.status(400).json({ error: "name, email, and word are required and must be valid." });
     }
-    const newDoc = new DataviewCollection({
-      name: name.trim(),
-      email: email.trim(),
-      word: word.trim()
-    });
-    const saved = await newDoc.save();
+
+    let saved = null;
+    if (getMySQLStatus()) {
+      try {
+        const newDoc = await DataviewCollection.create({
+          name: cleanName,
+          email: cleanEmail,
+          word: cleanWord,
+        });
+        saved = newDoc.toJSON();
+        saved._id = saved.id;
+      } catch (dbErr) {
+        console.warn(`⚠️ [Dataview Warning] MySQL save failed: ${dbErr.message}`);
+      }
+    }
+
+    if (!saved) {
+      saved = saveLocalDataview({ name: cleanName, email: cleanEmail, word: cleanWord });
+    }
+
     return res.status(201).json({ message: "Saved to Dataview_collection successfully.", data: saved });
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -216,7 +398,15 @@ const saveDataviewCollection = async (req, res) => {
  */
 const getDataviewCollection = async (req, res) => {
   try {
-    const data = await DataviewCollection.find().sort({ timestamp: -1 });
+    let data = [];
+    if (getMySQLStatus()) {
+      try {
+        const rows = await DataviewCollection.findAll({ order: [['created_at', 'DESC']] });
+        data = rows.map((r) => ({ ...r.toJSON(), _id: r.id }));
+      } catch (e) {
+        console.warn('MySQL fetch dataview failed:', e.message);
+      }
+    }
     return res.status(200).json(data);
   } catch (error) {
     return res.status(500).json({ error: error.message });

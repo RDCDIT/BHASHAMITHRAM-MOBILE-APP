@@ -7,18 +7,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
   Platform,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Switch,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { clearRecentActivity } from "../utils/recentActivity";
+
+import { useResponsive } from "../utils/responsive";
+
+import BottomTabBar from "../components/BottomTabBar";
+import FloatingLettersBackground from "../components/FloatingLettersBackground";
 
 /**
  * Renders and manages the SettingsScreen component/view.
@@ -27,46 +30,37 @@ import { clearRecentActivity } from "../utils/recentActivity";
  */
 export default function SettingsScreen() {
   const router = useRouter();
+  const {
+    headerHeight,
+    headerTitleFontSize,
+    cardPadding,
+    cardMarginBottom,
+    horizontalPadding,
+  } = useResponsive();
+
   const [voiceSearchEnabled, setVoiceSearchEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [hapticFeedback, setHapticFeedback] = useState(true);
 
   const colors = {
-    headerBg: "#2B2C51",
-    containerBg: "transparent",
-    cardBg: "rgba(255, 255, 255, 0.6)",
-    textPrimary: "#1F2937",
-    textSecondary: "#6B7280",
-    danger: "#EF4444",
-  };
-
-  const handleClearHistory = () => {
-    Alert.alert(
-      "ചരിത്രം ഇല്ലാതാക്കുക",
-      "തിരച്ചിൽ ചരിത്രം പൂർണ്ണമായും ഇല്ലാതാക്കാൻ നിങ്ങൾ ആഗ്രഹിക്കുന്നുണ്ടോ?",
-      [
-        { text: "അല്ല", style: "cancel" },
-        {
-          text: "അതെ",
-          style: "destructive",
-          onPress: async () => {
-            await clearRecentActivity("all");
-            Alert.alert("വിജയം", "തിരച്ചിൽ ചരിത്രം ഇല്ലാതാക്കിയിരിക്കുന്നു.");
-          },
-        },
-      ]
-    );
+    headerBg: "#FFFFFF",
+    cardBg: "#FFFFFF",
+    textPrimary: "#0F172A",
+    textSecondary: "#64748B",
+    primaryBlue: "#2563EB",
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.containerBg }]}
-      edges={["top", "left", "right"]}
-    >
-      <StatusBar backgroundColor={colors.headerBg} barStyle="light-content" />
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+      <StatusBar style="dark" />
 
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.headerBg }]}>
-        <TouchableOpacity
+      {/* Floating Ambient Background */}
+      <FloatingLettersBackground />
+
+      {/* Clean Modern Header (Matching Screen 4) */}
+      <View style={[styles.header, { height: headerHeight }]}>
+        <View style={styles.headerInner}>
+          <TouchableOpacity
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -76,30 +70,52 @@ export default function SettingsScreen() {
             }}
             style={styles.headerButton}
             activeOpacity={0.7}
+            accessibilityLabel="Go back"
           >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color="#0F172A" />
           </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>ക്രമീകരണങ്ങൾ</Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { fontSize: headerTitleFontSize }]}>
+              ക്രമീകരണങ്ങൾ
+            </Text>
+            <Text style={styles.headerSubtitle}>Settings</Text>
+          </View>
 
-        <View style={styles.headerPlaceholder} />
+          <View style={styles.headerPlaceholder} />
+        </View>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingHorizontal: horizontalPadding,
+            paddingBottom: Math.round(cardMarginBottom * 2.5),
+          },
+        ]}
       >
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
           പൊതുവായവ (General Settings)
         </Text>
 
         {/* Setting Card */}
-        <View style={[styles.settingsCard, { backgroundColor: colors.cardBg }]}>
+        <View
+          style={[
+            styles.settingsCard,
+            {
+              backgroundColor: colors.cardBg,
+              paddingHorizontal: cardPadding,
+              marginBottom: cardMarginBottom,
+            },
+          ]}
+        >
           {/* Voice Search Toggle */}
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <View style={[styles.iconWrapper, { backgroundColor: "#EFF6FF" }]}>
-                <Ionicons name="mic-outline" size={20} color="#2563EB" />
+                <Ionicons name="mic" size={20} color="#2563EB" />
               </View>
               <View>
                 <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
@@ -113,16 +129,16 @@ export default function SettingsScreen() {
             <Switch
               value={voiceSearchEnabled}
               onValueChange={setVoiceSearchEnabled}
-              trackColor={{ false: "#D1D5DB", true: "#A5B4FC" }}
-              thumbColor={voiceSearchEnabled ? "#2B2C51" : "#F3F4F6"}
+              trackColor={{ false: "#CBD5E1", true: "#93C5FD" }}
+              thumbColor={voiceSearchEnabled ? "#2563EB" : "#F8FAFC"}
             />
           </View>
 
           {/* Notifications Toggle */}
-          <View style={[styles.settingRow, styles.noBorder]}>
+          <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <View style={[styles.iconWrapper, { backgroundColor: "#FFF1F2" }]}>
-                <Ionicons name="notifications-outline" size={20} color="#F43F5E" />
+              <View style={[styles.iconWrapper, { backgroundColor: "#ECFDF5" }]}>
+                <Ionicons name="notifications" size={20} color="#059669" />
               </View>
               <View>
                 <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
@@ -136,50 +152,88 @@ export default function SettingsScreen() {
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
-              trackColor={{ false: "#D1D5DB", true: "#A5B4FC" }}
-              thumbColor={notificationsEnabled ? "#2B2C51" : "#F3F4F6"}
+              trackColor={{ false: "#CBD5E1", true: "#6EE7B7" }}
+              thumbColor={notificationsEnabled ? "#059669" : "#F8FAFC"}
+            />
+          </View>
+
+          {/* Haptic Feedback Toggle */}
+          <View style={[styles.settingRow, styles.noBorder]}>
+            <View style={styles.settingInfo}>
+              <View style={[styles.iconWrapper, { backgroundColor: "#FFF7ED" }]}>
+                <Ionicons name="phone-portrait-outline" size={20} color="#EA580C" />
+              </View>
+              <View>
+                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
+                  ഹാപ്റ്റിക്സ്
+                </Text>
+                <Text style={[styles.settingSubLabel, { color: colors.textSecondary }]}>
+                  Vibration Feedback
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={hapticFeedback}
+              onValueChange={setHapticFeedback}
+              trackColor={{ false: "#CBD5E1", true: "#FDBA74" }}
+              thumbColor={hapticFeedback ? "#EA580C" : "#F8FAFC"}
             />
           </View>
         </View>
 
+        {/* Learning & Favorites Section */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-          ഡാറ്റ മാനേജ്‌മെന്റ് (Data Management)
+          പഠന സഹായി (Learning Tools)
         </Text>
 
-        <View style={[styles.settingsCard, { backgroundColor: colors.cardBg }]}>
-          {/* Clear History Button */}
+        <View
+          style={[
+            styles.settingsCard,
+            {
+              backgroundColor: colors.cardBg,
+              paddingHorizontal: cardPadding,
+              marginBottom: cardMarginBottom,
+            },
+          ]}
+        >
           <TouchableOpacity
-            style={styles.settingRowClickable}
+            style={[styles.settingRow, styles.noBorder]}
+            onPress={() => router.push("/favorites" as any)}
             activeOpacity={0.7}
-            onPress={handleClearHistory}
           >
             <View style={styles.settingInfo}>
               <View style={[styles.iconWrapper, { backgroundColor: "#FEF2F2" }]}>
-                <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                <Ionicons name="heart" size={20} color="#EF4444" />
               </View>
               <View>
-                <Text style={[styles.settingLabel, { color: colors.danger }]}>
-                  ചരിത്രം ഇല്ലാതാക്കുക
+                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
+                  പ്രിയപ്പെട്ട വാക്കുകൾ
                 </Text>
                 <Text style={[styles.settingSubLabel, { color: colors.textSecondary }]}>
-                  Clear History
+                  Favorite Words Collection
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
           </TouchableOpacity>
         </View>
 
         {/* Info Card */}
         <View style={styles.infoContainer}>
-          <Text style={[styles.versionText, { color: colors.textSecondary }]}>
-            Version: 2.0.0 (R&D C-DIT)
+          <Text style={[styles.versionText, { color: colors.textPrimary }]}>
+            ഭാഷാമിത്രം (Bhashamithram) v2.0.0
           </Text>
           <Text style={[styles.copyrightText, { color: colors.textSecondary }]}>
-            Developed by R&D C-DIT
+            Designed & Developed by R&D C-DIT
+          </Text>
+          <Text style={[styles.subCopyrightText, { color: colors.textSecondary }]}>
+            Centre for Development of Imaging Technology, Government of Kerala
           </Text>
         </View>
       </ScrollView>
+
+      {/* Bottom Navigation Tab Bar */}
+      <BottomTabBar activeTab="settings" />
     </SafeAreaView>
   );
 }
@@ -190,24 +244,43 @@ const styles = StyleSheet.create({
   },
   header: {
     height: Platform.OS === "android" ? 65 : 75,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  headerInner: {
+    width: "100%",
+    maxWidth: 700,
+    alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
   },
   headerButton: {
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F1F5F9",
     justifyContent: "center",
     alignItems: "center",
   },
-  headerTitle: {
+  headerTitleContainer: {
     flex: 1,
-    textAlign: "center",
-    color: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    color: "#0F172A",
     fontSize: 18,
     fontWeight: "700",
     fontFamily: "NotoSansMalayalam",
+  },
+  headerSubtitle: {
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "500",
   },
   headerPlaceholder: {
     width: 40,
@@ -216,6 +289,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 24,
     paddingBottom: 32,
+    width: "100%",
+    maxWidth: 700,
+    alignSelf: "center",
   },
   sectionTitle: {
     fontSize: 12,
@@ -229,15 +305,20 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 24,
     paddingHorizontal: 16,
+    width: "100%",
+    maxWidth: 700,
+    alignSelf: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     ...Platform.select({
       web: {
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.03)",
       },
       default: {
         shadowColor: "#000000",
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.04,
-        shadowRadius: 12,
+        shadowRadius: 8,
         elevation: 2,
       },
     }),
@@ -249,12 +330,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
-  },
-  settingRowClickable: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
   },
   noBorder: {
     borderBottomWidth: 0,
@@ -285,15 +360,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
     paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   versionText: {
     fontSize: 13,
     fontWeight: "600",
     fontFamily: "NotoSansMalayalam",
-    marginBottom: 2,
+    marginBottom: 4,
+    textAlign: "center",
   },
   copyrightText: {
     fontSize: 11,
-    fontWeight: "500",
+    fontWeight: "600",
+    marginBottom: 2,
+    textAlign: "center",
+  },
+  subCopyrightText: {
+    fontSize: 10,
+    fontWeight: "400",
+    textAlign: "center",
   },
 });

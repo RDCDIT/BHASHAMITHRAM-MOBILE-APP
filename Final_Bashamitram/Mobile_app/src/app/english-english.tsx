@@ -223,7 +223,10 @@ export default function EnglishMalayalamScreen() {
               }}>
             <Ionicons name="chevron-back" size={27} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>ഇംഗ്ലീഷ് - ഇംഗ്ലീഷ് നിഘണ്ടു</Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>ഭാഷാമിത്രം II</Text>
+            <Text style={styles.headerSubtitle}>ഇംഗ്ലീഷ് - ഇംഗ്ലീഷ് നിഘണ്ടു</Text>
+          </View>
           <View style={{ width: 27 }} />
         </View>
       </View>
@@ -334,10 +337,10 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   header: {
-    height: Platform.OS === "android" ? 75 : 95,
+    height: Platform.OS === "android" ? 82 : 100,
     backgroundColor: "#2B2C51",
     justifyContent: "flex-end",
-    paddingBottom: 12,
+    paddingBottom: 8,
   },
   headerContent: {
     flexDirection: "row",
@@ -345,11 +348,24 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
   },
+  headerTitleContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
   headerTitle: {
     color: "white",
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
     fontFamily: "NotoSansMalayalam",
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    color: "rgba(255, 255, 255, 0.82)",
+    fontSize: 12,
+    fontWeight: "600",
+    fontFamily: "NotoSansMalayalam",
+    textAlign: "center",
+    marginTop: 1,
   },
   alphabetContainer: {
     backgroundColor: "#F9F6F1",

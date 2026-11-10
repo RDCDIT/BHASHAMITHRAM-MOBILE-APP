@@ -1,14 +1,17 @@
 {
   "expo": {
-    "name": "Bhashamitharam2",
+    "name": "BHASHAMITHARM II",
     "slug": "bhashamitharam2",
-    "version": "1.0.0",
+    "scheme": "bhashamithram2",
+    "version": "1.0.11",
+    "icon": "./assets/images/icon.png",
     "android": {
+      "versionCode": 13,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/images/logo.png",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/logo.png"
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "org.cdit.bhashamithram2",
@@ -22,17 +25,25 @@
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
       "allowBackup": false,
-      "minSdkVersion": 29
+      "statusBar": {
+        "barStyle": "dark-content",
+        "backgroundColor": "#00000000",
+        "translucent": true
+      },
+      "navigationBar": {
+        "barStyle": "dark-content",
+        "backgroundColor": "#00000000"
+      }
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#2B2C51",
+          "backgroundColor": "#F8FAFC",
           "android": {
-            "image": "./assets/images/logo.png",
-            "imageWidth": 120
+            "image": "./assets/images/splash_logo.png",
+            "imageWidth": 260
           }
         }
       ],
@@ -41,16 +52,33 @@
       "expo-asset",
       "expo-font",
       "expo-status-bar",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24,
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class com.facebook.react.** { *; }\n-keep class expo.modules.** { *; }\n-keep class org.cdit.bhashamithram2.** { *; }\n-dontwarn **"
+          }
+        }
+      ]
     ],
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "f1c4f77d-def1-4cba-be69-c697afbbc8bf"
+        "projectId": "4ba3c84e-2fbf-4a1b-b8fd-64aa6a5b500f"
       }
     },
     "ios": {
-      "bundleIdentifier": "org.cdit.bhashamithram2"
-    }
+      "bundleIdentifier": "org.cdit.bhashamithram2",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "This app requires access to the microphone for voice search in the dictionary."
+      }
+    },
+    "owner": "rdc-dit"
   }
 }

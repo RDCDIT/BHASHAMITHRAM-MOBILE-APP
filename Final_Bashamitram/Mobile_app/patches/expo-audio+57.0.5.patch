@@ -1,0 +1,31 @@
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+index 196a5d5..e3d96b4 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+@@ -483,25 +483,7 @@ class AudioControlsService : MediaSessionService() {
+   }
+ 
+   private fun loadArtworkFromUrl(url: URL, callback: (Bitmap?) -> Unit) {
+-    if (url != currentArtworkUrl) {
+-      currentArtworkUrl = url
+-      artworkLoadJob?.cancel()
+-
+-      artworkLoadJob = scope.launch {
+-        try {
+-          val inputStream = url.openConnection().getInputStream()
+-          val bitmap = BitmapFactory.decodeStream(inputStream)
+-
+-          if (isActive) {
+-            callback(bitmap)
+-          }
+-        } catch (e: Exception) {
+-          if (isActive) {
+-            callback(null)
+-          }
+-        }
+-      }
+-    }
++    callback(null)
+   }
+ 
+   private fun hideNotification() {

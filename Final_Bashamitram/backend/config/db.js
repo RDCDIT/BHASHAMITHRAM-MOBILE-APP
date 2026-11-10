@@ -13,7 +13,7 @@ const connectDB = async (dbName = "BHASHAMITHRAM") => {
   try {
     const connection = await mongoose.connect(mongoUri, {
       dbName: dbName,
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 5000,
     });
 
     console.log(
